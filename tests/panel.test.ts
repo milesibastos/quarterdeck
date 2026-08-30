@@ -25,6 +25,11 @@ async function body(panel: Panel, path = "/"): Promise<string> {
   return (await response.text()).replaceAll("<!-- -->", "");
 }
 
+/** How many worker cards the fleet lens drew. */
+function workerCards(html: string): number {
+  return (html.match(/data-worker="/g) ?? []).length;
+}
+
 /** The status the shell put on one lens, or null when that lens is absent. */
 function lensStatus(html: string, name: string): string | null {
   return (
@@ -41,14 +46,14 @@ describe("the healthy fleet", () => {
 
   test("mounts all three lenses, each from its own directory", async () => {
     const html = await body(panel);
-    assert.ok(html.includes("The fleet lens is not built yet"));
+    assert.ok(html.includes('data-lens="fleet"'));
     assert.ok(html.includes("The deck lens is not built yet"));
     assert.ok(html.includes("The shipshape lens is not built yet"));
   });
 
   test("hands each lens the part of the document it reads", async () => {
     const html = await body(panel);
-    assert.ok(html.includes("11 workers in the document"));
+    assert.equal(workerCards(html), 11);
     assert.ok(html.includes("4 items in the document"));
   });
 
@@ -69,7 +74,8 @@ describe("the empty fleet", () => {
 
   test("renders a definitive empty state, not a degraded one", async () => {
     const html = await body(panel);
-    assert.ok(html.includes("0 workers in the document"));
+    assert.equal(workerCards(html), 0);
+    assert.ok(html.includes("No workers under way"), "a definitive empty state, in words");
     assert.ok(html.includes("0 items in the document"));
     assert.equal(lensStatus(html, "fleet"), "fresh", "an empty fleet is not a degraded one");
   });
@@ -87,7 +93,7 @@ describe("the stale fleet", () => {
       const html = await body(panel);
       assert.equal(lensStatus(html, "fleet"), "stale");
       assert.equal(lensStatus(html, "deck"), "stale");
-      assert.ok(html.includes("2 workers in the document"), "stale content is still shown");
+      assert.equal(workerCards(html), 2, "stale content is still shown");
       assert.ok(html.includes("freshness window"));
     } finally {
       await panel.stop();
@@ -142,7 +148,7 @@ describe("per-lens degradation", () => {
       assert.equal(lensStatus(html, "shipshape"), "unreadable");
       assert.equal(lensStatus(html, "fleet"), "fresh");
       assert.equal(lensStatus(html, "deck"), "fresh");
-      assert.ok(html.includes("3 workers in the document"), "the fleet lens still renders");
+      assert.equal(workerCards(html), 3, "the fleet lens still renders");
       assert.ok(html.includes("3 items in the document"), "the deck lens still renders");
     } finally {
       await panel.stop();
@@ -171,7 +177,7 @@ describe("a snapshot that stops parsing", () => {
       fixtureRoot,
     });
     try {
-      assert.ok((await body(panel)).includes("11 workers in the document"));
+      assert.equal(workerCards(await body(panel)), 11);
 
       // Truncate the snapshot under the running panel.
       await writeFile(
@@ -184,7 +190,7 @@ describe("a snapshot that stops parsing", () => {
         (text) => lensStatus(text, "fleet") === "unreadable",
       );
       assert.equal(lensStatus(html, "deck"), "unreadable");
-      assert.ok(html.includes("11 workers in the document"), "the fleet is still on screen");
+      assert.equal(workerCards(html), 11, "the fleet is still on screen");
       assert.equal(
         lensStatus(html, "shipshape"),
         "fresh",

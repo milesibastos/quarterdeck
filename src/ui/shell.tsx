@@ -35,7 +35,7 @@ export function Shell({
       </header>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <FleetLens lens={document.fleet} />
+        <FleetLens lens={document.fleet} nowMs={nowMs} />
         <DeckLens lens={document.deck} />
         <ShipshapeLens lens={document.health} />
       </div>
