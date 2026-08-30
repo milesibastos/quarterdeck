@@ -1,0 +1,53 @@
+# Theme through semantic tokens over a palette layer
+
+Date: 2026-08-30
+Status: accepted
+
+## Context
+
+The palette is the product's existing look and is not up for redesign. shadcn/ui
+themes through CSS variables. The panel must work in light and dark, and must
+not fetch a font at runtime.
+
+## Decision
+
+Three layers in `src/app/globals.css`, and components only ever touch the third:
+
+1. `--qd-*` - the palette. Raw colour, no meaning.
+2. `:root` and `.dark` - semantic tokens pointing at palette entries.
+3. `@theme inline` - exposes them to Tailwind.
+
+A component writes `bg-primary text-primary-foreground`, never a palette value.
+Dark is the same product in ink and paper: surfaces become ink, text becomes
+paper, and accents step one stop lighter because the surface got darker - not
+because dark mode gets its own hues.
+
+Chango, Jost and JetBrains Mono are committed as latin woff2 subsets under
+`src/ui/fonts/` and loaded with `next/font/local`.
+
+## Trade-offs
+
+**OKLCH values are computed, not eyeballed.** Each was converted from the source
+hex with the OKLab matrices, and the hex is kept in a comment beside it so the
+conversion stays auditable. Hand-guessing an OKLCH value is a coin flip per
+token, and thirty-four coin flips is a different palette.
+
+**A palette layer, rather than semantic tokens holding literal colours.** It
+means two hops to find a colour. It also means the light and dark blocks read as
+a mapping - "card is white, or ink-700 in the dark" - which is the thing a
+reviewer actually needs to check, and it makes a palette change one edit.
+
+**Dark is class-only.** `.dark` on the root element, per shadcn's structure. It
+does not follow the operator's system preference, because doing that without an
+inline script means either duplicating every dark token inside a
+`prefers-color-scheme` block - two copies that will drift - or shipping an
+inline script that weakens the Content-Security-Policy invariant 7 depends on.
+Neither is worth it for a skeleton with no theme switcher. Recorded as a gap in
+`docs/quality.md`.
+
+**`next/font/local`, not `next/font/google`.** Next's Google font loader
+self-hosts at build time and would satisfy the runtime rule. It would also make
+a clean clone's build depend on a font service being up, and it puts the font
+files somewhere nobody reviews. Committing the subsets with their OFL text makes
+the dependency visible, and the check that enforces invariant 7 can simply ban
+the import.

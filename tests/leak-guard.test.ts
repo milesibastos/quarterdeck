@@ -33,9 +33,10 @@ const EXEMPT = new Set(["package-lock.json", "skills-lock.json"]);
 
 /**
  * Vendored third-party content, refreshed wholesale by `npx skills add` and
- * never authored here. It documents generic tool locations like `~/.codex/`,
- * which name nobody's machine - and rewriting upstream's docs to satisfy our
- * guard would only make the next refresh fail again.
+ * never authored here. It documents where other tools keep their own config,
+ * under home-relative paths that name nobody's machine - and rewriting
+ * upstream's docs to satisfy our guard would only fail again on the next
+ * refresh. Note that this file is scanned too: keep example paths out of it.
  */
 const EXEMPT_TREES = [".agents/skills/"];
 
