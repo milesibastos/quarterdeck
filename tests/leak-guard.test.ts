@@ -11,8 +11,12 @@ import { formatViolation } from "./lib/violation.ts";
  *
  * No real project name, machine path, home directory or task identifier may
  * ever land in it. That is a promise nobody can keep by remembering, so it is
- * checked on every run instead - over the tracked files, which is exactly the
- * set that would be published.
+ * checked on every run instead.
+ *
+ * The scan covers tracked files and uncommitted ones that are not ignored -
+ * everything that would be published, plus everything on its way there. Only
+ * looking at the committed tree would leave the guard silent for exactly as
+ * long as it takes to commit the leak.
  */
 
 /** Every pattern here would identify a real machine, operator or task. */
@@ -40,15 +44,18 @@ const EXEMPT = new Set(["package-lock.json", "skills-lock.json"]);
  */
 const EXEMPT_TREES = [".agents/skills/"];
 
-function trackedFiles(): string[] {
-  return execFileSync("git", ["ls-files"], { cwd: REPO_ROOT, encoding: "utf8" })
-    .split("\n")
-    .filter(Boolean);
+function filesToScan(): string[] {
+  const listed = execFileSync(
+    "git",
+    ["ls-files", "--cached", "--others", "--exclude-standard"],
+    { cwd: REPO_ROOT, encoding: "utf8" },
+  );
+  return [...new Set(listed.split("\n").filter(Boolean))];
 }
 
-test("no tracked file names a real machine, operator or task", () => {
-  const files = trackedFiles();
-  assert.ok(files.length > 20, "git ls-files found nothing to check");
+test("no file in the repository names a real machine, operator or task", () => {
+  const files = filesToScan();
+  assert.ok(files.length > 20, "git listed nothing to check");
 
   for (const file of files) {
     if (EXEMPT.has(file)) continue;

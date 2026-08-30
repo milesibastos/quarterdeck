@@ -39,8 +39,13 @@ now", which is why `QUARTERDECK_NOW` exists: tests that care about staleness pin
 the clock instead of racing it.
 
 **Third-party vendored files are exempt from the leak grep.**
-`.agents/skills/` is refreshed wholesale by `npx skills add` and documents
-generic tool locations like `~/.codex/`, which name nobody's machine. Rewriting
-upstream's documentation to satisfy our guard would only fail again on the next
-refresh. The exemption is a directory, named in `tests/leak-guard.test.ts` with
-its reason.
+`.agents/skills/` is refreshed wholesale by `npx skills add` and documents where
+other tools keep their own config, under home-relative paths that name nobody's
+machine. Rewriting upstream's documentation to satisfy our guard would only fail
+again on the next refresh. The exemption is a directory, named in
+`tests/leak-guard.test.ts` with its reason.
+
+The guard scans this file too, so an example of the shape it rejects cannot be
+written here - which is itself the rule working. It scans uncommitted files as
+well as tracked ones: a guard that only saw the committed tree would stay silent
+for exactly as long as it takes to commit the leak.
