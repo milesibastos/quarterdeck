@@ -49,9 +49,14 @@ one instance of the same class rather than the class itself, which is what a
 hand-rolled lexer costs: it re-derives JavaScript's grammar by hand and gets
 charged for every corner of it, one incident at a time. The comment and string
 classification now asks `ts.createSourceFile` directly, which already
-implements that grammar - JSX, template literals, regex literals - correctly.
-The checks themselves are still regular expressions over the resulting text;
-only the token classification moved. The cost is `typescript` as a devDependency
+implements that grammar - JSX, template literals, regex literals - correctly,
+given the right `ScriptKind`. A fourth bug, after the switch, showed that
+"the right one" is not automatic: every file was parsed as TSX regardless of
+extension, so an ordinary generic arrow in a plain `.ts` file read as an
+unclosed JSX tag and swallowed the rest of that file into one text node.
+`ScriptKind` is now derived from each file's real extension. The checks
+themselves are still regular expressions over the resulting text; only the
+token classification moved. The cost is `typescript` as a devDependency
 loaded at test time, and the same residual trade the old approach had: a
 determined author can still evade a regex-based check, and the mitigation is
 still that doing so is a deliberate act rather than an accident.

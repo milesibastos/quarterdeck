@@ -12,8 +12,9 @@ it, in code, fixtures, comments, commit messages or documentation.
 
 All test material is synthetic, and has been since the first commit, so that
 nobody ever has to decide - later, and in a hurry - whether a particular sample
-is safe to publish. `npm test` greps the tracked files for machine paths and
-task identifiers and fails on a match.
+is safe to publish. `npm test` greps every tracked file, plus every uncommitted
+file that is not gitignored, for machine paths and task identifiers and fails
+on a match.
 
 ## Parse at the boundary, and only at the boundary
 

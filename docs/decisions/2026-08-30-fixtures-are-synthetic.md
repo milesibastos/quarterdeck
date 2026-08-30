@@ -12,9 +12,9 @@ machine paths, task identifiers and worker output.
 
 All test material is synthetic from the first commit. Invented project names
 (`tidewater`, `lamplight`, `saltmarsh`), invented worker ids, paths under a fake
-root. `npm test` greps the tracked files for home directories, machine-local
-temporary paths, worktree pool paths and fleet task identifiers, and fails on a
-match.
+root. `npm test` greps every tracked file, plus every uncommitted file that is
+not gitignored, for home directories, machine-local temporary paths, worktree
+pool paths and fleet task identifiers, and fails on a match.
 
 Which fixture set the panel reads is a config value, not a code change, so the
 same fixtures drive the suite and the development server.
