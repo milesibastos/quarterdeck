@@ -1,0 +1,70 @@
+/**
+ * What the server will answer, and from whom.
+ *
+ * The panel binds to loopback, but loopback is not a boundary on a shared
+ * machine and it is no defence at all against a page in the operator's own
+ * browser: any site can point a form or an image at http://127.0.0.1. So every
+ * request states which host it believes it reached and, when the browser sends
+ * one, which origin it came from, and both are checked here.
+ *
+ * Reading is guarded by these checks alone. Acting additionally requires the
+ * session secret; see `session.ts`.
+ */
+
+/** Only loopback names. A request claiming any other host is not for us. */
+const LOOPBACK_HOSTS: ReadonlySet<string> = new Set([
+  "127.0.0.1",
+  "localhost",
+  "[::1]",
+]);
+
+export type GuardVerdict =
+  | { readonly ok: true }
+  | { readonly ok: false; readonly reason: string };
+
+function hostname(hostHeader: string): string {
+  // `[::1]:45000` and `127.0.0.1:45000` both split at the last colon.
+  const at = hostHeader.lastIndexOf(":");
+  if (at > hostHeader.lastIndexOf("]")) return hostHeader.slice(0, at);
+  return hostHeader;
+}
+
+export function checkHost(hostHeader: string | null): GuardVerdict {
+  if (!hostHeader) return { ok: false, reason: "request carried no Host header" };
+  const name = hostname(hostHeader);
+  if (!LOOPBACK_HOSTS.has(name)) {
+    return { ok: false, reason: `Host "${hostHeader}" is not a loopback address` };
+  }
+  return { ok: true };
+}
+
+/**
+ * `Origin` is absent on ordinary same-origin navigations, which is why its
+ * absence is not itself a failure - but when a browser does send one, it must
+ * be a loopback origin.
+ */
+export function checkOrigin(originHeader: string | null): GuardVerdict {
+  if (originHeader === null) return { ok: true };
+  let url: URL;
+  try {
+    url = new URL(originHeader);
+  } catch {
+    return { ok: false, reason: `Origin "${originHeader}" is not a URL` };
+  }
+  if (url.protocol !== "http:" || !LOOPBACK_HOSTS.has(`${url.hostname}`)) {
+    return { ok: false, reason: `Origin "${originHeader}" is not a loopback origin` };
+  }
+  return { ok: true };
+}
+
+export function checkRequest(headers: {
+  host: string | null;
+  origin: string | null;
+}): GuardVerdict {
+  const host = checkHost(headers.host);
+  if (!host.ok) return host;
+  return checkOrigin(headers.origin);
+}
+
+/** Requests under this prefix act on the fleet and need the session secret. */
+export const ACTING_PREFIX = "/api/act";
