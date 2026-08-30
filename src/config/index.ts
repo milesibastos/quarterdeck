@@ -1,7 +1,5 @@
 import { derivePort } from "./port.ts";
 
-export type { Clock } from "../providers/clock.ts";
-
 /**
  * Everything the panel needs to know before it reads anything: which fixture
  * set, which port, and the policy numbers the refresh loop runs on.

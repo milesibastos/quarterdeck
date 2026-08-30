@@ -104,10 +104,6 @@ export class FleetRuntime {
     for (const listener of this.#listeners) listener();
   }
 
-  get listenerCount(): number {
-    return this.#listeners.size;
-  }
-
   start(): void {
     if (this.#watcher) return;
     const { watchDir, config, logger } = this.#deps;

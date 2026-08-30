@@ -21,10 +21,3 @@ export const consoleLogger: Logger = {
   warn: (m, f) => console.warn(line("warn", m, f)),
   error: (m, f) => console.error(line("error", m, f)),
 };
-
-/** Drops everything. For tests that would otherwise shout. */
-export const silentLogger: Logger = {
-  info: () => {},
-  warn: () => {},
-  error: () => {},
-};
