@@ -16,6 +16,11 @@ Which set the panel reads is a config value, not a code change:
 QUARTERDECK_FIXTURE_SET=stale npm start
 ```
 
+Whether it reads a fixture set at all is a config value too. Set
+`QUARTERDECK_FLEET_HOME` to an absolute fleet home and the panel runs that
+home's snapshot command instead; leave it unset - which is every test run, and
+development on a machine with no fleet - and it reads the set above.
+
 ## Two files per set
 
 The panel has two readers, with two different promises, so a set has two files.
@@ -42,10 +47,19 @@ combination below has somewhere to live.
 | `deck-only` | An empty fleet with a non-empty deck. |
 | `fleet-only` | A non-empty fleet with an empty deck. |
 | `fleet-empty-stale` | A stale read that found nothing running, with a non-empty backlog. The last good picture is empty, but it still shows its age rather than reading as a clean current empty state. |
+| `upstream-shape` | A synthetic fleet in upstream's real shape and real vocabulary: every state a live fleet reconciles to, a project recorded as a path, a kind this build has never seen, numeric priorities, a start date rather than an instant, a row with no start at all, a backlog line nobody turned into a work item, and a deferral that is not a date. The set that keeps the real read honest without a real fleet. |
 
-`generated_at` in the fresh sets sits far enough in the future that they never
+`generated` in the fresh sets sits far enough in the future that they never
 drift into looking stale as the repository ages. `stale` is fixed in the past on
 purpose.
+
+Every set is written in the shape upstream actually publishes, so a snapshot
+here can be dropped in front of the parser exactly as a fleet's own would be.
+Where upstream's vocabulary is coarser than the document's - a live fleet
+reconciles to seven states, and the panel draws more positions than that - the
+older sets use the finer values so the whole lifecycle rail has something to
+draw. `upstream-shape` uses only what a live fleet emits; see
+docs/contract.md - upstream's state vocabulary.
 
 ## Fleet homes
 

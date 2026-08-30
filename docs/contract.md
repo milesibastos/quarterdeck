@@ -156,31 +156,77 @@ Bump `DOCUMENT_VERSION` when a reader must notice the change, and add a row.
 
 `src/adapters/contract.ts`. Owned by the fleet supervisor, not by us.
 
+Read by running the command the fleet home publishes it with -
+`<fleet-home>/bin/fm-fleet-snapshot.sh --json`, with `FM_HOME` set to that home.
+Upstream's own contract for it is that it is read-only: no lock, no drain, no
+arming, no writes. That is the whole reason a panel that calls itself a reader
+is allowed to run it.
+
 ```ts
 {
   schema: "fm-fleet-snapshot.v1"
-  generated_at: string
+  generated: string                // ISO-8601; freshness is measured from it
   tasks: [{
-    id, project, kind: "ship" | "scout"
+    id, project, kind
     paths: { meta: {path, present}, worktree: {path, present} }
     current_state: { state, detail, observed_at }
-    pr: { url } | null
+    pr: { url: string | null }
   }]
   backlog: {
     present: boolean
     records: [{
-      id, title, state: "queued" | "in_flight" | "done", priority, since,
-      blocked_by_ids[], blocked_reason, hold_kind, hold_reason, hold_until,
-      captain_actionable
+      structured: true, id, title, state: "queued" | "in_flight" | "done",
+      priority, since, blocked_by_ids[], blocked_reason,
+      hold_kind, hold_reason, hold_until, captain_actionable
     }]
   }
 }
 ```
 
-Upstream's state vocabulary is its own: `dispatched`, `working`, `validating`,
-`pr_open`, `in_review`, `landed`, `blocked`, `parked`, `waiting_external`,
-`failed`. The projection maps it onto the document's, which is why upstream can
-rename `parked` without a component changing.
+### Strict about structure, tolerant about prose
+
+Upstream's shape has two halves and the parser treats them differently.
+
+What upstream **computes** is a contract, and a value the parser does not
+recognise is refused: the schema identifier, `generated`, a task's reconciled
+`current_state`, its `paths`, a record's `state`, `captain_actionable`, and
+whether the backlog could be read at all.
+
+What upstream **copies out of a hand-written backlog** is free text, lifted from
+markdown with a regular expression: a record's `priority`, `since`, `title`,
+`hold_kind`, `hold_reason`, `hold_until`, `blocked_reason`, and a task's
+`project` and `kind`. Those arrive as the strings they are, and `src/domain/`
+maps them onto the document's own vocabulary. Darkening the whole deck because
+somebody typed `(priority: urgent)` in a list item would be the worse panel.
+
+### Upstream's state vocabulary
+
+A live fleet reconciles every worker to one of seven states. The document draws
+more positions than that, so several map onto one:
+
+| Upstream | Document stage | Note |
+| --- | --- | --- |
+| `working` | `working` | |
+| `parked` | `held` | Waiting for a person to decide |
+| `blocked` | `blocked` | Waiting on another work item |
+| `done` | `landed` | The run finished; `detail` says whether that was a merge |
+| `failed` | `failed` | |
+| `paused` | `waiting` | Deliberately idling on a wait it expects to clear |
+| `unknown` | `waiting` | Upstream could not tell; see open assumptions |
+
+`dispatched`, `validating`, `pr_open`, `in_review`, `waiting_external` and
+`landed` are also accepted and mapped. A reconciled live snapshot has not been
+observed to emit them; they are what the fixture fleets use to exercise the
+document's whole lifecycle rail, and what a finer upstream would emit without
+this parser needing to change.
+
+### Records that are not work items
+
+Upstream preserves every non-empty line of the backlog's sections, marking the
+ones it could read as a work item `structured: true` and keeping the rest
+verbatim. An unstructured line has no id, no title and no state, so it is not a
+deck item and the parser drops it. That a backlog contains one is a health
+finding rather than something for the deck lens to draw.
 
 `backlog.present: false` is upstream saying it could not read the backlog at
 all. That darkens the deck lens and leaves the fleet alone.
@@ -264,6 +310,7 @@ Neither affects health, which is read separately and reports for itself.
 | Identifier | Date | Note |
 | --- | --- | --- |
 | `fm-fleet-snapshot.v1` | 2026-08-30 | First pinned identifier. The shape above replaced a provisional reading of the same identifier once upstream was verified against a live fleet; the identifier itself never moved. |
+| `fm-fleet-snapshot.v1` | 2026-08-30 | Corrected against a live fleet's own output when the real source was wired: `generated` rather than `generated_at`, a coarser state vocabulary, `pr` always an object, and free text where a closed set was assumed. The identifier did not move, so this is a correction to our reading rather than an upstream change. |
 
 ## Open assumptions
 
@@ -272,9 +319,22 @@ will find out, and should find a list rather than a surprise. Each is pinned by
 `src/adapters/contract.ts` and the fixtures, which is one file and one directory
 to correct.
 
+### Settled against a live fleet
+
+The four assumptions this section carried when the document seam was frozen have
+now been checked. Three were wrong, and the corrections are above:
+
+| Assumption | What a live fleet does | What changed |
+| --- | --- | --- |
+| A snapshot carries top-level `generated_at` | It carries `generated` | The parser and the fixtures. The document type did not change. |
+| `current_state.state` is a six-stage on-track vocabulary | Seven reconciled states, coarser than the document's | The `STAGE` map gained `done`, `paused` and `unknown`; the finer values are still accepted. |
+| `priority` is `now`, `next` or `later` | Free text; a live fleet writes `1`, `2`, `3` | The projection maps both spellings and defaults to `later`. |
+| A pull request's checks are not carried | Confirmed: `pr` carries an address and its source, nothing about checks | Nothing. `ChecksState` is `"unknown"` for every worker, as designed. |
+
+### Still open
+
 | Assumption | Why it is a guess | What happens if it is wrong |
 | --- | --- | --- |
-| A snapshot carries top-level `generated_at` | The verified shape enumerated the payload, not the envelope, and the panel needs one instant to measure freshness against | The parse refuses, naming the field. The fix is the adapter stamping its read time; the document type does not change. |
-| Upstream's `current_state.state` values | The verified shape named the field, not its vocabulary | The parse refuses, naming the value it found. Add it to `TASK_STATES` and to the `STAGE` map. |
-| `priority` is `now`, `next` or `later` | The verified shape named the field, not its vocabulary | As above, in `PRIORITIES`. The document's own set is the panel's vocabulary and need not follow upstream's. |
-| A pull request's checks | Upstream's `pr` carries the address and its source, and nothing about checks | `ChecksState` is `"unknown"` for every worker today. Filling it means reading the forge, which is the real-source worker's job - the field is here so that worker adds a reader rather than editing the document type under three other people. |
+| `unknown` belongs on the `waiting` stage | Upstream's `unknown` means it could not tell - a torn-down worktree, no source of current state answering. The document has no stage for "the panel cannot see this worker", so it lands on the one halted stage that asserts no cause inside the fleet, with upstream's own words in `detail`. | It is the least wrong position in a frozen vocabulary, not a good one. The honest fix is a stage of its own, which is a document version bump and a change under every lens - worth doing the next time the seam is unfrozen, not under three workers drawing it. |
+| A record with no `since` started when upstream looked | Upstream reports `since` as the operator wrote it, and a row often does not say. The document's `since` is not nullable and a hold's age is measured from it. | The item shows an age of zero rather than dropping off the deck. If ages need to distinguish "just started" from "nobody said", `since` becomes nullable, which is a document version bump. |
+| A worker's `kind` is `scout` or building | `kind` is free text copied from a dispatch record and defaults to `ship`; `secondmate` also occurs | Anything that is not `scout` renders as building. A kind that deserves its own treatment gets one in `WorkerKind`, which is a document version bump. |

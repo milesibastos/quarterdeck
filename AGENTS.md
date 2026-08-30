@@ -17,7 +17,7 @@ synthetic fixtures rather than a real fleet.
 | `src/domain/` | The projection: snapshot to document. Pure. |
 | `src/runtime/` | Watch, coalesce, cache, publish the change signal. |
 | `src/ui/` | Server-rendered components. Reads the document, nothing else. One directory per lens. |
-| `src/providers/` | The clock and the logger, as dependencies. |
+| `src/providers/` | The clock, the logger and the one spawn door, as dependencies. |
 | `src/app/`, `src/proxy.ts` | Next's routes and middleware: the composition point. |
 | `fixtures/` | Synthetic fleets, two files per set. Zero real data, by rule. |
 | `tests/` | Behavioural tests against the built server, the invariant checks, and a pure-projection walk of every fixture. |
@@ -30,7 +30,9 @@ npm start                      # builds if needed, prints the URL it bound
 npm test                       # lints, checks the invariants, drives the built server
 ```
 
-`QUARTERDECK_FIXTURE_SET` picks the fleet; see `fixtures/README.md`.
+`QUARTERDECK_FLEET_HOME` points the panel at a real fleet home; unset, it reads
+a synthetic fixture set picked by `QUARTERDECK_FIXTURE_SET`. See
+`fixtures/README.md`.
 
 ## Read before changing anything
 

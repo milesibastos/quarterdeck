@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { isIsoInstant } from "../providers/clock.ts";
+import type { Runner } from "../providers/process.ts";
 
 /**
  * The upstream boundary.
@@ -20,8 +21,21 @@ import { isIsoInstant } from "../providers/clock.ts";
  * the scout reports, the secondmate rows. Fields no lens reads are not parsed:
  * a value nobody renders is one the next reader has to guess the meaning of.
  *
- * Where the bytes come from is injected (`SnapshotSource`). In this skeleton the
- * only wired source is the fixture loader below.
+ * Where the bytes come from is injected (`SnapshotSource`). Two are wired: a
+ * committed synthetic fixture set, and a real fleet home. Which one runs is
+ * configuration; see `src/config/index.ts`.
+ *
+ * ## Strict about structure, tolerant about prose
+ *
+ * Upstream's shape has two halves and they deserve different treatment. What it
+ * computes - the schema identifier, the envelope, a task's reconciled state,
+ * whether the backlog could be read at all - is a contract, and this file
+ * refuses on anything it does not recognise. What it copies out of an operator's
+ * hand-written backlog - a record's priority, when it started, who it waits on -
+ * is free text that upstream itself parses out of markdown with a regular
+ * expression. Refusing the whole deck because somebody typed `(priority: urgent)`
+ * in a list item would be a worse panel, so those arrive here as the strings
+ * they are and `src/domain/` maps them onto the document's own vocabulary.
  */
 
 /**
@@ -31,29 +45,52 @@ import { isIsoInstant } from "../providers/clock.ts";
  */
 export const SNAPSHOT_SCHEMA_ID = "fm-fleet-snapshot.v1";
 
-/** Upstream's word for what a worker was dispatched to do. */
-export type SnapshotTaskKind = "ship" | "scout";
+/**
+ * The command a fleet home publishes its snapshot through, relative to the home.
+ *
+ * Read-only by upstream's own contract: it takes no lock, drains nothing, arms
+ * nothing and writes nothing. That is the whole reason the panel is allowed to
+ * run it while claiming to be a reader.
+ */
+const SNAPSHOT_COMMAND = "bin/fm-fleet-snapshot.sh";
+
+/** Asks for the structured surface rather than the human one. */
+const SNAPSHOT_ARGS = ["--json"];
+
+/**
+ * Where a fleet home keeps the per-worker files whose changes mean the snapshot
+ * has moved on. Watched, never read: the snapshot command is the only reader of
+ * a fleet's internals, and this is just the thing to listen to.
+ */
+const FLEET_ACTIVITY_DIR = "state";
 
 /**
  * Upstream's state vocabulary, which is its own. The projection maps it onto
  * the document's, which is what lets upstream rename `parked` without a
  * component changing.
+ *
+ * Two groups, and the difference matters when this list next needs editing.
+ * The first seven are what a live fleet was observed to emit. The rest name
+ * finer positions the document can draw but a reconciled snapshot does not
+ * currently produce; they are what the fixture fleets use to exercise the whole
+ * lifecycle rail. See docs/contract.md - the upstream snapshot.
  */
 export type SnapshotTaskState =
-  | "dispatched"
   | "working"
+  | "parked"
+  | "blocked"
+  | "done"
+  | "failed"
+  | "paused"
+  | "unknown"
+  | "dispatched"
   | "validating"
   | "pr_open"
   | "in_review"
-  | "landed"
-  | "blocked"
-  | "parked"
   | "waiting_external"
-  | "failed";
+  | "landed";
 
 export type SnapshotRecordState = "queued" | "in_flight" | "done";
-
-export type SnapshotPriority = "now" | "next" | "later";
 
 /** A path upstream reports, with whether it was there when upstream looked. */
 export interface SnapshotPath {
@@ -75,14 +112,27 @@ export interface SnapshotCurrentState {
   readonly observed_at: string;
 }
 
+/**
+ * A worker's pull request. `url` is null when upstream found none, which it
+ * reports as a present object rather than by leaving the field out.
+ */
 export interface SnapshotPullRequest {
-  readonly url: string;
+  readonly url: string | null;
 }
 
 export interface SnapshotTask {
   readonly id: string;
+  /**
+   * Where the worker is working, as upstream records it - a path in a live
+   * fleet. The projection reduces it to a name; nothing renders this verbatim.
+   */
   readonly project: string;
-  readonly kind: SnapshotTaskKind;
+  /**
+   * What the worker was dispatched to do, in upstream's words. Free text with a
+   * default rather than a closed set: it is copied from the worker's own
+   * dispatch record.
+   */
+  readonly kind: string;
   readonly paths: {
     /** The instructions the worker was dispatched with. */
     readonly meta: SnapshotPath;
@@ -90,20 +140,26 @@ export interface SnapshotTask {
     readonly worktree: SnapshotPath;
   };
   readonly current_state: SnapshotCurrentState;
-  readonly pr: SnapshotPullRequest | null;
+  readonly pr: SnapshotPullRequest;
 }
 
+/**
+ * One work item on the deck.
+ *
+ * Everything but `id`, `state` and `captain_actionable` is text upstream lifted
+ * out of a hand-written backlog, so it arrives as written. `null` throughout
+ * means the row did not say.
+ */
 export interface SnapshotRecord {
   readonly id: string;
   readonly title: string;
   readonly state: SnapshotRecordState;
-  readonly priority: SnapshotPriority;
-  readonly since: string;
+  readonly priority: string | null;
+  readonly since: string | null;
   readonly blocked_by_ids: readonly string[];
   readonly blocked_reason: string | null;
   readonly hold_kind: string | null;
   readonly hold_reason: string | null;
-  /** A calendar date, not an instant: a deferral is to a day, not to a moment. */
   readonly hold_until: string | null;
   readonly captain_actionable: boolean;
 }
@@ -119,7 +175,8 @@ export interface SnapshotBacklog {
 
 export interface FleetSnapshot {
   readonly schema: typeof SNAPSHOT_SCHEMA_ID;
-  readonly generated_at: string;
+  /** ISO-8601 instant upstream observed the fleet. Freshness is measured from it. */
+  readonly generated: string;
   readonly tasks: readonly SnapshotTask[];
   readonly backlog: SnapshotBacklog;
 }
@@ -172,7 +229,7 @@ export class ContractParseError extends ContractError {
 
 /**
  * Where snapshot bytes come from. Injected so the panel can be driven by
- * fixtures, and later by a real fleet, without the parser knowing the difference.
+ * fixtures or by a real fleet without the parser knowing the difference.
  */
 export interface SnapshotSource {
   /** Named in every error message, so a refusal says which source produced it. */
@@ -180,27 +237,23 @@ export interface SnapshotSource {
   read(signal: AbortSignal): Promise<string>;
 }
 
-const TASK_KINDS: ReadonlySet<string> = new Set(["ship", "scout"]);
-
 const TASK_STATES: ReadonlySet<string> = new Set([
-  "dispatched",
   "working",
+  "parked",
+  "blocked",
+  "done",
+  "failed",
+  "paused",
+  "unknown",
+  "dispatched",
   "validating",
   "pr_open",
   "in_review",
-  "landed",
-  "blocked",
-  "parked",
   "waiting_external",
-  "failed",
+  "landed",
 ]);
 
 const RECORD_STATES: ReadonlySet<string> = new Set(["queued", "in_flight", "done"]);
-
-const PRIORITIES: ReadonlySet<string> = new Set(["now", "next", "later"]);
-
-/** A calendar date, `YYYY-MM-DD`. */
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -230,6 +283,17 @@ function optionalString(value: unknown, path: string, source: string): string | 
   return requireString(value, path, source);
 }
 
+/**
+ * Text upstream copied out of a hand-written record. Never refuses: an empty
+ * cell and a missing one both mean the row did not say, and a row that says
+ * something unexpected is the operator's business rather than the parser's.
+ */
+function proseString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const text = value.trim();
+  return text.length === 0 ? null : text;
+}
+
 function requireBoolean(value: unknown, path: string, source: string): boolean {
   if (typeof value !== "boolean") {
     throw new ContractParseError(`${path} must be a boolean`, source);
@@ -241,15 +305,6 @@ function requireInstant(value: unknown, path: string, source: string): string {
   const text = requireString(value, path, source);
   if (!isIsoInstant(text)) {
     throw new ContractParseError(`${path} must be an ISO-8601 instant, got "${text}"`, source);
-  }
-  return text;
-}
-
-function optionalDate(value: unknown, path: string, source: string): string | null {
-  const text = optionalString(value, path, source);
-  if (text === null) return null;
-  if (!ISO_DATE.test(text) || Number.isNaN(Date.parse(text))) {
-    throw new ContractParseError(`${path} must be a YYYY-MM-DD date, got "${text}"`, source);
   }
   return text;
 }
@@ -299,14 +354,15 @@ function parseTask(value: unknown, at: string, source: string): SnapshotTask {
   const entry = requireRecord(value, at, source);
   const paths = requireRecord(entry.paths, `${at}.paths`, source);
   const current = requireRecord(entry.current_state, `${at}.current_state`, source);
-  const pr = entry.pr === null || entry.pr === undefined
-    ? null
-    : requireRecord(entry.pr, `${at}.pr`, source);
+  const pr = requireRecord(entry.pr, `${at}.pr`, source);
 
   return {
     id: requireString(entry.id, `${at}.id`, source),
-    project: requireString(entry.project, `${at}.project`, source),
-    kind: requireMember<SnapshotTaskKind>(entry.kind, TASK_KINDS, `${at}.kind`, source),
+    // Upstream reports a worker with no recorded project as an empty string
+    // rather than by leaving the field out, and that is a fact about the
+    // worker rather than a broken snapshot.
+    project: proseString(entry.project) ?? "",
+    kind: proseString(entry.kind) ?? "",
     paths: {
       meta: parsePath(paths.meta, `${at}.paths.meta`, source),
       worktree: parsePath(paths.worktree, `${at}.paths.worktree`, source),
@@ -325,7 +381,7 @@ function parseTask(value: unknown, at: string, source: string): SnapshotTask {
         source,
       ),
     },
-    pr: pr === null ? null : { url: requireString(pr.url, `${at}.pr.url`, source) },
+    pr: { url: optionalString(pr.url, `${at}.pr.url`, source) },
   };
 }
 
@@ -333,35 +389,41 @@ function parseRecord(value: unknown, at: string, source: string): SnapshotRecord
   const entry = requireRecord(value, at, source);
   return {
     id: requireString(entry.id, `${at}.id`, source),
-    title: requireString(entry.title, `${at}.title`, source),
+    title: proseString(entry.title) ?? "",
     state: requireMember<SnapshotRecordState>(
       entry.state,
       RECORD_STATES,
       `${at}.state`,
       source,
     ),
-    priority: requireMember<SnapshotPriority>(
-      entry.priority,
-      PRIORITIES,
-      `${at}.priority`,
-      source,
-    ),
-    since: requireInstant(entry.since, `${at}.since`, source),
+    priority: proseString(entry.priority),
+    since: proseString(entry.since),
     blocked_by_ids: requireStringArray(
       entry.blocked_by_ids ?? [],
       `${at}.blocked_by_ids`,
       source,
     ),
-    blocked_reason: optionalString(entry.blocked_reason, `${at}.blocked_reason`, source),
-    hold_kind: optionalString(entry.hold_kind, `${at}.hold_kind`, source),
-    hold_reason: optionalString(entry.hold_reason, `${at}.hold_reason`, source),
-    hold_until: optionalDate(entry.hold_until, `${at}.hold_until`, source),
+    blocked_reason: proseString(entry.blocked_reason),
+    hold_kind: proseString(entry.hold_kind),
+    hold_reason: proseString(entry.hold_reason),
+    hold_until: proseString(entry.hold_until),
     captain_actionable: requireBoolean(
       entry.captain_actionable,
       `${at}.captain_actionable`,
       source,
     ),
   };
+}
+
+/**
+ * Upstream preserves every non-empty line of the backlog's sections, marking
+ * the ones it could read as a work item `structured: true` and keeping the rest
+ * verbatim. An unstructured line has no id, no title and no state to show, so
+ * it is not a deck item; that a backlog contains one is a health finding rather
+ * than something for the deck lens to draw.
+ */
+function isStructured(value: unknown): boolean {
+  return isRecord(value) && value.structured === true;
 }
 
 /**
@@ -390,15 +452,18 @@ export function parseSnapshot(raw: string, source: string): FleetSnapshot {
 
   return {
     schema: SNAPSHOT_SCHEMA_ID,
-    generated_at: requireInstant(top.generated_at, "generated_at", source),
+    generated: requireInstant(top.generated, "generated", source),
     tasks: requireArray(top.tasks, "tasks", source).map((entry, i) =>
       parseTask(entry, `tasks[${i}]`, source),
     ),
     backlog: {
       present,
-      records: requireArray(backlog.records ?? [], "backlog.records", source).map(
-        (entry, i) => parseRecord(entry, `backlog.records[${i}]`, source),
-      ),
+      records: requireArray(backlog.records ?? [], "backlog.records", source)
+        // Indexed against the whole array, so a refusal names the row upstream
+        // named rather than a position that counts only what survived.
+        .map((entry, i) => [entry, i] as const)
+        .filter(([entry]) => isStructured(entry))
+        .map(([entry, i]) => parseRecord(entry, `backlog.records[${i}]`, source)),
     },
   };
 }
@@ -411,7 +476,7 @@ export async function readSnapshot(
 }
 
 /**
- * The one wired source: a committed, synthetic fixture set.
+ * A committed, synthetic fixture set.
  *
  * `fixtureSet` is a config value, so switching between the fixture fleets is a
  * restart rather than a code change. See fixtures/README.md for the sets.
@@ -422,4 +487,42 @@ export function fixtureSource(fixtureRoot: string, fixtureSet: string): Snapshot
     description: `fixture:${fixtureSet}`,
     read: (signal) => readFile(file, { encoding: "utf8", signal }),
   };
+}
+
+/**
+ * A real fleet, read through the command it publishes its snapshot with.
+ *
+ * The home is configuration and arrives as an argument; nothing here knows a
+ * machine path. The command is run with the home in its environment because
+ * that is how upstream is told which fleet to report on, and with an otherwise
+ * inherited environment because it needs a `PATH` to find the tools it uses.
+ */
+export function fleetSource(
+  fleetHome: string,
+  runner: Runner,
+  env: Readonly<Record<string, string | undefined>>,
+): SnapshotSource {
+  const command = join(fleetHome, SNAPSHOT_COMMAND);
+  const childEnv: Record<string, string> = {};
+  for (const [name, value] of Object.entries(env)) {
+    if (value !== undefined) childEnv[name] = value;
+  }
+  childEnv.FM_HOME = fleetHome;
+
+  return {
+    description: `fleet:${fleetHome}`,
+    read: (signal) => runner.run(command, SNAPSHOT_ARGS, { env: childEnv, signal }),
+  };
+}
+
+/**
+ * The directory whose changes mean a fleet has moved on.
+ *
+ * Here rather than in the runtime because it is knowledge about upstream's
+ * layout, and this file is where the panel keeps that - one file to correct
+ * when upstream moves, which is the same argument invariant 4 makes for the
+ * health module.
+ */
+export function fleetWatchDir(fleetHome: string): string {
+  return join(fleetHome, FLEET_ACTIVITY_DIR);
 }

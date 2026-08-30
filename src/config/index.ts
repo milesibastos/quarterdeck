@@ -2,8 +2,8 @@ import { derivePort } from "./port.ts";
 import { isIsoInstant } from "../providers/clock.ts";
 
 /**
- * Everything the panel needs to know before it reads anything: which fixture
- * set, which port, and the policy numbers the refresh loop runs on.
+ * Everything the panel needs to know before it reads anything: which fleet,
+ * which port, and the policy numbers the refresh loop runs on.
  *
  * Environment is a system boundary, so it is parsed here and nowhere else. A
  * value that fails to parse fails the start rather than silently reverting to a
@@ -11,7 +11,17 @@ import { isIsoInstant } from "../providers/clock.ts";
  * healthy fleet is worse than a panel that refuses to start.
  */
 export interface Config {
-  /** Directory under `fixtures/` to read the snapshot from. */
+  /**
+   * The fleet home to read, or `null` to read the fixture set instead.
+   *
+   * Which source the panel reads is this one value, so pointing it at a real
+   * fleet is a restart rather than a code change - and a machine with no fleet
+   * on it, which is every test run and most development, needs no setting at
+   * all. This is the only place a fleet home enters the panel outside the
+   * quarantined health module.
+   */
+  readonly fleetHome: string | null;
+  /** Directory under `fixtures/` to read the snapshot from, when `fleetHome` is null. */
   readonly fixtureSet: string;
   /** Absolute path of the fixtures root. */
   readonly fixtureRoot: string;
@@ -69,6 +79,26 @@ function instantFromEnv(env: NodeJS.ProcessEnv, name: string): string | null {
 }
 
 /**
+ * The fleet home, checked to be absolute.
+ *
+ * A relative home would resolve against whatever directory the panel happened
+ * to be started from, which makes "the panel is reading the wrong fleet" a
+ * question about a shell's history rather than about a setting.
+ */
+function fleetHomeFromEnv(env: NodeJS.ProcessEnv): string | null {
+  const raw = env.QUARTERDECK_FLEET_HOME;
+  if (raw === undefined || raw === "") return null;
+  if (!raw.startsWith("/")) {
+    throw new TypeError(
+      `QUARTERDECK_FLEET_HOME must be an absolute path, got: ${raw}`,
+    );
+  }
+  // A trailing separator would produce a doubled one in every path built from
+  // it, which turns up later as a confusing message rather than a broken read.
+  return raw.replace(/\/+$/, "");
+}
+
+/**
  * `rootDir` is the absolute worktree path. It is passed in rather than read
  * from `process.cwd()` so a test can derive a config for a directory it made up.
  */
@@ -84,6 +114,7 @@ export function loadConfig(
   }
   const port = intFromEnv(env, "QUARTERDECK_PORT", derivePort(rootDir));
   return {
+    fleetHome: fleetHomeFromEnv(env),
     fixtureSet,
     fixtureRoot: env.QUARTERDECK_FIXTURE_ROOT || `${rootDir}/fixtures`,
     fleetHome: env.QUARTERDECK_FLEET_HOME || null,

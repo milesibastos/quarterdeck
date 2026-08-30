@@ -1,11 +1,12 @@
 {
   "schema": "fm-fleet-snapshot.v1",
-  "generated_at": "2099-01-01T09:15:00.000Z",
+  "generated": "2099-01-01T09:15:00.000Z",
   "tasks": [],
   "backlog": {
     "present": true,
     "records": [
       {
+        "structured": true,
         "id": "wi-lamplight-231",
         "title": "Draw the lifecycle rail",
         "state": "queued",
@@ -19,6 +20,7 @@
         "captain_actionable": false
       },
       {
+        "structured": true,
         "id": "wi-cordage-412",
         "title": "Wire the real fleet source",
         "state": "queued",
@@ -34,6 +36,7 @@
         "captain_actionable": false
       },
       {
+        "structured": true,
         "id": "wi-tidewater-126",
         "title": "Settle the hold vocabulary",
         "state": "queued",
@@ -47,6 +50,7 @@
         "captain_actionable": true
       },
       {
+        "structured": true,
         "id": "wi-saltmarsh-318",
         "title": "Add the health readout",
         "state": "in_flight",
@@ -60,6 +64,7 @@
         "captain_actionable": false
       },
       {
+        "structured": true,
         "id": "wi-tidewater-109",
         "title": "Vendor the display font",
         "state": "done",

@@ -3,11 +3,10 @@ import type {
   SnapshotRecord,
   SnapshotRecordState,
   SnapshotTask,
-  SnapshotTaskKind,
   SnapshotTaskState,
 } from "../adapters/contract.ts";
 import type { HealthReading } from "../adapters/health.ts";
-import type { Clock } from "../providers/clock.ts";
+import { isIsoInstant, type Clock } from "../providers/clock.ts";
 import {
   DOCUMENT_VERSION,
   type DeckItem,
@@ -16,6 +15,7 @@ import {
   type Lens,
   type LensStatus,
   type PanelDocument,
+  type Priority,
   type Stage,
   type ValidationStep,
   type Worker,
@@ -39,24 +39,112 @@ import {
 /**
  * Upstream's state vocabulary is not ours. Mapping here rather than in the UI
  * means upstream can rename `parked` without a component changing.
+ *
+ * Upstream reconciles a worker to one of seven states; the document draws
+ * more positions than that, and the extra ones are reached from the fixture
+ * fleets rather than from a live read. Three of the seven need a word said
+ * about where they land:
+ *
+ * - `done` is a worker whose run finished, which is the end of the document's
+ *   on-track sequence. The detail says whether that was a merge or a green
+ *   pipeline; the stage says the worker is no longer moving.
+ * - `paused` is a worker deliberately idling on a wait it expects to clear -
+ *   an upstream release, a rate limit - which is exactly `waiting`.
+ * - `unknown` is upstream saying it could not tell: the worktree is gone, or no
+ *   source of current state answered. It lands on `waiting` as the one halted
+ *   stage that asserts no cause inside the fleet, and the detail carries
+ *   upstream's own words for what it could not see. That is the least wrong
+ *   position in the frozen vocabulary rather than a good one; see
+ *   docs/contract.md - open assumptions.
  */
 const STAGE: Readonly<Record<SnapshotTaskState, Stage>> = {
-  dispatched: "dispatched",
   working: "working",
+  parked: "held",
+  blocked: "blocked",
+  done: "landed",
+  failed: "failed",
+  paused: "waiting",
+  unknown: "waiting",
+  dispatched: "dispatched",
   validating: "validating",
   pr_open: "pr-open",
   in_review: "in-review",
-  landed: "landed",
-  blocked: "blocked",
-  parked: "held",
   waiting_external: "waiting",
-  failed: "failed",
+  landed: "landed",
 };
 
-const KIND: Readonly<Record<SnapshotTaskKind, WorkerKind>> = {
-  ship: "build",
-  scout: "research",
+/**
+ * A worker's kind is free text upstream copies from its dispatch record, so
+ * this maps the one value that means research and treats everything else -
+ * including a kind this build has never seen - as building. The alternative,
+ * refusing a snapshot over a word in a dispatch record, would take the whole
+ * fleet lens down for a worker the panel could otherwise draw.
+ */
+const RESEARCH_KIND = "scout";
+
+function kindOf(kind: string): WorkerKind {
+  return kind.trim().toLowerCase() === RESEARCH_KIND ? "research" : "build";
+}
+
+/**
+ * Upstream copies a record's priority out of a hand-written backlog, so the
+ * words are whatever the operator wrote. Two spellings are recognised: the
+ * document's own, and the numeric ranks a fleet writes in practice.
+ */
+const PRIORITY: Readonly<Record<string, Priority>> = {
+  "1": "now",
+  now: "now",
+  "2": "next",
+  next: "next",
+  "3": "later",
+  later: "later",
 };
+
+/**
+ * An unrecognised or absent priority is `later` rather than `now`: a row that
+ * did not say how urgent it is has not claimed the top of the deck, and
+ * promoting it would push something that did say down the list.
+ */
+function priorityOf(priority: string | null): Priority {
+  return (priority && PRIORITY[priority.trim().toLowerCase()]) || "later";
+}
+
+/** A calendar date, `YYYY-MM-DD`. */
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+
+/**
+ * A record's start, as an instant.
+ *
+ * Upstream reports it as the operator wrote it: usually a calendar date, which
+ * widens to midnight UTC, occasionally a full instant, and sometimes nothing at
+ * all. A row that did not say falls back to the moment upstream looked, which
+ * reads as an age of zero - the honest shape of "this has not been waiting as
+ * far as anyone can tell", and better than dropping the item off the deck.
+ */
+function sinceOf(since: string | null, generated: string): string {
+  if (since === null) return generated;
+  if (ISO_DATE.test(since) && !Number.isNaN(Date.parse(since))) {
+    return `${since}T00:00:00.000Z`;
+  }
+  return isIsoInstant(since) ? since : generated;
+}
+
+/**
+ * A deferral is to a day. Anything else in the field is prose rather than a
+ * date the panel can measure a wait against, so it is not carried as one.
+ */
+function deferredTo(holdUntil: string | null): string | null {
+  return holdUntil !== null && ISO_DATE.test(holdUntil) ? holdUntil : null;
+}
+
+/**
+ * Upstream records where a worker is working as a path. The document carries a
+ * name, so the last segment is what a reader sees - and the machine-specific
+ * part of an operator's directory layout never reaches a rendered page.
+ */
+function projectOf(project: string): string {
+  return project.split("/").filter(Boolean).at(-1) ?? "";
+}
 
 const DECK_STATE: Readonly<Record<Exclude<SnapshotRecordState, "done">, DeckState>> = {
   queued: "queued",
@@ -101,8 +189,8 @@ function projectWorker(task: SnapshotTask): Worker {
   const stage = STAGE[task.current_state.state];
   return {
     id: task.id,
-    project: task.project,
-    kind: KIND[task.kind],
+    project: projectOf(task.project),
+    kind: kindOf(task.kind),
     brief: { ref: task.paths.meta.path, present: task.paths.meta.present },
     worktree: { ref: task.paths.worktree.path, present: task.paths.worktree.present },
     lifecycle: {
@@ -112,7 +200,7 @@ function projectWorker(task: SnapshotTask): Worker {
       observedAt: task.current_state.observed_at,
     },
     pullRequest:
-      task.pr === null
+      task.pr.url === null
         ? null
         : {
             url: task.pr.url,
@@ -125,14 +213,16 @@ function projectWorker(task: SnapshotTask): Worker {
   };
 }
 
-function projectDeckItem(record: SnapshotRecord): DeckItem {
+function projectDeckItem(record: SnapshotRecord, generated: string): DeckItem {
   return {
     id: record.id,
-    title: record.title,
+    // Upstream cleans a row's prose down to its title, which can leave nothing
+    // when the row was only an id. The id is then the only name it has.
+    title: record.title || record.id,
     // `done` is filtered out before this runs; the deck is what is still coming.
     state: DECK_STATE[record.state as Exclude<SnapshotRecordState, "done">],
-    priority: record.priority,
-    since: record.since,
+    priority: priorityOf(record.priority),
+    since: sinceOf(record.since, generated),
     blocked:
       record.blocked_by_ids.length === 0
         ? null
@@ -143,7 +233,7 @@ function projectDeckItem(record: SnapshotRecord): DeckItem {
         : {
             waitingOn: record.hold_kind,
             reason: record.hold_reason,
-            deferredTo: record.hold_until,
+            deferredTo: deferredTo(record.hold_until),
           },
     actionable: record.captain_actionable,
   };
@@ -205,10 +295,10 @@ export function projectDocument(
   health: HealthReading,
   options: ProjectOptions,
 ): PanelDocument {
-  const asOf = snapshot.generated_at;
+  const asOf = snapshot.generated;
   const deck = snapshot.backlog.records
     .filter((record) => record.state !== "done")
-    .map(projectDeckItem);
+    .map((record) => projectDeckItem(record, asOf));
 
   return {
     version: DOCUMENT_VERSION,

@@ -1,6 +1,6 @@
 {
   "schema": "fm-fleet-snapshot.v1",
-  "generated_at": "2099-01-01T09:15:00.000Z",
+  "generated": "2099-01-01T09:15:00.000Z",
   "tasks": [
     {
       "id": "wi-tidewater-114",
@@ -21,7 +21,10 @@
         "detail": "dispatched to a fresh worktree",
         "observed_at": "2099-01-01T09:14:52.000Z"
       },
-      "pr": null
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
     },
     {
       "id": "wi-tidewater-118",
@@ -42,7 +45,10 @@
         "detail": "editing the projection",
         "observed_at": "2099-01-01T09:14:40.000Z"
       },
-      "pr": null
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
     },
     {
       "id": "wi-lamplight-207",
@@ -63,7 +69,10 @@
         "detail": "validating (running)",
         "observed_at": "2099-01-01T09:14:31.000Z"
       },
-      "pr": null
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
     },
     {
       "id": "wi-lamplight-211",
@@ -84,7 +93,10 @@
         "detail": "validating: test suite running",
         "observed_at": "2099-01-01T09:13:58.000Z"
       },
-      "pr": null
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
     },
     {
       "id": "wi-saltmarsh-302",
@@ -107,7 +119,7 @@
       },
       "pr": {
         "url": "https://forge.invalid/saltmarsh/pull/302",
-        "source": "forge"
+        "source": "meta"
       }
     },
     {
@@ -131,7 +143,7 @@
       },
       "pr": {
         "url": "https://forge.invalid/saltmarsh/pull/305",
-        "source": "forge"
+        "source": "meta"
       }
     },
     {
@@ -155,7 +167,7 @@
       },
       "pr": {
         "url": "https://forge.invalid/cordage/pull/401",
-        "source": "forge"
+        "source": "meta"
       }
     },
     {
@@ -177,7 +189,10 @@
         "detail": "blocked on wi-cordage-401",
         "observed_at": "2099-01-01T09:03:44.000Z"
       },
-      "pr": null
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
     },
     {
       "id": "wi-tidewater-121",
@@ -198,7 +213,10 @@
         "detail": "parked at review: 1 finding(s) (ask-user: authority decision)",
         "observed_at": "2099-01-01T08:58:12.000Z"
       },
-      "pr": null
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
     },
     {
       "id": "wi-lamplight-215",
@@ -219,7 +237,10 @@
         "detail": "waiting on an upstream release",
         "observed_at": "2099-01-01T08:47:03.000Z"
       },
-      "pr": null
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
     },
     {
       "id": "wi-saltmarsh-309",
@@ -240,13 +261,17 @@
         "detail": "failed during lint: 3 errors",
         "observed_at": "2099-01-01T08:31:19.000Z"
       },
-      "pr": null
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
     }
   ],
   "backlog": {
     "present": true,
     "records": [
       {
+        "structured": true,
         "id": "wi-lamplight-231",
         "title": "Draw the lifecycle rail",
         "state": "queued",
@@ -260,6 +285,7 @@
         "captain_actionable": false
       },
       {
+        "structured": true,
         "id": "wi-cordage-412",
         "title": "Wire the real fleet source",
         "state": "queued",
@@ -275,6 +301,7 @@
         "captain_actionable": false
       },
       {
+        "structured": true,
         "id": "wi-tidewater-126",
         "title": "Settle the hold vocabulary",
         "state": "queued",
@@ -288,6 +315,7 @@
         "captain_actionable": true
       },
       {
+        "structured": true,
         "id": "wi-saltmarsh-318",
         "title": "Add the health readout",
         "state": "in_flight",
@@ -301,6 +329,7 @@
         "captain_actionable": false
       },
       {
+        "structured": true,
         "id": "wi-tidewater-109",
         "title": "Vendor the display font",
         "state": "done",

@@ -1,6 +1,6 @@
 {
   "schema": "fm-fleet-snapshot.v1",
-  "generated_at": "2019-03-04T11:00:00.000Z",
+  "generated": "2019-03-04T11:00:00.000Z",
   "tasks": [
     {
       "id": "wi-tidewater-114",
@@ -21,7 +21,10 @@
         "detail": "editing the projection",
         "observed_at": "2019-03-04T10:52:00.000Z"
       },
-      "pr": null
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
     },
     {
       "id": "wi-lamplight-207",
@@ -42,13 +45,17 @@
         "detail": "parked at review: 2 finding(s)",
         "observed_at": "2019-03-04T10:59:30.000Z"
       },
-      "pr": null
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
     }
   ],
   "backlog": {
     "present": true,
     "records": [
       {
+        "structured": true,
         "id": "wi-lamplight-231",
         "title": "Draw the lifecycle rail",
         "state": "queued",
@@ -62,6 +69,7 @@
         "captain_actionable": false
       },
       {
+        "structured": true,
         "id": "wi-tidewater-126",
         "title": "Settle the hold vocabulary",
         "state": "queued",

@@ -3,6 +3,8 @@ import { join } from "node:path";
 import {
   ContractIdentifierError,
   fixtureSource,
+  fleetSource,
+  fleetWatchDir,
   readSnapshot,
   type SnapshotSource,
 } from "../adapters/contract.ts";
@@ -11,6 +13,7 @@ import type { Config } from "../config/index.ts";
 import { projectDocument, withSnapshotUnreadable } from "../domain/project.ts";
 import { fixedClock, systemClock, type Clock } from "../providers/clock.ts";
 import { consoleLogger, type Logger } from "../providers/logger.ts";
+import { childProcessRunner } from "../providers/process.ts";
 import type { PanelDocument } from "../types/document.ts";
 
 /**
@@ -174,14 +177,23 @@ type Host = typeof globalThis & { [SINGLETON]?: FleetRuntime };
 export function fleetRuntime(config: Config): FleetRuntime {
   const host = globalThis as Host;
   if (!host[SINGLETON]) {
-    const watchDir = join(config.fixtureRoot, config.fixtureSet);
+    // One config value decides which fleet is on screen, so pointing the panel
+    // at a real one is a restart rather than a code change - and a machine with
+    // no fleet on it, which is every test run, needs no setting at all.
+    const fixtureDir = join(config.fixtureRoot, config.fixtureSet);
+    const watchDir = config.fleetHome ? fleetWatchDir(config.fleetHome) : fixtureDir;
     const runtime = new FleetRuntime({
       config,
-      source: fixtureSource(config.fixtureRoot, config.fixtureSet),
+      source: config.fleetHome
+        ? fleetSource(config.fleetHome, childProcessRunner, process.env)
+        : fixtureSource(config.fixtureRoot, config.fixtureSet),
       clock: clockFor(config),
       logger: consoleLogger,
       watchDir,
-      healthDir: watchDir,
+      // Health is read by the quarantined module from wherever its signals are
+      // kept - beside the fixture set when the panel is running on fixtures,
+      // and inside the fleet home when it is not.
+      healthDir: config.fleetHome ?? fixtureDir,
     });
     runtime.start();
     host[SINGLETON] = runtime;
