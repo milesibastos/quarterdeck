@@ -52,13 +52,23 @@ export const ALLOWED_IMPORTS: Readonly<Record<Layer, readonly Layer[]>> = {
  * character correctly - JSX, strings, template literals, regex literals - so
  * this asks it directly instead of re-deriving that grammar by hand.
  */
-function commentRanges(text: string): ts.CommentRange[] {
+/**
+ * `.tsx` needs JSX-aware parsing; `.ts` must NOT get it. A generic arrow with
+ * no trailing comma - `<T>(x: T): T => x`, ordinary in a `.ts` file - reads as
+ * an unclosed JSX tag under TSX parsing, and everything after it collapses
+ * into one JsxText leaf that stripComments cannot see into.
+ */
+function scriptKindOf(path: string): ts.ScriptKind {
+  return path.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
+}
+
+function commentRanges(text: string, path: string): ts.CommentRange[] {
   const sourceFile = ts.createSourceFile(
-    "scanned.tsx",
+    path,
     text,
     ts.ScriptTarget.Latest,
     /* setParentNodes */ true,
-    ts.ScriptKind.TSX,
+    scriptKindOf(path),
   );
 
   const ranges: ts.CommentRange[] = [];
@@ -90,10 +100,10 @@ function commentRanges(text: string): ts.CommentRange[] {
   return ranges.sort((a, b) => a.pos - b.pos);
 }
 
-export function stripComments(text: string): string {
+export function stripComments(text: string, path: string): string {
   let out = "";
   let i = 0;
-  for (const { pos, end } of commentRanges(text)) {
+  for (const { pos, end } of commentRanges(text, path)) {
     if (pos < i) continue;
     out += text.slice(i, pos);
     // Every non-newline character is blanked rather than the comment
@@ -106,7 +116,7 @@ export function stripComments(text: string): string {
 }
 
 function codeLines(file: SourceFile): { line: number; text: string }[] {
-  return stripComments(file.text)
+  return stripComments(file.text, file.path)
     .split("\n")
     .map((text, i) => ({ line: i + 1, text }));
 }
@@ -305,7 +315,7 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
 
   for (const file of files) {
     if (`src/${file.path}` === PERMITTED_WRITER) continue;
-    const code = stripComments(file.text);
+    const code = stripComments(file.text, file.path);
     // One report per file and API: naming the import line and every use of it
     // says the same thing several times and buries the next finding.
     const reported = new Set<string>();
@@ -425,7 +435,7 @@ export function checkPinnedContract(files: readonly SourceFile[]): Violation[] {
   if (!contract) return [];
 
   const violations: Violation[] = [];
-  const code = stripComments(contract.text);
+  const code = stripComments(contract.text, contract.path);
   const declaration = /const\s+SNAPSHOT_SCHEMA_ID\s*=\s*["'][^"']+["']/.exec(code);
 
   if (!declaration) {
@@ -544,7 +554,7 @@ export function checkProviderBypass(files: readonly SourceFile[]): Violation[] {
   ];
   for (const file of files) {
     if (layerOf(file.path) === "providers") continue;
-    const code = stripComments(file.text);
+    const code = stripComments(file.text, file.path);
     // `const D = Date; D.now()` renames the global before reaching for it;
     // the probes above only know the literal spelling `Date`.
     const aliasProbes: [RegExp, string][] = [];

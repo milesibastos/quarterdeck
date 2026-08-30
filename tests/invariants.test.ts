@@ -62,6 +62,21 @@ test("no-egress finds a URL past JSX prose and a comment, not inside one", () =>
   );
 });
 
+test("a .ts file's generic arrow does not swallow a later comment as code", () => {
+  // Parsing every file as TSX read `<T>(x: T): T => x` - ordinary in a plain
+  // .ts file, which has no JSX grammar to compete with `<` - as an unclosed
+  // JSX tag, collapsing everything after it into one JsxText leaf that
+  // stripComments could not see into. The comment two lines later, which only
+  // mentions a URL as prose, was then scanned as code and flagged. Parsing a
+  // .ts file as ts.ScriptKind.TS keeps the generic a generic and the comment
+  // a comment.
+  const found = runChecks(join(VIOLATIONS_ROOT, "no-egress"), "no-egress");
+  assert.deepEqual(
+    found.filter((v) => v.file === "src/domain/generic-arrow.ts"),
+    [],
+  );
+});
+
 for (const name of Object.keys(CHECKS) as CheckName[]) {
   test(`${name} reports its planted violation`, () => {
     const found = runChecks(join(VIOLATIONS_ROOT, name));
