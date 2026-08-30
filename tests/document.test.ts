@@ -35,9 +35,17 @@ const OPTIONS = {
   staleAfterMs: 60_000,
 };
 
+/**
+ * `homes/` holds synthetic fleet homes rather than fixture sets - they have no
+ * snapshot, and they are what the quarantined health module reads. Every
+ * directory inside it is walked by `tests/health.test.ts`, which carries the
+ * same "a fixture nobody checks fails" guard this file does.
+ */
+const NOT_A_SET = new Set(["homes"]);
+
 function fixtureSets(): string[] {
   return readdirSync(FIXTURES, { withFileTypes: true })
-    .filter((entry) => entry.isDirectory())
+    .filter((entry) => entry.isDirectory() && !NOT_A_SET.has(entry.name))
     .map((entry) => entry.name)
     .sort();
 }

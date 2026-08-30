@@ -1,0 +1,4 @@
+working: two shapes possible for the intake
+needs-decision corr=00112233445566aa [key=intake-shape]: pipe into the intake, or write a record it picks up
+resolved corr=00112233445566aa [key=intake-shape]: write the record
+paused: waiting on the vendor rate-limit window

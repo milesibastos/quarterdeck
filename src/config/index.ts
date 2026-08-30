@@ -15,6 +15,16 @@ export interface Config {
   readonly fixtureSet: string;
   /** Absolute path of the fixtures root. */
   readonly fixtureRoot: string;
+  /**
+   * A running fleet's home directory, or `null` to read health from the
+   * fixture set like everything else.
+   *
+   * Health is the one lens with a real source to point at: the fleet's own
+   * files, which carry no compatibility promise. What is inside that directory
+   * is the quarantined module's business and nothing else's, so this carries
+   * the home and no path below it.
+   */
+  readonly fleetHome: string | null;
   /** Loopback only. Never an address reachable from the network. */
   readonly host: string;
   readonly port: number;
@@ -76,6 +86,7 @@ export function loadConfig(
   return {
     fixtureSet,
     fixtureRoot: env.QUARTERDECK_FIXTURE_ROOT || `${rootDir}/fixtures`,
+    fleetHome: env.QUARTERDECK_FLEET_HOME || null,
     host: HOST,
     port,
     staleAfterMs: intFromEnv(env, "QUARTERDECK_STALE_AFTER_MS", 60_000),
