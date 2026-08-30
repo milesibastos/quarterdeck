@@ -36,7 +36,10 @@ export function Shell({
 
       <div className="grid gap-4 md:grid-cols-3">
         <FleetLens lens={document.fleet} nowMs={nowMs} />
-        <DeckLens lens={document.deck} />
+        {/* The deck is handed the fleet's work items as a directory: a blocker
+            arrives as a bare identity, and the work it names has usually
+            already started. */}
+        <DeckLens lens={document.deck} fleet={document.fleet.content} nowMs={nowMs} />
         <ShipshapeLens lens={document.health} />
       </div>
     </main>

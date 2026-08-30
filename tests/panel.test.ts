@@ -47,14 +47,14 @@ describe("the healthy fleet", () => {
   test("mounts all three lenses, each from its own directory", async () => {
     const html = await body(panel);
     assert.ok(html.includes('data-lens="fleet"'));
-    assert.ok(html.includes("The deck lens is not built yet"));
+    assert.ok(html.includes("Waiting on a person"), "the deck lens drew its own piles");
     assert.ok(html.includes("The shipshape lens is not built yet"));
   });
 
   test("hands each lens the part of the document it reads", async () => {
     const html = await body(panel);
     assert.equal(workerCards(html), 11);
-    assert.ok(html.includes("4 items in the document"));
+    assert.ok(html.includes("Settle the hold vocabulary"), "a deck item the document carries");
   });
 
   test("says every lens is current", async () => {
@@ -76,7 +76,7 @@ describe("the empty fleet", () => {
     const html = await body(panel);
     assert.equal(workerCards(html), 0);
     assert.ok(html.includes("No workers under way"), "a definitive empty state, in words");
-    assert.ok(html.includes("0 items in the document"));
+    assert.ok(html.includes("Nothing queued, blocked or held."), "a definitive empty deck");
     assert.equal(lensStatus(html, "fleet"), "fresh", "an empty fleet is not a degraded one");
   });
 });
@@ -149,7 +149,7 @@ describe("per-lens degradation", () => {
       assert.equal(lensStatus(html, "fleet"), "fresh");
       assert.equal(lensStatus(html, "deck"), "fresh");
       assert.equal(workerCards(html), 3, "the fleet lens still renders");
-      assert.ok(html.includes("3 items in the document"), "the deck lens still renders");
+      assert.ok(html.includes("Settle the hold vocabulary"), "the deck lens still renders");
     } finally {
       await panel.stop();
     }
@@ -198,6 +198,70 @@ describe("a snapshot that stops parsing", () => {
       );
     } finally {
       await panel.stop();
+    }
+  });
+});
+
+describe("the deck lens", () => {
+  let panel: Panel;
+  before(async () => {
+    panel = await startPanel({ port: testPort(12), fixtureSet: "healthy" });
+  });
+  after(() => panel.stop());
+
+  /** The rows of one pile, in the order the lens drew them. */
+  function pile(html: string, name: string): string[] {
+    const section = new RegExp(`data-deck-group="${name}"(.*?)</section>`, "s").exec(html)?.[1];
+    return [...(section ?? "").matchAll(/data-deck-item="([^"]+)"/g)].map((match) => match[1]);
+  }
+
+  test("sorts what is queued, blocked and held into piles of their own", async () => {
+    const html = await body(panel);
+    assert.deepEqual(pile(html, "held"), ["wi-tidewater-126"]);
+    assert.deepEqual(pile(html, "queued"), ["wi-lamplight-231", "wi-cordage-412"]);
+    assert.deepEqual(pile(html, "in-flight"), ["wi-saltmarsh-318"]);
+  });
+
+  test("a held item names who it waits on, why, and when it was deferred to", async () => {
+    const html = await body(panel);
+    assert.ok(html.includes("Waiting on "));
+    assert.ok(html.includes("captain"), "who it waits on");
+    assert.ok(html.includes("Needs a naming decision"), "upstream's own words for why");
+    assert.ok(html.includes("deferred until "), "a deferral is a date, not an age");
+    assert.ok(html.includes("2099-01-04"));
+  });
+
+  test("a blocker that has landed does not keep an item looking blocked", async () => {
+    const html = await body(panel);
+    // wi-cordage-401 is in the fleet and landed, so the item it blocked is
+    // queued rather than blocked, and says what cleared.
+    assert.deepEqual(pile(html, "blocked"), []);
+    assert.ok(html.includes("wi-cordage-401 landed; no longer blocking"));
+  });
+
+  test("a blocker it cannot settle still blocks, named by its identity", async () => {
+    // The same deck with no fleet beside it: nothing can say the blocker
+    // finished, so the honest answer is that the item is still blocked.
+    const alone = await startPanel({ port: testPort(13), fixtureSet: "deck-only" });
+    try {
+      const html = await body(alone);
+      assert.deepEqual(pile(html, "blocked"), ["wi-cordage-412"]);
+      assert.ok(html.includes("Blocked by"));
+      assert.ok(html.includes("wi-cordage-401"), "names the work it waits on");
+      assert.ok(html.includes("Waits on the seam landing first"), "and upstream's reason");
+    } finally {
+      await alone.stop();
+    }
+  });
+
+  test("says a deck it could not read is unknown, not empty", async () => {
+    const dark = await startPanel({ port: testPort(14), fixtureSet: "deck-dark" });
+    try {
+      const html = await body(dark);
+      assert.ok(html.includes("has not read cleanly"));
+      assert.ok(!html.includes("Nothing queued, blocked or held."), "not a definitive empty deck");
+    } finally {
+      await dark.stop();
     }
   });
 });
