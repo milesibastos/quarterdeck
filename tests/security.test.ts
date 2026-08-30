@@ -44,6 +44,21 @@ describe("the server's front door", () => {
     assert.match(await response.text(), /not a loopback origin/);
   });
 
+  test("refuses a loopback origin bound to a different port", async () => {
+    const response = await fetch(panel.url, {
+      headers: { origin: `http://127.0.0.1:${port + 1}` },
+    });
+    assert.equal(response.status, 403);
+    assert.match(await response.text(), /not this panel's own origin/);
+  });
+
+  test("accepts this panel's own origin", async () => {
+    const response = await fetch(panel.url, {
+      headers: { origin: `http://127.0.0.1:${port}` },
+    });
+    assert.equal(response.status, 200);
+  });
+
   test("sets no cross-origin sharing headers", async () => {
     const response = await fetch(panel.url);
     for (const [name] of response.headers) {

@@ -36,11 +36,26 @@ const CONTENT_SECURITY_POLICY = [
   "connect-src 'self'",
 ].join("; ");
 
+/**
+ * The port this instance is bound to, straight from the environment `bin/
+ * quarterdeck` and the test harness always set before spawning the server.
+ * `src/config/` also knows this port, but deriving its default calls into
+ * `node:crypto`, which the edge runtime this file runs in does not have; see
+ * `docs/decisions/2026-08-30-security-baseline.md`. "3000" mirrors Next's own
+ * default for the rare case nothing set `PORT` at all.
+ */
+function boundPort(): string {
+  return process.env.PORT || "3000";
+}
+
 export default function proxy(request: NextRequest) {
-  const verdict = checkRequest({
-    host: request.headers.get("host"),
-    origin: request.headers.get("origin"),
-  });
+  const verdict = checkRequest(
+    {
+      host: request.headers.get("host"),
+      origin: request.headers.get("origin"),
+    },
+    boundPort(),
+  );
 
   if (!verdict.ok) {
     return new NextResponse(`Quarterdeck refused the request: ${verdict.reason}\n`, {

@@ -12,9 +12,9 @@ Last reviewed: 2026-08-30, at the end of the skeleton task.
 | The refresh loop | Green | Coalescing, timeout, last-known-good and the signal are tested; scroll preservation demonstrated in a browser, not asserted. |
 | Fixtures | Green | Every degraded state the panel can reach has a fixture, and both the suite and the dev server run from them. |
 | Theme | Green | Semantic tokens over a palette layer, light and dark, fonts vendored. Not yet exercised by anything more complex than a list row. |
-| Security baseline | Amber | Host, Origin, CSP and the acting guard are tested. The session secret is minted and required but never handed to a client, because nothing acts yet - the round trip is untested by construction. |
+| Security baseline | Amber | Host, Origin, CSP and the acting guard are tested. The session secret is minted and required but never handed to a client, because nothing acts yet - the round trip is untested by construction. Action-request identity and replay rejection are similarly untested: `Intent.requestId` exists as a type only, and no wired path reads it. |
 | `adapters/health.ts` | Amber | Returns `unknown` for every field. Correct for now, but the degradation behaviour that matters - not throwing when a path moves - has nothing to exercise it yet. |
-| The write path | Red | `intent.ts` holds the type and the marker and writes nothing. `submitIntent` refuses. Deliberate: out of scope for the skeleton. |
+| The write path | Red | `intent.ts` holds the type and the marker and writes nothing. `submitIntent` refuses. Deliberate: out of scope for the skeleton. Idempotency is deferred along with it - see `docs/decisions/2026-08-30-security-baseline.md` - and is not enforced today. |
 | The deck and shipshape lenses | Red | Not started. Out of scope for the skeleton. |
 | Reading a real fleet | Red | Not started. The adapter's only wired source is the fixture loader. |
 

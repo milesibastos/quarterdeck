@@ -28,6 +28,7 @@ const BUILD_INPUTS = [
   "next.config.ts",
   "tsconfig.json",
   "components.json",
+  "postcss.config.mjs",
 ];
 
 test("the build is newer than the source it was built from", () => {

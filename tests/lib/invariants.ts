@@ -44,7 +44,9 @@ export const ALLOWED_IMPORTS: Readonly<Record<Layer, readonly Layer[]>> = {
 /** Comments are prose. Scanning them for code patterns only finds false alarms. */
 export function stripComments(text: string): string {
   return text
-    .replace(/\/\*[\s\S]*?\*\//g, "")
+    // Every non-newline character is blanked rather than the whole comment
+    // dropped, so line numbers below still land on the true source line.
+    .replace(/\/\*[\s\S]*?\*\//g, (block) => block.replace(/[^\n]/g, " "))
     // Not `://`, so a URL inside a string survives to be caught by rule 7.
     .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
 }
@@ -162,6 +164,8 @@ const WRITE_APIS = [
 const WRITE_MODULES = ["node:child_process", "child_process", "node:worker_threads", "worker_threads"];
 
 const MEMBER_WRITE = new RegExp(`\\.(${WRITE_APIS.join("|")})\\s*\\(`);
+/** The same calls, reached through bracket notation: `fs["writeFile"](`. */
+const MEMBER_WRITE_BRACKET = new RegExp(`\\[\\s*["'\`](${WRITE_APIS.join("|")})["'\`]\\s*\\]\\s*\\(`);
 
 /** Named imports from a module: `import { a, b as c } from "..."`. */
 function namedImportsFrom(text: string, module: string): string[] {
@@ -170,6 +174,46 @@ function namedImportsFrom(text: string, module: string): string[] {
   for (const match of text.matchAll(pattern)) {
     for (const part of match[1].split(",")) {
       const name = part.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0].trim();
+      if (name) names.push(name);
+    }
+  }
+  return names;
+}
+
+/**
+ * Local identifiers bound to the whole module, however that happens: a default
+ * import, a namespace import, or a `require()` call assigned to a variable.
+ * `import { writeFile } from "node:fs/promises"` is not a bypass on its own -
+ * it is what `namedImportsFrom` already sees - but `import fsp from "..."`
+ * followed by `const { writeFile } = fsp` puts the same capability one hop away.
+ */
+function moduleAliasesOf(text: string, module: string): string[] {
+  const aliases: string[] = [];
+  for (const match of text.matchAll(
+    new RegExp(`import\\s+(?:\\*\\s+as\\s+)?(\\w+)\\s*from\\s*["']${module}["']`, "g"),
+  )) {
+    aliases.push(match[1]);
+  }
+  for (const match of text.matchAll(
+    new RegExp(`(?:const|let|var)\\s+(\\w+)\\s*=\\s*require\\(\\s*["']${module}["']\\s*\\)`, "g"),
+  )) {
+    aliases.push(match[1]);
+  }
+  return aliases;
+}
+
+/**
+ * Names pulled out of a destructuring assignment whose right-hand side matches
+ * `sourcePattern` - either a module alias (`fsp`) or a `require(...)` call.
+ * `{ writeFile: w }` is tracked under its source name, `writeFile`, since that
+ * is the capability that matters; the local name after the colon is discarded.
+ */
+function destructuredFrom(text: string, sourcePattern: string): string[] {
+  const names: string[] = [];
+  const pattern = new RegExp(`\\{([^}]*)\\}\\s*=\\s*${sourcePattern}`, "g");
+  for (const match of text.matchAll(pattern)) {
+    for (const part of match[1].split(",")) {
+      const name = part.trim().split(":")[0].trim();
       if (name) names.push(name);
     }
   }
@@ -211,9 +255,17 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
     // One report per file and API: naming the import line and every use of it
     // says the same thing several times and buries the next finding.
     const reported = new Set<string>();
+    const fsModules = ["node:fs", "node:fs/promises"];
     const imported = new Set([
-      ...namedImportsFrom(code, "node:fs"),
-      ...namedImportsFrom(code, "node:fs/promises"),
+      ...fsModules.flatMap((m) => namedImportsFrom(code, m)),
+      // `import fsp from "node:fs/promises"; const { writeFile } = fsp;`
+      ...fsModules.flatMap((m) =>
+        moduleAliasesOf(code, m).flatMap((alias) => destructuredFrom(code, `${alias}\\b`)),
+      ),
+      // `const { writeFile } = require("node:fs/promises");`
+      ...fsModules.flatMap((m) =>
+        destructuredFrom(code, `require\\(\\s*["']${m}["']\\s*\\)`),
+      ),
     ]);
 
     for (const { line, text } of codeLines(file)) {
@@ -229,6 +281,8 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
       }
       const member = MEMBER_WRITE.exec(text);
       if (member) found.push(member[1]);
+      const bracket = MEMBER_WRITE_BRACKET.exec(text);
+      if (bracket) found.push(bracket[1]);
       if (/\bprocess\.chdir\s*\(/.test(text)) found.push("process.chdir");
 
       for (const api of new Set(found)) {
@@ -274,13 +328,30 @@ export function checkPathQuarantine(files: readonly SourceFile[]): Violation[] {
           doc: `${ARCH} - invariant 4`,
         });
       }
-      for (const api of ["homedir", "process.env.HOME", "userInfo"]) {
+      for (const api of ["homedir", "userInfo"]) {
         if (!text.includes(api)) continue;
         violations.push({
           slug: "path-quarantine",
           file: `src/${file.path}`,
           line,
           what: `${api} used outside ${QUARANTINED_MODULE}. Only that file may reach for machine-specific locations.`,
+          why: `A home directory is the root of every fleet-internal path. Letting any file derive one puts the unstable dependency everywhere.`,
+          fix: `Take the location from src/config/, which reads it from the environment, or move the lookup into ${QUARANTINED_MODULE}.`,
+          doc: `${ARCH} - invariant 4`,
+        });
+      }
+      // Dotted, bracketed (`process.env["HOME"]`) or destructured
+      // (`const { HOME } = process.env`) - all three reach the same value.
+      if (
+        /process\.env\.HOME\b/.test(text) ||
+        /process\.env\[\s*["'`]HOME["'`]\s*\]/.test(text) ||
+        /\{[^}]*\bHOME\b[^}]*\}\s*=\s*process\.env\b/.test(text)
+      ) {
+        violations.push({
+          slug: "path-quarantine",
+          file: `src/${file.path}`,
+          line,
+          what: `process.env.HOME used outside ${QUARANTINED_MODULE}. Only that file may reach for machine-specific locations.`,
           why: `A home directory is the root of every fleet-internal path. Letting any file derive one puts the unstable dependency everywhere.`,
           fix: `Take the location from src/config/, which reads it from the environment, or move the lookup into ${QUARANTINED_MODULE}.`,
           doc: `${ARCH} - invariant 4`,
@@ -316,7 +387,18 @@ export function checkPinnedContract(files: readonly SourceFile[]): Violation[] {
     return violations;
   }
 
-  if (!/SNAPSHOT_SCHEMA_ID\s*(!==|===)|(!==|===)\s*SNAPSHOT_SCHEMA_ID/.test(code)) {
+  // A comparison only defends the pin if the other side is some parsed value,
+  // not the identifier compared against itself: `X === X` matches the same
+  // shape as `value.schema === X` but proves nothing.
+  let comparedAgainstValue = false;
+  for (const match of code.matchAll(/([\w.$[\]]+)\s*(?:!==|===)\s*([\w.$[\]]+)/g)) {
+    const [, left, right] = match;
+    if ((left === "SNAPSHOT_SCHEMA_ID") !== (right === "SNAPSHOT_SCHEMA_ID")) {
+      comparedAgainstValue = true;
+      break;
+    }
+  }
+  if (!comparedAgainstValue) {
     violations.push({
       slug: "pinned-contract",
       file: CONTRACT_MODULE,
@@ -371,7 +453,11 @@ export function checkNoEgress(files: readonly SourceFile[]): Violation[] {
       });
     }
     for (const { line, text } of codeLines(file)) {
-      for (const match of text.matchAll(/["'`](https?:\/\/[^"'`\s]+)["'`]/g)) {
+      // Both `https://host` and protocol-relative `//host` reach the network;
+      // the second is invisible to a check that only knows `https?://`.
+      for (const match of text.matchAll(
+        /["'`]((?:wss?|https?):\/\/[^"'`\s]+|\/\/[^"'`\s]+\.[^"'`\s]+)["'`]/g,
+      )) {
         violations.push({
           slug: "no-egress",
           file: `src/${file.path}`,
@@ -399,11 +485,24 @@ export function checkProviderBypass(files: readonly SourceFile[]): Violation[] {
     [/\bDate\.now\s*\(/, "Date.now()"],
     [/\bnew Date\s*\(\s*\)/, "new Date()"],
     [/\bconsole\.\w+\s*\(/, "console"],
+    // `console['log'](...)` reaches the same global through a bracket.
+    [/\bconsole\[\s*["'`]\w+["'`]\s*\]\s*\(/, "console"],
   ];
   for (const file of files) {
     if (layerOf(file.path) === "providers") continue;
+    const code = stripComments(file.text);
+    // `const D = Date; D.now()` renames the global before reaching for it;
+    // the probes above only know the literal spelling `Date`.
+    const aliasProbes: [RegExp, string][] = [];
+    for (const match of code.matchAll(/\b(?:const|let|var)\s+(\w+)\s*=\s*Date\s*[;\n]/g)) {
+      const alias = match[1];
+      aliasProbes.push(
+        [new RegExp(`\\b${alias}\\.now\\s*\\(`), "Date.now()"],
+        [new RegExp(`\\bnew\\s+${alias}\\s*\\(\\s*\\)`), "new Date()"],
+      );
+    }
     for (const { line, text } of codeLines(file)) {
-      for (const [pattern, name] of probes) {
+      for (const [pattern, name] of [...probes, ...aliasProbes]) {
         if (!pattern.test(text)) continue;
         violations.push({
           slug: "provider-bypass",

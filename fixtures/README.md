@@ -6,8 +6,9 @@ tool it holds reads a private fleet. Test material has been synthetic since the
 first commit so that nobody ever has to decide, later and in a hurry, whether a
 particular sample is safe to publish.
 
-`npm test` asserts this: a leak guard greps every tracked file for home
-directories, absolute machine paths and real operator identifiers.
+`npm test` asserts this: a leak guard greps every tracked file, plus every
+uncommitted file that is not gitignored, for home directories, absolute
+machine paths and real operator identifiers.
 
 Which set the panel reads is a config value, not a code change:
 

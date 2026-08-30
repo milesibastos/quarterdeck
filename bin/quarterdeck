@@ -51,7 +51,12 @@ async function newest(dir) {
 
 async function buildIfNeeded() {
   const builtAt = existsSync(server) ? (await stat(server)).mtimeMs : 0;
-  const sourceAt = Math.max(await newest(join(root, "src")), await newest(join(root, "public")));
+  const postcssConfig = join(root, "postcss.config.mjs");
+  const sourceAt = Math.max(
+    await newest(join(root, "src")),
+    await newest(join(root, "public")),
+    existsSync(postcssConfig) ? (await stat(postcssConfig)).mtimeMs : 0,
+  );
   if (builtAt > sourceAt) return;
   await run("npm", ["run", "build"]);
 }

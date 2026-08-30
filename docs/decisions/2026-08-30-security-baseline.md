@@ -49,3 +49,16 @@ runtime does not have. Rather than turn on Node-runtime middleware, the acting
 guard lives in the acting route itself, which runs in Node. The cost is that the
 two halves of the baseline live in two files; both are named in
 `docs/ARCHITECTURE.md`.
+
+## Forward obligation: idempotency ships with the first acting endpoint
+
+`Intent.requestId` exists today only as a type - no wired path reads it, and
+`docs/quality.md` records that as untested by construction, the same way the
+session-secret round trip is. That is acceptable while `/api/act` unconditionally
+returns 501: there is no action to replay yet.
+
+It stops being acceptable the moment that changes. The change that makes
+`/api/act` do anything other than return 501 must land request identity and
+replay rejection in that same change, not after it - for the same reason this
+baseline shipped ahead of the write path in the first place: an acting endpoint
+must never ship ahead of the mechanism that stops it acting twice.

@@ -41,9 +41,11 @@ export function checkHost(hostHeader: string | null): GuardVerdict {
 /**
  * `Origin` is absent on ordinary same-origin navigations, which is why its
  * absence is not itself a failure - but when a browser does send one, it must
- * be a loopback origin.
+ * be this panel's own origin: loopback, and on the port this instance is
+ * bound to. A page served by some other loopback-bound process is not "us"
+ * just because it also happens to be on 127.0.0.1.
  */
-export function checkOrigin(originHeader: string | null): GuardVerdict {
+export function checkOrigin(originHeader: string | null, expectedPort: string): GuardVerdict {
   if (originHeader === null) return { ok: true };
   let url: URL;
   try {
@@ -54,16 +56,23 @@ export function checkOrigin(originHeader: string | null): GuardVerdict {
   if (url.protocol !== "http:" || !LOOPBACK_HOSTS.has(`${url.hostname}`)) {
     return { ok: false, reason: `Origin "${originHeader}" is not a loopback origin` };
   }
+  const port = url.port || "80";
+  if (port !== expectedPort) {
+    return {
+      ok: false,
+      reason: `Origin "${originHeader}" is not this panel's own origin (bound to port ${expectedPort})`,
+    };
+  }
   return { ok: true };
 }
 
-export function checkRequest(headers: {
-  host: string | null;
-  origin: string | null;
-}): GuardVerdict {
+export function checkRequest(
+  headers: { host: string | null; origin: string | null },
+  expectedPort: string,
+): GuardVerdict {
   const host = checkHost(headers.host);
   if (!host.ok) return host;
-  return checkOrigin(headers.origin);
+  return checkOrigin(headers.origin, expectedPort);
 }
 
 /** Requests under this prefix act on the fleet and need the session secret. */

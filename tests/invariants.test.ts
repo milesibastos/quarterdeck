@@ -30,6 +30,17 @@ test("every check has a planted violation to prove it works", () => {
   );
 });
 
+test("a violation under a multi-line block comment is still reported at its true line", () => {
+  // path-quarantine's planted tree carries a multi-line header comment above
+  // its violation on purpose: stripping comments must not shift line numbers,
+  // or every check built on codeLines() would misreport where the fault is.
+  const found = runChecks(join(VIOLATIONS_ROOT, "path-quarantine"));
+  assert.deepEqual(
+    found.map((v) => `${v.file}:${v.line}`),
+    ["src/runtime/paths.ts:7"],
+  );
+});
+
 for (const name of Object.keys(CHECKS) as CheckName[]) {
   test(`${name} reports its planted violation`, () => {
     const found = runChecks(join(VIOLATIONS_ROOT, name));

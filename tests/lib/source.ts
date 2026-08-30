@@ -61,6 +61,8 @@ export interface ImportRef {
 const IMPORT_FROM = /\b(import|export)[ \t\n]+([^;'"]*?)[ \t\n]*from[ \t]*["']([^"']+)["']/g;
 const SIDE_EFFECT_IMPORT = /\bimport[ \t]*["']([^"']+)["']/g;
 const DYNAMIC_IMPORT = /\bimport[ \t]*\([ \t\n]*["']([^"']+)["']/g;
+/** `require("...")`, however the result is bound - a default import's CommonJS twin. */
+const REQUIRE_CALL = /\brequire[ \t]*\([ \t\n]*["']([^"']+)["']/g;
 
 function lineAt(text: string, index: number): number {
   let line = 1;
@@ -87,6 +89,10 @@ export function importsOf(file: SourceFile): ImportRef[] {
     refs.push({ specifier: match[1], line: lineAt(file.text, at), typeOnly: false });
   }
   for (const match of file.text.matchAll(DYNAMIC_IMPORT)) {
+    const at = match.index ?? 0;
+    refs.push({ specifier: match[1], line: lineAt(file.text, at), typeOnly: false });
+  }
+  for (const match of file.text.matchAll(REQUIRE_CALL)) {
     const at = match.index ?? 0;
     refs.push({ specifier: match[1], line: lineAt(file.text, at), typeOnly: false });
   }
