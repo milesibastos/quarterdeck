@@ -1,5 +1,6 @@
 import { readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
+import ts from "typescript";
 import type { Violation } from "./violation.ts";
 import {
   importsOf,
@@ -43,59 +44,64 @@ export const ALLOWED_IMPORTS: Readonly<Record<Layer, readonly Layer[]>> = {
 
 /**
  * Comments are prose. Scanning them for code patterns only finds false alarms
- * - but `//` and `/*` inside a string literal are not comments at all, so a
- * regex that cannot tell the difference either corrupts string contents (an
- * earlier version of this function did) or leaves a comment unstripped. This
- * walks the text tracking whether it is inside a single-quote, double-quote or
- * template string, honouring backslash escapes, and only treats `//` and `/*`
- * as comment starts outside one.
+ * - but `//` and `/*` inside a string, template or JSX text are not comments
+ * at all. Two earlier versions of this function tried to tell the difference
+ * with hand-rolled rules (an empty-string replace that shifted line numbers,
+ * then a quote-tracking walk that desynced on an apostrophe in JSX prose) and
+ * both shipped a real bug. TypeScript's own parser already classifies every
+ * character correctly - JSX, strings, template literals, regex literals - so
+ * this asks it directly instead of re-deriving that grammar by hand.
  */
+function commentRanges(text: string): ts.CommentRange[] {
+  const sourceFile = ts.createSourceFile(
+    "scanned.tsx",
+    text,
+    ts.ScriptTarget.Latest,
+    /* setParentNodes */ true,
+    ts.ScriptKind.TSX,
+  );
+
+  const ranges: ts.CommentRange[] = [];
+  const seen = new Set<string>();
+  const add = (found: readonly ts.CommentRange[] | undefined) => {
+    for (const range of found ?? []) {
+      const key = `${range.pos}:${range.end}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      ranges.push(range);
+    }
+  };
+
+  // Only leaf tokens - the ones getChildren() cannot expand further - carry
+  // real trivia. A comment on its own line is leading trivia of the token
+  // after it; one trailing code on the same line (`x = 1; // note`) is
+  // trailing trivia of the token before it instead, so both are checked.
+  const visit = (node: ts.Node) => {
+    const children = node.getChildren(sourceFile);
+    if (children.length === 0) {
+      add(ts.getLeadingCommentRanges(text, node.getFullStart()));
+      add(ts.getTrailingCommentRanges(text, node.end));
+      return;
+    }
+    for (const child of children) visit(child);
+  };
+  visit(sourceFile);
+
+  return ranges.sort((a, b) => a.pos - b.pos);
+}
+
 export function stripComments(text: string): string {
   let out = "";
-  let quote: '"' | "'" | "`" | null = null;
-
-  for (let i = 0; i < text.length; ) {
-    const ch = text[i];
-
-    if (quote) {
-      out += ch;
-      if (ch === "\\" && i + 1 < text.length) {
-        out += text[i + 1];
-        i += 2;
-        continue;
-      }
-      if (ch === quote) quote = null;
-      i += 1;
-      continue;
-    }
-
-    if (ch === '"' || ch === "'" || ch === "`") {
-      quote = ch;
-      out += ch;
-      i += 1;
-      continue;
-    }
-
-    if (ch === "/" && text[i + 1] === "*") {
-      const end = text.indexOf("*/", i + 2);
-      const stop = end === -1 ? text.length : end + 2;
-      // Every non-newline character is blanked rather than the comment
-      // dropped, so line numbers below still land on the true source line.
-      for (let j = i; j < stop; j += 1) out += text[j] === "\n" ? "\n" : " ";
-      i = stop;
-      continue;
-    }
-
-    if (ch === "/" && text[i + 1] === "/") {
-      const end = text.indexOf("\n", i);
-      i = end === -1 ? text.length : end;
-      continue;
-    }
-
-    out += ch;
-    i += 1;
+  let i = 0;
+  for (const { pos, end } of commentRanges(text)) {
+    if (pos < i) continue;
+    out += text.slice(i, pos);
+    // Every non-newline character is blanked rather than the comment
+    // dropped, so line numbers below still land on the true source line.
+    for (let j = pos; j < end; j += 1) out += text[j] === "\n" ? "\n" : " ";
+    i = end;
   }
-
+  out += text.slice(i);
   return out;
 }
 

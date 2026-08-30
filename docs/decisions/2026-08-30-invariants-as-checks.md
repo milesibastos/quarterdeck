@@ -37,15 +37,24 @@ shape ESLint prints. A plain function over the file list is a tenth of the code
 and produces the exact output required. The cost is no editor squiggle: an agent
 finds out at `npm test` rather than while typing.
 
-**Text matching, not an AST.** The checks read imports and identifiers with
-regular expressions over comment-stripped source. An AST would be exact. Two
-things made text matching the better trade here: it is a fraction of the code,
-and every false positive it produced during this task was a real signal - a
-generic word in the deny-list matching a Tailwind class name, a loopback URL in
-a field nothing used. The cost is that a determined author can evade it, and
-that a novel syntax could slip past. The mitigation is that the checks fire on
-the shapes an agent actually writes, and that evading one is a deliberate act
-rather than an accident.
+**Text matching, not an AST - but over TypeScript's own tokens.** The checks
+read imports and identifiers with regular expressions over comment-stripped
+source. That comment-stripping step was originally hand-rolled, and it produced
+three real bugs across three review rounds: block comments shifting reported
+line numbers, a protocol-relative URL literal made invisible by the same
+stripping it was meant to survive, and - the one that settled it - quote
+tracking that desynced on a plain apostrophe in JSX prose, silently
+misclassifying every string and comment after it in the file. Each fix repaired
+one instance of the same class rather than the class itself, which is what a
+hand-rolled lexer costs: it re-derives JavaScript's grammar by hand and gets
+charged for every corner of it, one incident at a time. The comment and string
+classification now asks `ts.createSourceFile` directly, which already
+implements that grammar - JSX, template literals, regex literals - correctly.
+The checks themselves are still regular expressions over the resulting text;
+only the token classification moved. The cost is `typescript` as a devDependency
+loaded at test time, and the same residual trade the old approach had: a
+determined author can still evade a regex-based check, and the mitigation is
+still that doing so is a deliberate act rather than an accident.
 
 **One check beyond the seven.** `provider-bypass` bans `Date.now()`,
 `new Date()` and `console.*` outside `src/providers/`. The brief names this as

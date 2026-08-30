@@ -41,16 +41,24 @@ test("a violation under a multi-line block comment is still reported at its true
   );
 });
 
-test("a protocol-relative URL literal is caught; the same text in a comment is not", () => {
-  // no-egress's planted tree carries this fixture at the position health.ts
-  // occupies in src/ - the one file exempt from path-quarantine - so the only
-  // thing standing between a quoted "//host/..." literal and going unnoticed
-  // is this check. Its header comment repeats the same host as prose, to prove
-  // the check reacts to code, not to text a human happens to write nearby.
+test("no-egress finds a URL past JSX prose and a comment, not inside one", () => {
+  // no-egress's planted tree exercises three ways comment/string stripping
+  // has broken before: adapters/health.ts carries a protocol-relative literal
+  // at the position health.ts occupies in src/ (the one file exempt from
+  // path-quarantine, so this check is the only thing that can catch it) with
+  // the same host repeated in a comment that must NOT be flagged; ui/apostrophe.tsx
+  // carries an apostrophe in JSX text and a multi-line template literal ahead
+  // of a real violation, proving neither desyncs comment/string classification
+  // for what follows.
   const found = runChecks(join(VIOLATIONS_ROOT, "no-egress"));
   assert.deepEqual(
     found.map((v) => `${v.file}:${v.line}`).sort(),
-    ["src/adapters/health.ts:2", "src/ui/fonts/fonts.ts:2", "src/ui/fonts/fonts.ts:5"],
+    [
+      "src/adapters/health.ts:2",
+      "src/ui/apostrophe.tsx:10",
+      "src/ui/fonts/fonts.ts:2",
+      "src/ui/fonts/fonts.ts:5",
+    ],
   );
 });
 
