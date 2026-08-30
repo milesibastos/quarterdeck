@@ -33,9 +33,10 @@ Last reviewed: 2026-08-30, at the end of the document-seam task.
   request's address but nothing about its checks. The field is in the document
   on purpose; filling it means reading the forge. See
   `docs/decisions/2026-08-30-the-document-seam.md`.
-- **No accessibility pass.** Semantic elements and a `role="status"` on the
-  degradation banner are as far as it goes. Keyboard traversal and contrast
-  ratios across all four status tokens have not been checked.
+- **No accessibility pass.** Semantic elements and a `role="status"` on each
+  lens's status line, in `lens-frame.tsx`, are as far as it goes. Keyboard
+  traversal and contrast ratios across all four status tokens have not been
+  checked.
 - **The dark theme is class-only.** It has no switcher and does not follow the
   operator's system preference. See
   `docs/decisions/2026-08-30-theme-and-palette.md`.

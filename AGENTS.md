@@ -19,7 +19,7 @@ than a real fleet.
 | `src/providers/` | The clock and the logger, as dependencies. |
 | `src/app/`, `src/proxy.ts` | Next's routes and middleware: the composition point. |
 | `fixtures/` | Synthetic fleets, two files per set. Zero real data, by rule. |
-| `tests/` | Behavioural tests against the built server, and the invariant checks. |
+| `tests/` | Behavioural tests against the built server, the invariant checks, and a pure-projection walk of every fixture. |
 
 ## Run it
 
