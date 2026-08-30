@@ -10,6 +10,7 @@
  * has exactly one implementation shared with the server.
  */
 import { spawn } from "node:child_process";
+import { createServer } from "node:net";
 import { existsSync } from "node:fs";
 import { cp, mkdir, readFile, readdir, stat } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
@@ -21,12 +22,14 @@ const standalone = join(root, ".next", "standalone");
 const server = join(standalone, "server.js");
 
 function run(command, args, options = {}) {
+  const { onStart, ...spawnOptions } = options;
   return new Promise((resolveRun, rejectRun) => {
-    const child = spawn(command, args, { cwd: root, stdio: "inherit", ...options });
+    const child = spawn(command, args, { cwd: root, stdio: "inherit", ...spawnOptions });
     child.on("error", rejectRun);
     child.on("exit", (code) =>
       code === 0 ? resolveRun() : rejectRun(new Error(`${command} exited with ${code}`)),
     );
+    onStart?.(child);
   });
 }
 
@@ -74,9 +77,55 @@ await buildIfNeeded();
 await stageAssets();
 
 const url = `http://${host}:${port}`;
-process.stdout.write(`quarterdeck listening on ${url}\n`);
+
+/**
+ * Refuse before starting if the port is taken.
+ *
+ * Otherwise Next binds, fails, and prints a stack trace - and any probe we did
+ * afterwards would be answered by whatever already holds the port, so we would
+ * cheerfully announce someone else's panel as ours.
+ */
+function portIsFree() {
+  return new Promise((settle) => {
+    const probe = createServer();
+    probe.once("error", () => settle(false));
+    probe.once("listening", () => probe.close(() => settle(true)));
+    probe.listen(Number(port), host);
+  });
+}
+
+if (!(await portIsFree())) {
+  process.stderr.write(
+    `Port ${port} is already in use. Another quarterdeck from this worktree is ` +
+      `probably already running on ${url}.\n` +
+      `Stop it, or set QUARTERDECK_PORT to run a second one.\n`,
+  );
+  process.exit(1);
+}
+
+/**
+ * Announce the URL only once the panel answers on it.
+ *
+ * Printing first is a lie whenever the start fails - the operator reads a URL
+ * and the server exits below it, and the two lines disagree.
+ */
+async function announceWhenListening(child) {
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    if (child.exitCode !== null) return;
+    try {
+      await fetch(url, { headers: { host } });
+      process.stdout.write(`quarterdeck listening on ${url}\n`);
+      return;
+    } catch {
+      await new Promise((wait) => setTimeout(wait, 100));
+    }
+  }
+  process.stdout.write(`quarterdeck did not answer on ${url} within 30s\n`);
+}
 
 await run("node", [server], {
+  onStart: announceWhenListening,
   env: {
     ...process.env,
     // Loopback only. Never an address reachable from the network.

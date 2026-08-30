@@ -19,7 +19,14 @@ import { formatViolation } from "./lib/violation.ts";
  * long as it takes to commit the leak.
  */
 
-/** Every pattern here would identify a real machine, operator or task. */
+/**
+ * Every pattern here would identify a real machine, operator or task.
+ *
+ * This file is scanned like any other, and the patterns below happen not to
+ * match their own source - each word sits behind a `\b` escape, so there is no
+ * word boundary in front of it. That is luck, not design: never write a bare
+ * example of a rejected shape in this file, in a comment or anywhere else.
+ */
 const LEAKS: [RegExp, string][] = [
   [/\/Users\/[A-Za-z0-9._-]+/, "a macOS home directory"],
   [/\/home\/[A-Za-z0-9._-]+/, "a Linux home directory"],

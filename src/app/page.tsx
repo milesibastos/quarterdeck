@@ -41,7 +41,10 @@ async function read(config: Config): Promise<Outcome> {
     if (error instanceof ContractIdentifierError) {
       return {
         kind: "refusal",
-        expected: error.expected,
+        // Both go through JSON.stringify so they read the same way side by
+        // side, and so a `found` that is not a string - undefined, a number -
+        // still shows what it actually was.
+        expected: JSON.stringify(error.expected),
         found: JSON.stringify(error.found),
         source: error.source,
       };
