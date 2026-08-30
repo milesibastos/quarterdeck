@@ -1,6 +1,6 @@
 {
   "schema": "fm-fleet-snapshot.v1",
-  "generated_at": "2019-03-04T11:00:00.000Z",
+  "generated_at": "2099-01-01T09:15:00.000Z",
   "tasks": [
     {
       "id": "wi-tidewater-114",
@@ -17,16 +17,37 @@
         }
       },
       "current_state": {
+        "state": "dispatched",
+        "detail": "dispatched to a fresh worktree",
+        "observed_at": "2099-01-01T09:14:52.000Z"
+      },
+      "pr": null
+    },
+    {
+      "id": "wi-tidewater-118",
+      "project": "tidewater",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-tidewater-118.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-tidewater-118",
+          "present": true
+        }
+      },
+      "current_state": {
         "state": "working",
         "detail": "editing the projection",
-        "observed_at": "2019-03-04T10:52:00.000Z"
+        "observed_at": "2099-01-01T09:14:40.000Z"
       },
       "pr": null
     },
     {
       "id": "wi-lamplight-207",
       "project": "lamplight",
-      "kind": "scout",
+      "kind": "ship",
       "paths": {
         "meta": {
           "path": "/anchorage/briefs/wi-lamplight-207.md",
@@ -38,9 +59,9 @@
         }
       },
       "current_state": {
-        "state": "parked",
-        "detail": "parked at review: 2 finding(s)",
-        "observed_at": "2019-03-04T10:59:30.000Z"
+        "state": "validating",
+        "detail": "validating (running)",
+        "observed_at": "2099-01-01T09:14:31.000Z"
       },
       "pr": null
     }
@@ -53,9 +74,24 @@
         "title": "Draw the lifecycle rail",
         "state": "queued",
         "priority": "now",
-        "since": "2019-03-04T10:30:00.000Z",
+        "since": "2099-01-01T09:10:00.000Z",
         "blocked_by_ids": [],
         "blocked_reason": null,
+        "hold_kind": null,
+        "hold_reason": null,
+        "hold_until": null,
+        "captain_actionable": false
+      },
+      {
+        "id": "wi-cordage-412",
+        "title": "Wire the real fleet source",
+        "state": "queued",
+        "priority": "next",
+        "since": "2099-01-01T08:55:00.000Z",
+        "blocked_by_ids": [
+          "wi-cordage-401"
+        ],
+        "blocked_reason": "Waits on the seam landing first",
         "hold_kind": null,
         "hold_reason": null,
         "hold_until": null,
@@ -65,13 +101,13 @@
         "id": "wi-tidewater-126",
         "title": "Settle the hold vocabulary",
         "state": "queued",
-        "priority": "later",
-        "since": "2019-03-04T09:00:00.000Z",
+        "priority": "next",
+        "since": "2099-01-01T07:20:05.000Z",
         "blocked_by_ids": [],
         "blocked_reason": null,
         "hold_kind": "captain",
         "hold_reason": "Needs a naming decision",
-        "hold_until": null,
+        "hold_until": "2099-01-04",
         "captain_actionable": true
       }
     ]

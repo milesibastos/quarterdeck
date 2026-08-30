@@ -1,0 +1,26 @@
+{
+  "asOf": "2019-03-04T11:00:00.000Z",
+  "supervisor": {
+    "read": "ok",
+    "alive": false,
+    "lastSeen": "2019-03-04T10:41:00.000Z"
+  },
+  "overdue": {
+    "read": "ok",
+    "overdue": [
+      {
+        "id": "wi-tidewater-126",
+        "waitingSince": "2019-03-04T09:00:00.000Z"
+      }
+    ]
+  },
+  "drift": {
+    "read": "ok",
+    "disagreements": [
+      {
+        "record": "backlog",
+        "detail": "wi-lamplight-207 is queued here but has a worktree"
+      }
+    ]
+  }
+}

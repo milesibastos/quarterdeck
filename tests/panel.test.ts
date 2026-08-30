@@ -7,21 +7,29 @@ import { copyFixtures, startPanel, testPort, until, type Panel } from "./lib/ser
 /**
  * What the panel renders, driven end to end through the built server.
  *
- * Every degraded state the design promises has a fixture, and every fixture has
- * a test here: a skeleton that only proved the happy path would say nothing
- * about the behaviour the whole design is built around.
+ * The three lenses are placeholders - what they draw is later work by other
+ * hands - so what this file asserts is the shell and the envelope: that all
+ * three lenses are mounted, and that each reports its own freshness. The
+ * document behind them is asserted in `document.test.ts`.
  */
 
 /**
  * The rendered page, with React's text-node markers removed.
  *
  * React splits adjacent text with `<!-- -->` so it can find the boundaries
- * again when it hydrates, which turns "6 workers" into "6<!-- --> <!-- -->
- * workers". Dropping the markers lets a test assert what a reader sees.
+ * again when it hydrates. Dropping the markers lets a test assert what a
+ * reader sees.
  */
 async function body(panel: Panel, path = "/"): Promise<string> {
   const response = await fetch(`${panel.url}${path}`);
   return (await response.text()).replaceAll("<!-- -->", "");
+}
+
+/** The status the shell put on one lens, or null when that lens is absent. */
+function lensStatus(html: string, name: string): string | null {
+  return (
+    new RegExp(`data-lens="${name}" data-lens-status="([a-z]+)"`).exec(html)?.[1] ?? null
+  );
 }
 
 describe("the healthy fleet", () => {
@@ -31,26 +39,24 @@ describe("the healthy fleet", () => {
   });
   after(() => panel.stop());
 
-  test("server-renders every worker with its state", async () => {
+  test("mounts all three lenses, each from its own directory", async () => {
     const html = await body(panel);
-    for (const id of [
-      "wk-tidewater-01",
-      "wk-tidewater-02",
-      "wk-lamplight-01",
-      "wk-lamplight-02",
-      "wk-saltmarsh-01",
-      "wk-saltmarsh-02",
-    ]) {
-      assert.ok(html.includes(id), `${id} missing from the rendered page`);
-    }
-    for (const state of ["Running", "Held", "Queued", "Finished", "Failed", "Idle"]) {
-      assert.ok(html.includes(`>${state}<`), `no worker rendered as ${state}`);
-    }
-    assert.ok(html.includes("6 workers"));
+    assert.ok(html.includes("The fleet lens is not built yet"));
+    assert.ok(html.includes("The deck lens is not built yet"));
+    assert.ok(html.includes("The shipshape lens is not built yet"));
   });
 
-  test("says nothing is degraded", async () => {
-    assert.ok(!(await body(panel)).includes("data-degraded"));
+  test("hands each lens the part of the document it reads", async () => {
+    const html = await body(panel);
+    assert.ok(html.includes("11 workers in the document"));
+    assert.ok(html.includes("4 items in the document"));
+  });
+
+  test("says every lens is current", async () => {
+    const html = await body(panel);
+    for (const lens of ["fleet", "deck", "shipshape"]) {
+      assert.equal(lensStatus(html, lens), "fresh", `${lens} should be current`);
+    }
   });
 });
 
@@ -61,16 +67,16 @@ describe("the empty fleet", () => {
   });
   after(() => panel.stop());
 
-  test("renders a definitive empty state, not a blank area", async () => {
+  test("renders a definitive empty state, not a degraded one", async () => {
     const html = await body(panel);
-    assert.ok(html.includes("No workers on deck"));
-    assert.ok(html.includes("reported nothing running"));
-    assert.ok(!html.includes("data-degraded"), "an empty fleet is not a degraded one");
+    assert.ok(html.includes("0 workers in the document"));
+    assert.ok(html.includes("0 items in the document"));
+    assert.equal(lensStatus(html, "fleet"), "fresh", "an empty fleet is not a degraded one");
   });
 });
 
 describe("the stale fleet", () => {
-  test("renders its workers and says it is stale", async () => {
+  test("renders its lenses and says each one is stale", async () => {
     const panel = await startPanel({
       port: testPort(3),
       fixtureSet: "stale",
@@ -79,9 +85,9 @@ describe("the stale fleet", () => {
     });
     try {
       const html = await body(panel);
-      assert.ok(html.includes("wk-tidewater-01"), "last known good is still shown");
-      assert.ok(html.includes('data-degraded="stale-snapshot"'));
-      assert.ok(html.includes("Showing a stale snapshot"));
+      assert.equal(lensStatus(html, "fleet"), "stale");
+      assert.equal(lensStatus(html, "deck"), "stale");
+      assert.ok(html.includes("2 workers in the document"), "stale content is still shown");
       assert.ok(html.includes("freshness window"));
     } finally {
       await panel.stop();
@@ -96,7 +102,7 @@ describe("the stale fleet", () => {
       now: "2019-03-04T11:00:30.000Z",
     });
     try {
-      assert.ok(!(await body(panel)).includes("data-degraded"));
+      assert.equal(lensStatus(await body(panel), "fleet"), "fresh");
     } finally {
       await panel.stop();
     }
@@ -118,14 +124,46 @@ describe("a snapshot this build does not understand", () => {
     assert.ok(html.includes("fixture:mismatched"), "names the source");
   });
 
-  test("renders no part of the fleet", async () => {
+  test("renders no lens at all", async () => {
     const html = await body(panel);
-    assert.ok(!html.includes("wk-tidewater-01"), "a refused snapshot renders nothing");
+    for (const lens of ["fleet", "deck", "shipshape"]) {
+      assert.equal(lensStatus(html, lens), null, "a refused snapshot renders nothing");
+    }
+  });
+});
+
+describe("per-lens degradation", () => {
+  test("shipshape goes dark while fleet and deck render normally", async () => {
+    // The health-dark set has no health file at all: the quarantined module
+    // degrades rather than throwing, and only its own lens notices.
+    const panel = await startPanel({ port: testPort(10), fixtureSet: "health-dark" });
+    try {
+      const html = await body(panel);
+      assert.equal(lensStatus(html, "shipshape"), "unreadable");
+      assert.equal(lensStatus(html, "fleet"), "fresh");
+      assert.equal(lensStatus(html, "deck"), "fresh");
+      assert.ok(html.includes("3 workers in the document"), "the fleet lens still renders");
+      assert.ok(html.includes("3 items in the document"), "the deck lens still renders");
+    } finally {
+      await panel.stop();
+    }
+  });
+
+  test("the deck goes dark on its own when upstream could not read the backlog", async () => {
+    const panel = await startPanel({ port: testPort(11), fixtureSet: "deck-dark" });
+    try {
+      const html = await body(panel);
+      assert.equal(lensStatus(html, "deck"), "unreadable");
+      assert.equal(lensStatus(html, "fleet"), "fresh");
+      assert.equal(lensStatus(html, "shipshape"), "fresh");
+    } finally {
+      await panel.stop();
+    }
   });
 });
 
 describe("a snapshot that stops parsing", () => {
-  test("keeps showing the last one that read cleanly", async () => {
+  test("keeps showing the last fleet and deck that read cleanly", async () => {
     const fixtureRoot = await copyFixtures();
     const panel = await startPanel({
       port: testPort(6),
@@ -133,21 +171,25 @@ describe("a snapshot that stops parsing", () => {
       fixtureRoot,
     });
     try {
-      assert.ok((await body(panel)).includes("wk-tidewater-01"));
+      assert.ok((await body(panel)).includes("11 workers in the document"));
 
       // Truncate the snapshot under the running panel.
       await writeFile(
         join(fixtureRoot, "healthy", "snapshot.json"),
-        '{ "schema": "fm-fleet-snapshot.v1", "generatedAt": "2099-01-01T09:15',
+        '{ "schema": "fm-fleet-snapshot.v1", "generated_at": "2099-01-01T09:15',
       );
 
       const html = await until(
         () => body(panel),
-        (text) => text.includes("data-degraded"),
+        (text) => lensStatus(text, "fleet") === "unreadable",
       );
-      assert.ok(html.includes('data-degraded="read-failed"'));
-      assert.ok(html.includes("Showing the last snapshot that read cleanly"));
-      assert.ok(html.includes("wk-tidewater-01"), "the fleet is still on screen");
+      assert.equal(lensStatus(html, "deck"), "unreadable");
+      assert.ok(html.includes("11 workers in the document"), "the fleet is still on screen");
+      assert.equal(
+        lensStatus(html, "shipshape"),
+        "fresh",
+        "health is read separately and is unaffected",
+      );
     } finally {
       await panel.stop();
     }

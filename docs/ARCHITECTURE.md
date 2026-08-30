@@ -13,14 +13,21 @@ Seven positions, one direction. Dependencies point right, and only right.
     types -> config -> adapters -> domain -> runtime -> ui
 
 - `src/types/` - the document the UI renders, and its version. Imports nothing.
+  Three lenses read it, and each carries its own freshness; see
+  `docs/decisions/2026-08-30-the-document-seam.md`.
 - `src/config/` - which fixture set, which port, which policy. Environment and
   defaults only; parsing the environment is one of the three boundaries.
 - `src/adapters/` - the only I/O. Exactly three files: `contract.ts` (the
   upstream boundary and the fixture source), `health.ts` (quarantined),
-  `intent.ts` (the one permitted writer).
-- `src/domain/` - the projection from snapshot to document. Pure.
+  `intent.ts` (the one permitted writer). Two of them read, and they fail
+  independently - which is why the document carries a status per lens.
+- `src/domain/` - the projection from snapshot and health reading to document.
+  Pure.
 - `src/runtime/` - watch, debounce, coalesce, cache, publish the change signal.
-- `src/ui/` - server-rendered components. Reads the document, nothing else.
+- `src/ui/` - server-rendered components. Reads the document, nothing else. One
+  directory per lens - `fleet/`, `deck/`, `shipshape/` - so the worker building
+  a lens edits no file another worker is also editing. `shell.tsx` lays the
+  three out; `lens-frame.tsx` is the chrome they share.
 
 Plus two positions off the line:
 
@@ -92,9 +99,10 @@ absolute filesystem path, and nothing calls `homedir()`, `userInfo()`, or reads
 `process.env.HOME`. Literals beginning `/api/`, `/_next/` or `/(` are the app's
 own URL space, not machine paths, and are exempt.
 
-`health.ts` carries a matching obligation: it degrades to `unknown` rather than
-throwing when a path it names has moved. A quarantined module that can take the
-panel down is not quarantined.
+`health.ts` carries a matching obligation: it degrades to an unreadable reading
+rather than throwing when a path it names has moved. A quarantined module that
+can take the panel down is not quarantined. The `health-dark` fixture set has no
+health file at all, and the suite asserts the panel still renders three lenses.
 
 ### invariant 5
 
@@ -136,6 +144,9 @@ Rules that come with the pipe, all in `src/runtime/fleet.ts`:
 - A read has a hard timeout.
 - Last-known-good is retained and shown with its staleness, never replaced by an
   error - except for a schema mismatch, which is never survivable.
+- Health is read on every pass and independently of the snapshot, so a snapshot
+  that will not parse leaves the shipshape lens current rather than dragging it
+  down with the other two.
 - `EventSource` reconnects on its own, so a restarted server heals without a
   reload.
 
@@ -164,6 +175,12 @@ commit even while it only reads:
 `npm test` lints, runs the invariant checks, and drives `.next/standalone` -
 the built server, not `src/`, so a stale build cannot pass. A freshness guard
 fails first and says to rebuild.
+
+`tests/document.test.ts` is the exception, and deliberately: it walks every
+fixture set and asserts the document each produces, against the pure projection
+rather than the server. The document is the seam several workers build against
+at once, so a change to its shape has to break a test there rather than surface
+later as a lens quietly rendering nothing.
 
 Behavioural tests copy `fixtures/` to a temporary directory before changing
 anything, take a port derived from the worktree plus a per-file offset, and pin

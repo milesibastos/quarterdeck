@@ -2,8 +2,9 @@
 
 A local command panel giving its operator visibility into a running firstmate
 fleet: what is running (fleet), what is queued or held for a decision (deck),
-and whether the machinery is healthy (shipshape). Today only the fleet lens
-exists, and it reads synthetic fixtures rather than a real fleet.
+and whether the machinery is healthy (shipshape). Today all three lenses are
+placeholders over a frozen document shape, filled from synthetic fixtures rather
+than a real fleet.
 
 ## Map
 
@@ -14,10 +15,10 @@ exists, and it reads synthetic fixtures rather than a real fleet.
 | `src/adapters/` | The only I/O. Exactly three files. |
 | `src/domain/` | The projection: snapshot to document. Pure. |
 | `src/runtime/` | Watch, coalesce, cache, publish the change signal. |
-| `src/ui/` | Server-rendered components. Reads the document, nothing else. |
+| `src/ui/` | Server-rendered components. Reads the document, nothing else. One directory per lens. |
 | `src/providers/` | The clock and the logger, as dependencies. |
 | `src/app/`, `src/proxy.ts` | Next's routes and middleware: the composition point. |
-| `fixtures/` | Synthetic fleets. Zero real data, by rule. |
+| `fixtures/` | Synthetic fleets, two files per set. Zero real data, by rule. |
 | `tests/` | Behavioural tests against the built server, and the invariant checks. |
 
 ## Run it

@@ -5,64 +5,270 @@
  * Anything the UI needs to show has to arrive here first, which is what stops
  * a component from reaching back into the fleet to fetch one missing field.
  *
+ * Three lenses read it - fleet, deck, shipshape - and each gets its own
+ * envelope entry rather than sharing one. See `docs/contract.md` for the shape
+ * in prose and `docs/decisions/2026-08-30-the-document-seam.md` for why the
+ * choices below are the way they are.
+ *
  * Version history lives in docs/contract.md.
  */
 
 /** Bumped when this shape changes in a way a reader must notice. */
-export const DOCUMENT_VERSION = 1;
+export const DOCUMENT_VERSION = 2;
+
+/* -------------------------------------------------------- the envelope */
 
 /**
- * What a worker is doing, in the panel's vocabulary rather than upstream's.
- * The projection in `src/domain/` maps upstream states onto these; keeping the
- * two vocabularies separate is what lets upstream rename a state without the
- * UI changing.
+ * How much a lens's content can be trusted, per lens.
+ *
+ * There is deliberately no single `degraded` flag on the document. Fleet and
+ * deck arrive from one upstream contract that either parses or refuses; health
+ * is read from files that carry no compatibility promise and may simply have
+ * moved. Two reliability promises meeting in one document is the whole reason
+ * the shipshape lens can go dark while the other two keep working, and a
+ * document-wide flag would throw that away.
  */
-export type WorkerState =
-  | "running"
-  | "idle"
-  | "held"
-  | "queued"
-  | "finished"
-  | "failed";
+export type LensStatus =
+  /** Read cleanly, and current as of `asOf`. */
+  | { readonly state: "fresh"; readonly asOf: string }
+  /** Read cleanly but too long ago to trust. `content` is still worth showing. */
+  | {
+      readonly state: "stale";
+      /** ISO-8601 instant the content was current as of. */
+      readonly asOf: string;
+      /** How far past the freshness window it is. */
+      readonly ageMs: number;
+      /** One line, written for the operator, naming the policy that was breached. */
+      readonly detail: string;
+    }
+  /**
+   * Could not be read at all. `content` is whatever the lens last had - which
+   * may be nothing - and the panel says so rather than showing a blank area.
+   */
+  | {
+      readonly state: "unreadable";
+      /** ISO-8601 instant the panel noticed. */
+      readonly observedAt: string;
+      /** One line, written for the operator, naming the concrete problem. */
+      readonly detail: string;
+    };
 
-/** What kind of work a worker was dispatched to do. */
-export type WorkerKind = "implement" | "review" | "research" | "chore";
-
-export interface Worker {
-  /** Stable within a snapshot; the UI's React key. */
-  readonly id: string;
-  readonly project: string;
-  readonly kind: WorkerKind;
-  readonly state: WorkerState;
-  /** ISO-8601 instant the worker entered `state`. */
-  readonly since: string;
+/** One lens's content and how much of it can be trusted. */
+export interface Lens<T> {
+  readonly content: T;
+  readonly status: LensStatus;
 }
 
+export interface PanelDocument {
+  readonly version: number;
+  /** ISO-8601 instant this document was assembled. Per-lens ages are in `status`. */
+  readonly generatedAt: string;
+  readonly fleet: Lens<readonly Worker[]>;
+  readonly deck: Lens<readonly DeckItem[]>;
+  readonly health: Lens<Health>;
+}
+
+/* ------------------------------------------------------------ the fleet */
+
 /**
- * Why the document in hand is not a faithful, current picture of the fleet.
- *
- * `null` means it is. Anything else means the panel is still showing something
- * useful — never a blank page, never an error page — and owes the operator an
- * explanation of what is wrong with it.
+ * What kind of work a worker was dispatched to do. Researching and building are
+ * different kinds of work and the panel shows them differently.
  */
-export interface Degradation {
-  readonly reason: DegradationReason;
-  /** One line, written for the operator, naming the concrete problem. */
+export type WorkerKind = "build" | "research";
+
+/** The stages a worker moves through while everything is going to plan. */
+export type ActiveStage =
+  | "dispatched"
+  | "working"
+  | "validating"
+  | "pr-open"
+  | "in-review"
+  | "landed";
+
+/** The stages a worker stops in. Off the track, each for a different reason. */
+export type HaltedStage =
+  /** Waiting on another work item. */
+  | "blocked"
+  /** Waiting for a person to decide something. */
+  | "held"
+  /** Waiting on something outside the fleet entirely. */
+  | "waiting"
+  | "failed";
+
+export type Stage = ActiveStage | HaltedStage;
+
+/**
+ * The validation pipeline's steps, in the order they run.
+ *
+ * This is the finer detail inside `validating`: the coarse stage says a worker
+ * is being checked, and the step says which check is running.
+ */
+export type ValidationStep =
+  | "intent"
+  | "rebase"
+  | "review"
+  | "test"
+  | "document"
+  | "lint"
+  | "push"
+  | "pr"
+  | "ci";
+
+export interface Lifecycle {
+  readonly stage: Stage;
+  /**
+   * The pipeline step named inside the stage, or `null` when the stage has no
+   * finer detail to give.
+   *
+   * Not a "not known yet": upstream reconciles every worker in one read, so a
+   * worker's fine detail arrives with its coarse stage or does not exist.
+   */
+  readonly step: ValidationStep | null;
+  /**
+   * Upstream's own words for what is happening inside the stage, one line.
+   *
+   * This is where a halted worker's reason lives - `stage` says it stopped,
+   * this says why, in language an operator can act on.
+   */
   readonly detail: string;
-  /** ISO-8601 instant the panel noticed. */
+  /** ISO-8601 instant this reading was taken. */
   readonly observedAt: string;
 }
 
-export type DegradationReason =
-  /** The snapshot parsed, but it was generated too long ago to trust. */
-  | "stale-snapshot"
-  /** A read failed; this is the last document that did parse. */
-  | "read-failed";
+/**
+ * A durable pointer to something on disk, with whether it was still there when
+ * upstream looked. A pointer that has stopped resolving is worth showing as
+ * such rather than as a working link.
+ */
+export interface PathRef {
+  readonly ref: string;
+  readonly present: boolean;
+}
 
-export interface FleetDocument {
-  readonly version: number;
-  /** ISO-8601 instant the underlying snapshot was generated. */
-  readonly generatedAt: string;
-  readonly workers: readonly Worker[];
-  readonly degraded: Degradation | null;
+export type PullRequestState = "open" | "landed";
+
+/**
+ * What a pull request's checks say.
+ *
+ * `unknown` is the honest answer while nothing reads the forge: upstream's
+ * snapshot carries a pull request's address but not its checks, so the value is
+ * `unknown` for every worker today. See docs/contract.md - open assumptions.
+ */
+export type ChecksState = "pending" | "passing" | "failing" | "unknown";
+
+export interface PullRequest {
+  readonly url: string;
+  readonly state: PullRequestState;
+  readonly checks: ChecksState;
+}
+
+export interface Worker {
+  /** The work item the worker was dispatched on. Stable, and the UI's React key. */
+  readonly id: string;
+  readonly project: string;
+  readonly kind: WorkerKind;
+  /** A pointer to the instructions the worker was dispatched with. */
+  readonly brief: PathRef;
+  /** The isolated copy of the repository the worker is working in. */
+  readonly worktree: PathRef;
+  readonly lifecycle: Lifecycle;
+  readonly pullRequest: PullRequest | null;
+}
+
+/* ------------------------------------------------------------- the deck */
+
+/** Where a work item sits. Blocked and held are orthogonal to this; see below. */
+export type DeckState = "queued" | "in-flight";
+
+export type Priority = "now" | "next" | "later";
+
+/**
+ * Blocked and held are not states but overlays: an item can be queued and held,
+ * or in flight and blocked. Upstream keeps them orthogonal and so does this.
+ */
+export interface Blocked {
+  /** The work items it waits on. Never empty; an item with none is not blocked. */
+  readonly ids: readonly string[];
+  /** One line, upstream's words, or `null` when it said what but not why. */
+  readonly reason: string | null;
+}
+
+export interface Hold {
+  /** Who it waits on. A role, never a person. */
+  readonly waitingOn: string;
+  /** One line, upstream's words, or `null` when it said who but not why. */
+  readonly reason: string | null;
+  /** ISO-8601 date it was deferred to, or `null` when it was not deferred. */
+  readonly deferredTo: string | null;
+}
+
+export interface DeckItem {
+  readonly id: string;
+  readonly title: string;
+  readonly state: DeckState;
+  readonly priority: Priority;
+  /** ISO-8601 instant the item entered `state`. A hold's age is measured from here. */
+  readonly since: string;
+  readonly blocked: Blocked | null;
+  readonly hold: Hold | null;
+  /**
+   * Waiting on a person right now: queued or held for them, unblocked, and past
+   * any deferral date. Upstream's own fold, carried rather than recomputed -
+   * two implementations of this would disagree the day the rules change.
+   */
+  readonly actionable: boolean;
+}
+
+/* ----------------------------------------------------------- the health */
+
+/**
+ * A signal that could not be read.
+ *
+ * Health comes from files with no compatibility promise, so every signal has to
+ * be able to say this. The quarantined module's contract is that it degrades
+ * rather than throws, and this is the value that contract produces.
+ */
+export interface Unreadable {
+  readonly read: "unreadable";
+  /** One line naming what could not be read. */
+  readonly detail: string;
+}
+
+/** Is the supervision cycle alive, and when was it last seen? */
+export type SupervisorSignal =
+  | {
+      readonly read: "ok";
+      readonly alive: boolean;
+      /** ISO-8601 instant the cycle was last seen. */
+      readonly lastSeen: string;
+    }
+  | Unreadable;
+
+export interface Overdue {
+  readonly id: string;
+  /** ISO-8601 instant it started waiting. */
+  readonly waitingSince: string;
+}
+
+/** Has anything been waiting longer than it should? Empty means nothing has. */
+export type OverdueSignal =
+  | { readonly read: "ok"; readonly overdue: readonly Overdue[] }
+  | Unreadable;
+
+export interface Disagreement {
+  /** Which durable record disagrees. */
+  readonly record: string;
+  /** One line naming how it disagrees with reality. */
+  readonly detail: string;
+}
+
+/** Does any durable record disagree with reality? Empty means none does. */
+export type DriftSignal =
+  | { readonly read: "ok"; readonly disagreements: readonly Disagreement[] }
+  | Unreadable;
+
+export interface Health {
+  readonly supervisor: SupervisorSignal;
+  readonly overdue: OverdueSignal;
+  readonly drift: DriftSignal;
 }
