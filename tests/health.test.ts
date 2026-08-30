@@ -4,10 +4,13 @@ import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, describe, test } from "node:test";
-import { parseSnapshot } from "../src/adapters/contract.ts";
+import { parseSnapshot, type SnapshotSource } from "../src/adapters/contract.ts";
 import { readFleetHomeHealth, type HealthReading } from "../src/adapters/health.ts";
+import { loadConfig } from "../src/config/index.ts";
 import { projectDocument } from "../src/domain/project.ts";
 import { fixedClock } from "../src/providers/clock.ts";
+import type { Logger } from "../src/providers/logger.ts";
+import { clockFor, FleetRuntime } from "../src/runtime/fleet.ts";
 import type { Health } from "../src/types/document.ts";
 import { REPO_ROOT } from "./lib/server.ts";
 
@@ -31,6 +34,9 @@ const HOMES = join(REPO_ROOT, "fixtures", "homes");
 const NOW = "2099-01-01T09:15:30.000Z";
 const CLOCK = fixedClock(NOW);
 const OPTIONS = { clock: CLOCK, staleAfterMs: 60_000 };
+
+/** The runtime logs only when a read fails, and none of these do. */
+const quiet: Logger = { info: () => {}, warn: () => {}, error: () => {} };
 
 /** Long enough that no read here is decided by a timeout. */
 function deadline(): AbortSignal {
@@ -300,6 +306,58 @@ describe("the health lens going dark", () => {
     assert.equal(document.health.content.overdue.read, "ok");
     assert.equal(document.health.content.drift.read, "ok");
   });
+});
+
+test("a configured fleet home is what the panel's own document is built from", async () => {
+  // The one path the tests above do not take: the environment variable, through
+  // the config boundary, into the runtime that assembles the document. Every
+  // other assertion here calls the module directly, so a wrong variable in that
+  // wiring would be invisible.
+  // The set with something wrong in it, and a beacon age no fixture health file
+  // carries: if this document were built from the fixture health file instead,
+  // every assertion below would be reading somebody else's numbers.
+  const home = await copyHome("adrift");
+  await beacon(home, 90_000);
+
+  const config = loadConfig(REPO_ROOT, {
+    // Spread rather than built from nothing: NODE_ENV is part of the shape the
+    // boundary is typed against, and this test is about the three below.
+    ...process.env,
+    QUARTERDECK_FLEET_HOME: home,
+    QUARTERDECK_NOW: NOW,
+    QUARTERDECK_FIXTURE_SET: "healthy",
+  });
+  assert.equal(config.fleetHome, home, "the environment reaches the config");
+
+  const fixtureSet = join(REPO_ROOT, "fixtures", "healthy");
+  const source: SnapshotSource = {
+    description: "fixture:healthy",
+    read: async () => readFileSync(join(fixtureSet, "snapshot.json"), "utf8"),
+  };
+  // Never started: the watcher is not what is under test, and starting one
+  // would leave a handle open on the fixtures.
+  const runtime = new FleetRuntime({
+    config,
+    source,
+    clock: clockFor(config),
+    logger: quiet,
+    watchDir: fixtureSet,
+    healthDir: fixtureSet,
+  });
+
+  const document = await runtime.document();
+  assert.deepEqual(document.health.content.supervisor, {
+    read: "ok",
+    alive: true,
+    lastSeen: "2099-01-01T09:14:00.000Z",
+  });
+  assert.deepEqual(document.health.content.overdue, {
+    read: "ok",
+    overdue: [{ id: "wi-brightwater-207", waitingSince: "2099-01-01T09:05:30.000Z" }],
+  });
+  assert.equal(document.health.status.state, "fresh");
+  assert.equal(document.fleet.status.state, "fresh");
+  assert.equal(document.deck.status.state, "fresh");
 });
 
 test("every fixture home on disk is walked by a test above", async () => {
