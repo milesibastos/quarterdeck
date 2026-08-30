@@ -45,9 +45,11 @@ import {
  * fleets rather than from a live read. Three of the seven need a word said
  * about where they land:
  *
- * - `done` is a worker whose run finished, which is the end of the document's
- *   on-track sequence. The detail says whether that was a merge or a green
- *   pipeline; the stage says the worker is no longer moving.
+ * - `done` is a worker whose run finished, and upstream says it for both a
+ *   merged pull request and one whose checks merely went green. Those are
+ *   different places to be, so `finishedStage` below asks the worker's own
+ *   backlog row which it was rather than treating every finished run as landed.
+ *   The entry here is the fallback for a worker with no pull request at all.
  * - `paused` is a worker deliberately idling on a wait it expects to clear -
  *   an upstream release, a rate limit - which is exactly `waiting`.
  * - `unknown` is upstream saying it could not tell: the worktree is gone, or no
@@ -185,8 +187,30 @@ function stepOf(stage: Stage, detail: string): ValidationStep | null {
   return null;
 }
 
+/**
+ * Upstream's word for a backlog row closed by a merge, as opposed to one
+ * reported or ticked off without one.
+ */
+const MERGED = "merged";
+
+/**
+ * Where a finished run leaves the worker.
+ *
+ * Upstream reconciles both "the pull request merged" and "the checks went green
+ * and it is waiting to be read" to `done`. The first is the end of the on-track
+ * sequence; the second is a pull request somebody still has to look at, and
+ * showing it as landed is how an operator comes to skip the one thing asking
+ * for their attention. The worker's own backlog row says which, so this asks it
+ * rather than reading the prose in `detail`.
+ */
+function finishedStage(task: SnapshotTask): Stage {
+  if (task.completion === MERGED) return "landed";
+  return task.pr.url === null ? "landed" : "pr-open";
+}
+
 function projectWorker(task: SnapshotTask): Worker {
-  const stage = STAGE[task.current_state.state];
+  const state = task.current_state.state;
+  const stage = state === "done" ? finishedStage(task) : STAGE[state];
   return {
     id: task.id,
     project: projectOf(task.project),
@@ -204,6 +228,8 @@ function projectWorker(task: SnapshotTask): Worker {
         ? null
         : {
             url: task.pr.url,
+            // Only a merge lands a pull request. A worker that has stopped for
+            // any other reason still has one somebody can open.
             state: stage === "landed" ? "landed" : "open",
             // Upstream's snapshot carries a pull request's address but not what
             // its checks say. Nothing reads the forge yet, so `unknown` is the

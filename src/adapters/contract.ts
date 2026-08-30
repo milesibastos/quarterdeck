@@ -58,11 +58,17 @@ const SNAPSHOT_COMMAND = "bin/fm-fleet-snapshot.sh";
 const SNAPSHOT_ARGS = ["--json"];
 
 /**
- * Where a fleet home keeps the per-worker files whose changes mean the snapshot
- * has moved on. Watched, never read: the snapshot command is the only reader of
- * a fleet's internals, and this is just the thing to listen to.
+ * Where a fleet home keeps the files whose changes mean the snapshot has moved
+ * on: the per-worker records, and the backlog the deck is drawn from. Watched,
+ * never read - the snapshot command is the only reader of a fleet's internals,
+ * and these are just the things to listen to.
+ *
+ * Both, because they move independently. A worker changing state touches the
+ * first and a captain queuing an item touches the second, and watching only the
+ * first leaves the deck showing yesterday's backlog until some unrelated worker
+ * happens to move.
  */
-const FLEET_ACTIVITY_DIR = "state";
+const FLEET_ACTIVITY_DIRS = ["state", "data"];
 
 /**
  * Upstream's state vocabulary, which is its own. The projection maps it onto
@@ -141,6 +147,16 @@ export interface SnapshotTask {
   };
   readonly current_state: SnapshotCurrentState;
   readonly pr: SnapshotPullRequest;
+  /**
+   * How the worker's own backlog row was closed, from the row upstream joins
+   * onto the task - `backlog.completion.verb`, one of `merged`, `reported` or
+   * `done`, and null while the row is still open.
+   *
+   * Parsed because it is the only structural fact that separates a finished run
+   * whose pull request was merged from one whose checks merely went green.
+   * Upstream's reconciled state says `done` for both.
+   */
+  readonly completion: string | null;
 }
 
 /**
@@ -382,6 +398,11 @@ function parseTask(value: unknown, at: string, source: string): SnapshotTask {
       ),
     },
     pr: { url: optionalString(pr.url, `${at}.pr.url`, source) },
+    // Absent for a worker with no backlog row of its own, which is a fact
+    // about the worker rather than a snapshot this build cannot read.
+    completion: isRecord(entry.backlog)
+      ? proseString(requireRecord(entry.backlog.completion ?? {}, `${at}.backlog.completion`, source).verb)
+      : null,
   };
 }
 
@@ -516,13 +537,13 @@ export function fleetSource(
 }
 
 /**
- * The directory whose changes mean a fleet has moved on.
+ * The directories whose changes mean a fleet has moved on.
  *
  * Here rather than in the runtime because it is knowledge about upstream's
  * layout, and this file is where the panel keeps that - one file to correct
  * when upstream moves, which is the same argument invariant 4 makes for the
  * health module.
  */
-export function fleetWatchDir(fleetHome: string): string {
-  return join(fleetHome, FLEET_ACTIVITY_DIR);
+export function fleetWatchDirs(fleetHome: string): readonly string[] {
+  return FLEET_ACTIVITY_DIRS.map((dir) => join(fleetHome, dir));
 }

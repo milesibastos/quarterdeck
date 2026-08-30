@@ -171,6 +171,7 @@ is allowed to run it.
     paths: { meta: {path, present}, worktree: {path, present} }
     current_state: { state, detail, observed_at }
     pr: { url: string | null }
+    backlog: { completion: { verb } } | null   // the worker's own row, joined on
   }]
   backlog: {
     present: boolean
@@ -190,7 +191,9 @@ Upstream's shape has two halves and the parser treats them differently.
 What upstream **computes** is a contract, and a value the parser does not
 recognise is refused: the schema identifier, `generated`, a task's reconciled
 `current_state`, its `paths`, a record's `state`, `captain_actionable`, and
-whether the backlog could be read at all.
+whether the backlog could be read at all. `completion.verb` on the row upstream
+joins onto a task is computed too, and is the one structural fact separating a
+merged pull request from a green one.
 
 What upstream **copies out of a hand-written backlog** is free text, lifted from
 markdown with a regular expression: a record's `priority`, `since`, `title`,
@@ -209,7 +212,7 @@ more positions than that, so several map onto one:
 | `working` | `working` | |
 | `parked` | `held` | Waiting for a person to decide |
 | `blocked` | `blocked` | Waiting on another work item |
-| `done` | `landed` | The run finished; `detail` says whether that was a merge |
+| `done` | `landed` or `pr-open` | The run finished. Upstream says `done` for a merged pull request and for one whose checks merely went green, so the worker's own backlog row decides: `completion.verb` of `merged` lands it, anything else with a pull request leaves it at `pr-open`. |
 | `failed` | `failed` | |
 | `paused` | `waiting` | Deliberately idling on a wait it expects to clear |
 | `unknown` | `waiting` | Upstream could not tell; see open assumptions |
@@ -219,6 +222,15 @@ more positions than that, so several map onto one:
 observed to emit them; they are what the fixture fleets use to exercise the
 document's whole lifecycle rail, and what a finer upstream would emit without
 this parser needing to change.
+
+### Watching a fleet home
+
+Two directories under the home, and both: `state`, where a worker's records
+move, and `data`, where the backlog the deck is drawn from lives. They move
+independently - a worker changing state touches the first, a captain queuing an
+item touches the second - so watching only one leaves the other lens showing
+what it had until something unrelated happens to change. `fleetWatchDirs` in
+`src/adapters/contract.ts` is the only place that knows either name.
 
 ### Records that are not work items
 

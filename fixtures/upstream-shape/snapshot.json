@@ -260,6 +260,19 @@
         "open_decisions": [],
         "scout_report_present": false,
         "last_event_text": ""
+      },
+      "backlog": {
+        "order": 6,
+        "state": "done",
+        "structured": true,
+        "id": "wi-cordage-504",
+        "title": "Splice the cordage",
+        "priority": "1",
+        "completion": {
+          "verb": "merged",
+          "date": "2099-01-01"
+        },
+        "captain_actionable": false
       }
     },
     {
@@ -456,6 +469,84 @@
         "scout_report_present": false,
         "last_event_text": ""
       }
+    },
+    {
+      "id": "wi-northreach-508",
+      "kind": "ship",
+      "harness": "anchor",
+      "mode": "guarded",
+      "yolo": "off",
+      "project": "/anchorage/projects/northreach",
+      "backend": "panes",
+      "remote": null,
+      "paths": {
+        "meta": {
+          "path": "/anchorage/state/wi-northreach-508.meta",
+          "present": true
+        },
+        "status_log": {
+          "path": "/anchorage/state/wi-northreach-508.status",
+          "present": false,
+          "kind": "event_history",
+          "last_event": {
+            "state": "",
+            "note": "",
+            "raw": ""
+          }
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-northreach-508",
+          "present": true
+        },
+        "home": {
+          "path": null,
+          "present": false
+        },
+        "report": {
+          "path": "/anchorage/data/wi-northreach-508/report.md",
+          "present": false
+        }
+      },
+      "current_state": {
+        "state": "done",
+        "source": "pane",
+        "detail": "checks green: PR ready for review",
+        "raw": "state: done - source: run-step - checks green: PR ready for review",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "endpoint": {
+        "target": "anchorage:wi-northreach-508",
+        "exists": true,
+        "agent_alive": "not_checked",
+        "status": "unknown",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "pr": {
+        "url": "https://forge.invalid/northreach/pull/508",
+        "source": "meta"
+      },
+      "hints": {
+        "pending_decision": false,
+        "blocked_event": false,
+        "open_decisions": [],
+        "scout_report_present": false,
+        "last_event_text": ""
+      },
+      "backlog": {
+        "order": 7,
+        "state": "in_flight",
+        "structured": true,
+        "id": "wi-northreach-508",
+        "title": "Reach the north mooring",
+        "priority": "1",
+        "completion": {
+          "verb": null,
+          "date": null
+        },
+        "captain_actionable": false
+      }
     }
   ],
   "backlog": {
@@ -604,6 +695,33 @@
         },
         "links": [],
         "pr_url": "https://forge.invalid/cordage/pull/504",
+        "report_path": null,
+        "captain_actionable": false,
+        "body_lines": []
+      },
+      {
+        "order": 7,
+        "state": "in_flight",
+        "structured": true,
+        "id": "wi-northreach-508",
+        "checked": false,
+        "title": "Reach the north mooring",
+        "repo": "northreach",
+        "kind": "ship",
+        "priority": "1",
+        "hold_reason": null,
+        "hold_kind": null,
+        "hold_until": null,
+        "blocked_by": null,
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "since": "2099-01-01",
+        "completion": {
+          "verb": null,
+          "date": null
+        },
+        "links": [],
+        "pr_url": "https://forge.invalid/northreach/pull/508",
         "report_path": null,
         "captain_actionable": false,
         "body_lines": []

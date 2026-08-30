@@ -4,7 +4,7 @@ import {
   ContractIdentifierError,
   fixtureSource,
   fleetSource,
-  fleetWatchDir,
+  fleetWatchDirs,
   readSnapshot,
   type SnapshotSource,
 } from "../adapters/contract.ts";
@@ -31,8 +31,12 @@ export interface RuntimeDeps {
   readonly source: SnapshotSource;
   readonly clock: Clock;
   readonly logger: Logger;
-  /** Directory whose changes invalidate the cache. */
-  readonly watchDir: string;
+  /**
+   * Directories whose changes invalidate the cache. More than one because a
+   * fleet keeps what the fleet lens draws and what the deck lens draws apart,
+   * and they move independently.
+   */
+  readonly watchDirs: readonly string[];
   /**
    * Where the health signals are read from. Passed through to the quarantined
    * module, which is the only file allowed to know what is inside it.
@@ -52,7 +56,7 @@ export class FleetRuntime {
   /** At most one read is ever in flight; concurrent callers share it. */
   #inFlight: Promise<PanelDocument> | null = null;
   #listeners = new Set<() => void>();
-  #watcher: FSWatcher | null = null;
+  #watchers: FSWatcher[] = [];
   #debounce: NodeJS.Timeout | null = null;
 
   constructor(deps: RuntimeDeps) {
@@ -121,33 +125,40 @@ export class FleetRuntime {
   }
 
   start(): void {
-    if (this.#watcher) return;
-    const { watchDir, config, logger } = this.#deps;
-    try {
-      this.#watcher = watch(watchDir, { persistent: false }, () => {
-        // Coalesce: an editor saving a file emits several events, and a burst
-        // of them is still one change as far as the panel is concerned.
-        if (this.#debounce) clearTimeout(this.#debounce);
-        this.#debounce = setTimeout(() => {
-          this.#debounce = null;
-          this.publishChange();
-        }, config.debounceMs);
-      });
-      logger.info("watching for fleet changes", { watchDir });
-    } catch (error) {
-      // A missing directory must not take the panel down; reads will report it.
-      logger.warn("could not watch for fleet changes", {
-        watchDir,
-        detail: error instanceof Error ? error.message : String(error),
-      });
+    if (this.#watchers.length > 0) return;
+    const { watchDirs, config, logger } = this.#deps;
+    for (const watchDir of watchDirs) {
+      try {
+        this.#watchers.push(
+          watch(watchDir, { persistent: false }, () => {
+            // Coalesce: an editor saving a file emits several events, a burst
+            // of them is still one change as far as the panel is concerned,
+            // and one debounce shared across the watchers means a change
+            // touching two of these directories is still one read.
+            if (this.#debounce) clearTimeout(this.#debounce);
+            this.#debounce = setTimeout(() => {
+              this.#debounce = null;
+              this.publishChange();
+            }, config.debounceMs);
+          }),
+        );
+        logger.info("watching for fleet changes", { watchDir });
+      } catch (error) {
+        // A missing directory must not take the panel down, and must not stop
+        // the others being watched; reads report what is actually wrong.
+        logger.warn("could not watch for fleet changes", {
+          watchDir,
+          detail: error instanceof Error ? error.message : String(error),
+        });
+      }
     }
   }
 
   stop(): void {
     if (this.#debounce) clearTimeout(this.#debounce);
     this.#debounce = null;
-    this.#watcher?.close();
-    this.#watcher = null;
+    for (const watcher of this.#watchers) watcher.close();
+    this.#watchers = [];
     this.#listeners.clear();
   }
 }
@@ -181,7 +192,6 @@ export function fleetRuntime(config: Config): FleetRuntime {
     // at a real one is a restart rather than a code change - and a machine with
     // no fleet on it, which is every test run, needs no setting at all.
     const fixtureDir = join(config.fixtureRoot, config.fixtureSet);
-    const watchDir = config.fleetHome ? fleetWatchDir(config.fleetHome) : fixtureDir;
     const runtime = new FleetRuntime({
       config,
       source: config.fleetHome
@@ -189,7 +199,7 @@ export function fleetRuntime(config: Config): FleetRuntime {
         : fixtureSource(config.fixtureRoot, config.fixtureSet),
       clock: clockFor(config),
       logger: consoleLogger,
-      watchDir,
+      watchDirs: config.fleetHome ? fleetWatchDirs(config.fleetHome) : [fixtureDir],
       // Health is read by the quarantined module from wherever its signals are
       // kept - beside the fixture set when the panel is running on fixtures,
       // and inside the fleet home when it is not.

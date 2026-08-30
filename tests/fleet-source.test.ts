@@ -6,7 +6,7 @@ import {
   ContractIdentifierError,
   ContractParseError,
   fleetSource,
-  fleetWatchDir,
+  fleetWatchDirs,
   parseSnapshot,
   readSnapshot,
 } from "../src/adapters/contract.ts";
@@ -116,7 +116,7 @@ function runtimeOn(
     source,
     clock: OPTIONS.clock,
     logger: silentLogger,
-    watchDir: join(FIXTURES, "healthy"),
+    watchDirs: [join(FIXTURES, "healthy")],
     healthDir: join(FIXTURES, "healthy"),
   });
 }
@@ -166,7 +166,7 @@ describe("the fleet source runs the command upstream publishes", () => {
     assert.deepEqual(runner.calls[0].args, ["--json"]);
     assert.equal(runner.calls[0].env.FM_HOME, FLEET_HOME, "the home it is to report on");
     assert.equal(runner.calls[0].env.PATH, "/usr/bin", "the tools it needs to find");
-    assert.equal(snapshot.tasks.length, 7);
+    assert.equal(snapshot.tasks.length, 8);
   });
 
   test("a refusal names the fleet it came from, not just a file", async () => {
@@ -180,8 +180,13 @@ describe("the fleet source runs the command upstream publishes", () => {
     );
   });
 
-  test("the watched directory comes from the home, and only from the home", () => {
-    assert.equal(fleetWatchDir(FLEET_HOME), `${FLEET_HOME}/state`);
+  test("what is watched comes from the home, and only from the home", () => {
+    // Both, because a worker moving and a captain queuing an item touch
+    // different directories, and the deck would otherwise never refresh.
+    assert.deepEqual(fleetWatchDirs(FLEET_HOME), [
+      `${FLEET_HOME}/state`,
+      `${FLEET_HOME}/data`,
+    ]);
   });
 });
 
@@ -254,7 +259,7 @@ describe("the read discipline the refresh loop runs on", () => {
     const documents = await Promise.all(readers);
 
     assert.equal(runner.calls.length, 1, "four callers, one read");
-    for (const document of documents) assert.equal(document.fleet.content.length, 7);
+    for (const document of documents) assert.equal(document.fleet.content.length, 8);
   });
 
   test("a cached document is served without reading again", async () => {
@@ -295,8 +300,8 @@ describe("the read discipline the refresh loop runs on", () => {
     runtime.publishChange();
     const degraded = await runtime.document();
 
-    assert.equal(degraded.fleet.content.length, 7, "the fleet is still on screen");
-    assert.equal(degraded.deck.content.length, 4);
+    assert.equal(degraded.fleet.content.length, 8, "the fleet is still on screen");
+    assert.equal(degraded.deck.content.length, 5);
     assert.equal(degraded.fleet.status.state, "unreadable");
     assert.ok(
       degraded.fleet.status.state === "unreadable" &&
@@ -353,13 +358,30 @@ describe("upstream's shape, projected", () => {
         // `waiting` - the one halted stage that asserts no cause in the fleet.
         "wi-lamplight-506 waiting",
         "wi-saltmarsh-507 waiting",
+        // Upstream says `done` for both a merged pull request and one whose
+        // checks merely went green. They are different places to be.
+        "wi-northreach-508 pr-open",
       ],
     );
   });
 
+  test("a finished run is landed only when its own row says merged", async () => {
+    const { content } = (await fleetOf("upstream-shape")).fleet;
+    const merged = content.find((worker) => worker.id === "wi-cordage-504")!;
+    const green = content.find((worker) => worker.id === "wi-northreach-508")!;
+
+    assert.equal(merged.lifecycle.stage, "landed");
+    assert.equal(merged.pullRequest?.state, "landed");
+    // The one that would mislead: a pull request waiting to be read, shown as
+    // merged, is how an operator skips the thing asking for their attention.
+    assert.equal(green.lifecycle.stage, "pr-open");
+    assert.equal(green.pullRequest?.state, "open");
+    assert.equal(green.lifecycle.detail, "checks green: PR ready for review");
+  });
+
   test("a worker upstream could not read says so in its own words", async () => {
     const { content } = (await fleetOf("upstream-shape")).fleet;
-    const lost = content.at(-1)!;
+    const lost = content.find((worker) => worker.id === "wi-saltmarsh-507")!;
     assert.equal(lost.lifecycle.detail, "worktree gone (torn down?)");
     assert.equal(lost.worktree.present, false);
   });
@@ -368,7 +390,7 @@ describe("upstream's shape, projected", () => {
     const { content } = (await fleetOf("upstream-shape")).fleet;
     assert.deepEqual(
       [...new Set(content.map((worker) => worker.project))],
-      ["tidewater", "lamplight", "saltmarsh", "cordage"],
+      ["tidewater", "lamplight", "saltmarsh", "cordage", "northreach"],
     );
   });
 
@@ -397,6 +419,7 @@ describe("upstream's shape, projected", () => {
         "wi-cordage-512 queued next",
         "wi-lamplight-513 queued later",
         "wi-saltmarsh-514 queued later",
+        "wi-northreach-508 in-flight now",
       ],
     );
   });
@@ -407,7 +430,7 @@ describe("upstream's shape, projected", () => {
       content.every((item) => item.id.length > 0),
       "an unstructured backlog line has no id to show",
     );
-    assert.equal(content.length, 4, "one unstructured line and one done row dropped");
+    assert.equal(content.length, 5, "one unstructured line and one done row dropped");
   });
 
   test("a start date widens to an instant; a row that did not say gets the read", async () => {

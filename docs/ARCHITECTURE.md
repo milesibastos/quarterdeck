@@ -147,8 +147,9 @@ resolves to `'self'`. Fonts are committed woff2 subsets under `src/ui/fonts/`.
 
 ## The refresh loop
 
-1. The runtime watches the source's directory - the fixture set, or the fleet
-   home's own activity directory - debounced and coalesced.
+1. The runtime watches the source's directories - the fixture set, or the fleet
+   home's worker records and its backlog - debounced and coalesced across all
+   of them, so a change touching two is still one read.
 2. On a change it publishes one signal over server-sent events. **The signal
    carries no data.**
 3. The page asks the server to re-render.

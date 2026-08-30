@@ -105,7 +105,7 @@ const SHAPES: Readonly<Record<string, Shape>> = {
   "fleet-empty-stale": { fleet: ["stale", 0], deck: ["stale", 1], health: "stale" },
   // The one set in upstream's real shape and real vocabulary; its projection is
   // asserted field by field in tests/fleet-source.test.ts.
-  "upstream-shape": { fleet: ["fresh", 7], deck: ["fresh", 4], health: "fresh" },
+  "upstream-shape": { fleet: ["fresh", 8], deck: ["fresh", 5], health: "fresh" },
 };
 
 test("every fixture set on disk is walked here", () => {
