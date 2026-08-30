@@ -1,12 +1,12 @@
 # The document seam
 
-2026-08-30. Settled while freezing the document type so four workers could build
-against it at once - two filling it, two drawing it.
+2026-08-30. Settled while freezing the document type so several workers could
+build against it at once - some filling it, some drawing it.
 
 The document is the one shape between the half of the panel that reads the
 outside world and the half that draws it. Freezing it completely, before anyone
-builds on it, is the whole point: a partial shape means each of the four invents
-the missing fields differently and the seam quietly stops existing.
+builds on it, is the whole point: a partial shape means each worker invents the
+missing fields differently and the seam quietly stops existing.
 
 The shape itself is in `docs/contract.md`. This file is the choices that were
 not obvious.
@@ -111,8 +111,8 @@ Each lens is one directory under `src/ui/` holding one placeholder component,
 mounted by the shell and handed its own part of the document. They render a
 placeholder and nothing else.
 
-They exist so the four workers who come next each add files inside their own
-lens directory and never edit a file another worker is also editing. The shell
+They exist so the workers who come next each add files inside their own lens
+directory and never edit a file another worker is also editing. The shell
 hands each lens its `Lens<T>` from the first commit, so a worker filling one in
 changes their own component's body and not the shell.
 

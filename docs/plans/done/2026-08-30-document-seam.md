@@ -9,8 +9,8 @@ the complete document type covering all three lenses, fixtures reaching every
 state it can be in, and empty placeholder lens components mounted in the shell.
 
 No behaviour. No adapter for a real fleet, no lens content, no write path -
-those are the four workers who start next, and the point of this task was that
-they can each work without reading each other's code.
+those are the workers who start next, and the point of this task was that they
+can each work without reading each other's code.
 
 - `src/types/document.ts` - the whole shape. Envelope with a status per lens;
   fleet, deck and health parts.

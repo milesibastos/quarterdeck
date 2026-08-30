@@ -10,7 +10,7 @@ own shape, read from a location upstream can move without telling anyone.
 
 `src/types/document.ts`. The single shape `src/ui/` reads. Nothing in the UI may
 reach past it, which is what makes the panel replaceable - and it is the seam
-four workers build against at once, two filling it and two drawing it.
+several workers build against at once, some filling it and some drawing it.
 
 ```ts
 {

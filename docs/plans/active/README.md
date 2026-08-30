@@ -11,9 +11,9 @@ nobody can reconstruct from the code.
 
 ## What comes next
 
-Four workers, two on each side of the document, able to run at the same time
-because the shape between them is frozen and the build enforces it. Each owns
-files nobody else touches.
+Two sides of the document, able to be worked at the same time because the shape
+between them is frozen and the build enforces it: filling the document from the
+outside world, and drawing it. Each item below owns files nobody else touches.
 
 1. **A real fleet source.** The injected-source position in
    `src/adapters/contract.ts` has exactly one implementation. Adding a second is

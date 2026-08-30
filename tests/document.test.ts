@@ -16,9 +16,9 @@ import { REPO_ROOT } from "./lib/server.ts";
 /**
  * Every fixture set, walked, and the document each one produces, asserted.
  *
- * This is the seam's own test. Four workers build against the document shape at
- * once, so a change to it has to break a test here rather than surface as a
- * lens quietly rendering nothing. The assertions are deliberately about the
+ * This is the seam's own test. Several workers build against the document
+ * shape at once, so a change to it has to break a test here rather than surface
+ * as a lens quietly rendering nothing. The assertions are deliberately about the
  * document rather than about markup: the shape is what is frozen, and the
  * lenses that draw it are somebody else's file.
  */
