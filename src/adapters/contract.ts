@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { isIsoInstant } from "../providers/clock.ts";
 
 /**
  * The upstream boundary.
@@ -123,16 +124,9 @@ function requireString(
   return value;
 }
 
-/**
- * `YYYY-MM-DDTHH:mm:ss[.sss]Z` or with a numeric offset. `Date.parse` alone
- * accepts far more than this - bare years, locale-ambiguous slash dates - so
- * the shape is checked first and parsed only to confirm it names a real instant.
- */
-const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/;
-
 function requireInstant(value: unknown, path: string, source: string): string {
   const text = requireString(value, path, source);
-  if (!ISO_INSTANT.test(text) || Number.isNaN(Date.parse(text))) {
+  if (!isIsoInstant(text)) {
     throw new ContractParseError(`${path} must be an ISO-8601 instant, got "${text}"`, source);
   }
   return text;

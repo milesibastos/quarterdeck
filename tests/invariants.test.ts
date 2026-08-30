@@ -41,6 +41,19 @@ test("a violation under a multi-line block comment is still reported at its true
   );
 });
 
+test("a protocol-relative URL literal is caught; the same text in a comment is not", () => {
+  // no-egress's planted tree carries this fixture at the position health.ts
+  // occupies in src/ - the one file exempt from path-quarantine - so the only
+  // thing standing between a quoted "//host/..." literal and going unnoticed
+  // is this check. Its header comment repeats the same host as prose, to prove
+  // the check reacts to code, not to text a human happens to write nearby.
+  const found = runChecks(join(VIOLATIONS_ROOT, "no-egress"));
+  assert.deepEqual(
+    found.map((v) => `${v.file}:${v.line}`).sort(),
+    ["src/adapters/health.ts:2", "src/ui/fonts/fonts.ts:2", "src/ui/fonts/fonts.ts:5"],
+  );
+});
+
 for (const name of Object.keys(CHECKS) as CheckName[]) {
   test(`${name} reports its planted violation`, () => {
     const found = runChecks(join(VIOLATIONS_ROOT, name));

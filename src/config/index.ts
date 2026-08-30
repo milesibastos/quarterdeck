@@ -1,4 +1,5 @@
 import { derivePort } from "./port.ts";
+import { isIsoInstant } from "../providers/clock.ts";
 
 /**
  * Everything the panel needs to know before it reads anything: which fixture
@@ -51,7 +52,7 @@ function intFromEnv(env: NodeJS.ProcessEnv, name: string, fallback: number): num
 function instantFromEnv(env: NodeJS.ProcessEnv, name: string): string | null {
   const raw = env[name];
   if (raw === undefined || raw === "") return null;
-  if (Number.isNaN(Date.parse(raw))) {
+  if (!isIsoInstant(raw)) {
     throw new TypeError(`${name} must be an ISO-8601 instant, got: ${raw}`);
   }
   return raw;

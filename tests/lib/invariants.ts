@@ -41,14 +41,62 @@ export const ALLOWED_IMPORTS: Readonly<Record<Layer, readonly Layer[]>> = {
   app: ["types", "config", "providers", "adapters", "domain", "runtime", "ui"],
 };
 
-/** Comments are prose. Scanning them for code patterns only finds false alarms. */
+/**
+ * Comments are prose. Scanning them for code patterns only finds false alarms
+ * - but `//` and `/*` inside a string literal are not comments at all, so a
+ * regex that cannot tell the difference either corrupts string contents (an
+ * earlier version of this function did) or leaves a comment unstripped. This
+ * walks the text tracking whether it is inside a single-quote, double-quote or
+ * template string, honouring backslash escapes, and only treats `//` and `/*`
+ * as comment starts outside one.
+ */
 export function stripComments(text: string): string {
-  return text
-    // Every non-newline character is blanked rather than the whole comment
-    // dropped, so line numbers below still land on the true source line.
-    .replace(/\/\*[\s\S]*?\*\//g, (block) => block.replace(/[^\n]/g, " "))
-    // Not `://`, so a URL inside a string survives to be caught by rule 7.
-    .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+  let out = "";
+  let quote: '"' | "'" | "`" | null = null;
+
+  for (let i = 0; i < text.length; ) {
+    const ch = text[i];
+
+    if (quote) {
+      out += ch;
+      if (ch === "\\" && i + 1 < text.length) {
+        out += text[i + 1];
+        i += 2;
+        continue;
+      }
+      if (ch === quote) quote = null;
+      i += 1;
+      continue;
+    }
+
+    if (ch === '"' || ch === "'" || ch === "`") {
+      quote = ch;
+      out += ch;
+      i += 1;
+      continue;
+    }
+
+    if (ch === "/" && text[i + 1] === "*") {
+      const end = text.indexOf("*/", i + 2);
+      const stop = end === -1 ? text.length : end + 2;
+      // Every non-newline character is blanked rather than the comment
+      // dropped, so line numbers below still land on the true source line.
+      for (let j = i; j < stop; j += 1) out += text[j] === "\n" ? "\n" : " ";
+      i = stop;
+      continue;
+    }
+
+    if (ch === "/" && text[i + 1] === "/") {
+      const end = text.indexOf("\n", i);
+      i = end === -1 ? text.length : end;
+      continue;
+    }
+
+    out += ch;
+    i += 1;
+  }
+
+  return out;
 }
 
 function codeLines(file: SourceFile): { line: number; text: string }[] {
