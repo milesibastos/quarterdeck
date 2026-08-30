@@ -41,6 +41,7 @@ combination below has somewhere to live.
 | `deck-dark` | Upstream reporting `backlog.present: false`. The deck goes dark alone. |
 | `deck-only` | An empty fleet with a non-empty deck. |
 | `fleet-only` | A non-empty fleet with an empty deck. |
+| `fleet-empty-stale` | A stale read that found nothing running, with a non-empty backlog. The last good picture is empty, but it still shows its age rather than reading as a clean current empty state. |
 
 `generated_at` in the fresh sets sits far enough in the future that they never
 drift into looking stale as the repository ages. `stale` is fixed in the past on

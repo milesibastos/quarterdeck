@@ -1,0 +1,23 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generated_at": "2019-03-04T11:00:00.000Z",
+  "tasks": [],
+  "backlog": {
+    "present": true,
+    "records": [
+      {
+        "id": "wi-driftwood-142",
+        "title": "Pick up the next dispatch",
+        "state": "queued",
+        "priority": "now",
+        "since": "2019-03-04T09:00:00.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": null,
+        "hold_reason": null,
+        "hold_until": null,
+        "captain_actionable": false
+      }
+    ]
+  }
+}

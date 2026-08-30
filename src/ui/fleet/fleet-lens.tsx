@@ -19,13 +19,15 @@ import { ago } from "@/ui/lib/age";
  * rather than guessing. A `lastActiveStage` on `Lifecycle` would close it.
  */
 
-/** Nothing running, and the document is sure of it. */
-function EmptyFleet() {
+/** Nothing running. `stale` means that is only what the last good read found. */
+function EmptyFleet({ stale }: { stale: boolean }) {
   return (
     <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center">
       <p className="text-sm font-medium text-foreground">No workers under way</p>
       <p className="mt-1 text-xs text-muted-foreground">
-        The fleet read cleanly and reported nothing running.
+        {stale
+          ? "The last good read reported nothing running."
+          : "The fleet read cleanly and reported nothing running."}
       </p>
     </div>
   );
@@ -83,7 +85,7 @@ export function FleetLens({
 
   return (
     <LensFrame lens={lens} name="fleet" title="Fleet">
-      {workers.length > 0 && status.state !== "fresh" && (
+      {(status.state === "stale" || (workers.length > 0 && status.state === "unreadable")) && (
         <LastGoodPicture status={status} nowMs={nowMs} />
       )}
 
@@ -91,7 +93,7 @@ export function FleetLens({
         status.state === "unreadable" ? (
           <NothingToShow />
         ) : (
-          <EmptyFleet />
+          <EmptyFleet stale={status.state === "stale"} />
         )
       ) : (
         <ul className="flex flex-col gap-2">

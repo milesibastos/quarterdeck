@@ -165,4 +165,21 @@ describe("a fleet that cannot be trusted", () => {
       await panel.stop();
     }
   });
+
+  test("shows the last good picture's age even when that picture is empty", async () => {
+    const panel = await startPanel({
+      port: testPort(24),
+      fixtureSet: "fleet-empty-stale",
+      // Long after the snapshot was generated, pinned so this never races.
+      now: "2019-03-05T11:00:00.000Z",
+    });
+    try {
+      const html = await body(panel);
+      assert.ok(html.includes("Last good picture, taken"), "a stale empty fleet still ages");
+      assert.ok(html.includes("No workers under way"));
+      assert.ok(!html.includes("read cleanly"), "a stale read is not a clean one");
+    } finally {
+      await panel.stop();
+    }
+  });
 });
