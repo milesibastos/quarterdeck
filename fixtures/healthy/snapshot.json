@@ -1,0 +1,48 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generatedAt": "2099-01-01T09:15:00.000Z",
+  "workers": [
+    {
+      "id": "wk-tidewater-01",
+      "project": "tidewater",
+      "kind": "implement",
+      "state": "working",
+      "since": "2099-01-01T09:02:11.000Z"
+    },
+    {
+      "id": "wk-tidewater-02",
+      "project": "tidewater",
+      "kind": "review",
+      "state": "held",
+      "since": "2099-01-01T08:47:03.000Z"
+    },
+    {
+      "id": "wk-lamplight-01",
+      "project": "lamplight",
+      "kind": "research",
+      "state": "queued",
+      "since": "2099-01-01T09:14:40.000Z"
+    },
+    {
+      "id": "wk-lamplight-02",
+      "project": "lamplight",
+      "kind": "chore",
+      "state": "done",
+      "since": "2099-01-01T08:31:19.000Z"
+    },
+    {
+      "id": "wk-saltmarsh-01",
+      "project": "saltmarsh",
+      "kind": "implement",
+      "state": "failed",
+      "since": "2099-01-01T08:58:52.000Z"
+    },
+    {
+      "id": "wk-saltmarsh-02",
+      "project": "saltmarsh",
+      "kind": "review",
+      "state": "idle",
+      "since": "2099-01-01T07:20:05.000Z"
+    }
+  ]
+}

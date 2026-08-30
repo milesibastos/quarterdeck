@@ -1,0 +1,142 @@
+#!/usr/bin/env node
+/**
+ * Build if needed, then start, and print the URL it bound.
+ *
+ * The port comes from the absolute path of this worktree, so two checkouts can
+ * run their panels side by side and each one always answers on the same URL.
+ * See src/config/port.ts.
+ *
+ * Node 24 runs the TypeScript below by stripping types, so the port derivation
+ * has exactly one implementation shared with the server.
+ */
+import { spawn } from "node:child_process";
+import { createServer } from "node:net";
+import { existsSync } from "node:fs";
+import { cp, mkdir, readFile, readdir, stat } from "node:fs/promises";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import { derivePort } from "../src/config/port.ts";
+
+const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const standalone = join(root, ".next", "standalone");
+const server = join(standalone, "server.js");
+
+function run(command, args, options = {}) {
+  const { onStart, ...spawnOptions } = options;
+  return new Promise((resolveRun, rejectRun) => {
+    const child = spawn(command, args, { cwd: root, stdio: "inherit", ...spawnOptions });
+    child.on("error", rejectRun);
+    child.on("exit", (code) =>
+      code === 0 ? resolveRun() : rejectRun(new Error(`${command} exited with ${code}`)),
+    );
+    onStart?.(child);
+  });
+}
+
+/** Newest mtime under a directory, or 0 when it is not there. */
+async function newest(dir) {
+  let latest = 0;
+  const walk = async (at) => {
+    for (const entry of await readdir(at, { withFileTypes: true })) {
+      if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
+      const path = join(at, entry.name);
+      if (entry.isDirectory()) await walk(path);
+      else latest = Math.max(latest, (await stat(path)).mtimeMs);
+    }
+  };
+  if (!existsSync(dir)) return 0;
+  await walk(dir);
+  return latest;
+}
+
+async function buildIfNeeded() {
+  const builtAt = existsSync(server) ? (await stat(server)).mtimeMs : 0;
+  const postcssConfig = join(root, "postcss.config.mjs");
+  const sourceAt = Math.max(
+    await newest(join(root, "src")),
+    await newest(join(root, "public")),
+    existsSync(postcssConfig) ? (await stat(postcssConfig)).mtimeMs : 0,
+  );
+  if (builtAt > sourceAt) return;
+  await run("npm", ["run", "build"]);
+}
+
+/**
+ * `next build --output standalone` emits a server that expects the static
+ * assets beside it, but does not copy them itself.
+ */
+async function stageAssets() {
+  await mkdir(join(standalone, ".next"), { recursive: true });
+  await cp(join(root, ".next", "static"), join(standalone, ".next", "static"), {
+    recursive: true,
+  });
+  if (existsSync(join(root, "public"))) {
+    await cp(join(root, "public"), join(standalone, "public"), { recursive: true });
+  }
+}
+
+const port = process.env.QUARTERDECK_PORT || String(derivePort(root));
+const host = "127.0.0.1";
+
+await buildIfNeeded();
+await stageAssets();
+
+const url = `http://${host}:${port}`;
+
+/**
+ * Refuse before starting if the port is taken.
+ *
+ * Otherwise Next binds, fails, and prints a stack trace - and any probe we did
+ * afterwards would be answered by whatever already holds the port, so we would
+ * cheerfully announce someone else's panel as ours.
+ */
+function portIsFree() {
+  return new Promise((settle) => {
+    const probe = createServer();
+    probe.once("error", () => settle(false));
+    probe.once("listening", () => probe.close(() => settle(true)));
+    probe.listen(Number(port), host);
+  });
+}
+
+if (!(await portIsFree())) {
+  process.stderr.write(
+    `Port ${port} is already in use. Another quarterdeck from this worktree is ` +
+      `probably already running on ${url}.\n` +
+      `Stop it, or set QUARTERDECK_PORT to run a second one.\n`,
+  );
+  process.exit(1);
+}
+
+/**
+ * Announce the URL only once the panel answers on it.
+ *
+ * Printing first is a lie whenever the start fails - the operator reads a URL
+ * and the server exits below it, and the two lines disagree.
+ */
+async function announceWhenListening(child) {
+  const deadline = Date.now() + 30_000;
+  while (Date.now() < deadline) {
+    if (child.exitCode !== null) return;
+    try {
+      await fetch(url, { headers: { host } });
+      process.stdout.write(`quarterdeck listening on ${url}\n`);
+      return;
+    } catch {
+      await new Promise((wait) => setTimeout(wait, 100));
+    }
+  }
+  process.stdout.write(`quarterdeck did not answer on ${url} within 30s\n`);
+}
+
+await run("node", [server], {
+  onStart: announceWhenListening,
+  env: {
+    ...process.env,
+    // Loopback only. Never an address reachable from the network.
+    HOSTNAME: host,
+    PORT: port,
+    QUARTERDECK_PORT: port,
+    QUARTERDECK_FIXTURE_ROOT: join(root, "fixtures"),
+  },
+});

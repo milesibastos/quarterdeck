@@ -1,0 +1,8 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generatedAt": "2099-01-01T09:15:00.000Z",
+  "workers": [
+    {
+      "id": "wk-tidewater-01",
+      "project": "tidewater",
+      "kind": "impleme

@@ -1,0 +1,20 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generatedAt": "2019-03-04T11:00:00.000Z",
+  "workers": [
+    {
+      "id": "wk-tidewater-01",
+      "project": "tidewater",
+      "kind": "implement",
+      "state": "working",
+      "since": "2019-03-04T10:52:00.000Z"
+    },
+    {
+      "id": "wk-lamplight-01",
+      "project": "lamplight",
+      "kind": "research",
+      "state": "queued",
+      "since": "2019-03-04T10:59:30.000Z"
+    }
+  ]
+}

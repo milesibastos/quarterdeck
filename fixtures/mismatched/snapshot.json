@@ -1,0 +1,13 @@
+{
+  "schema": "fm-fleet-snapshot.v2",
+  "generatedAt": "2099-01-01T09:15:00.000Z",
+  "crew": [
+    {
+      "id": "wk-tidewater-01",
+      "project": "tidewater",
+      "role": "implement",
+      "phase": "working",
+      "enteredAt": "2099-01-01T09:02:11.000Z"
+    }
+  ]
+}
