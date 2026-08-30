@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Deliberately broken source, read as text by the invariant checks.
+    "tests/violations/**",
   ]),
 ]);
 
