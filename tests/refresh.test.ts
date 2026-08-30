@@ -60,12 +60,20 @@ describe("the refresh loop", () => {
 
   async function addWorker(id: string) {
     const document = JSON.parse(await readFile(snapshot, "utf8"));
-    document.workers.push({
+    document.tasks.push({
       id,
       project: "northreach",
-      kind: "review",
-      state: "working",
-      since: "2099-01-01T09:15:00.000Z",
+      kind: "ship",
+      paths: {
+        meta: { path: `/anchorage/briefs/${id}.md`, present: true },
+        worktree: { path: `/anchorage/worktrees/${id}`, present: true },
+      },
+      current_state: {
+        state: "working",
+        detail: "editing the projection",
+        observed_at: "2099-01-01T09:15:00.000Z",
+      },
+      pr: null,
     });
     await writeFile(snapshot, JSON.stringify(document, null, 2));
   }
@@ -74,7 +82,7 @@ describe("the refresh loop", () => {
     const signal = nextEvent(panel.url, "fleet-changed");
     // Give the stream a moment to subscribe before changing anything.
     await new Promise((resolve) => setTimeout(resolve, 250));
-    await addWorker("wk-northreach-01");
+    await addWorker("wi-northreach-501");
 
     const { event, data } = await signal;
     assert.equal(event, "fleet-changed");
@@ -82,11 +90,13 @@ describe("the refresh loop", () => {
   });
 
   test("the next render reflects the change", async () => {
+    // The fleet lens is a placeholder, so what a render can show of a new
+    // worker is that the document now carries one more.
     const html = await until(
       async () => (await fetch(panel.url)).text(),
-      (text) => text.includes("wk-northreach-01"),
+      (text) => text.includes("12 workers in the document"),
     );
-    assert.ok(html.includes("northreach"));
+    assert.ok(html.includes('data-lens="fleet"'));
   });
 
   test("the channel survives the client hanging up", async () => {
@@ -94,7 +104,7 @@ describe("the refresh loop", () => {
     await nextEvent(panel.url, "never-sent", 300).catch(() => {});
     const signal = nextEvent(panel.url, "fleet-changed");
     await new Promise((resolve) => setTimeout(resolve, 250));
-    await addWorker("wk-northreach-02");
+    await addWorker("wi-northreach-502");
     assert.equal((await signal).event, "fleet-changed");
   });
 });

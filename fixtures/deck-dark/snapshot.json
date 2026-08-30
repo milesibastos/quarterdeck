@@ -1,0 +1,73 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generated_at": "2099-01-01T09:15:00.000Z",
+  "tasks": [
+    {
+      "id": "wi-tidewater-114",
+      "project": "tidewater",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-tidewater-114.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-tidewater-114",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "dispatched",
+        "detail": "dispatched to a fresh worktree",
+        "observed_at": "2099-01-01T09:14:52.000Z"
+      },
+      "pr": null
+    },
+    {
+      "id": "wi-tidewater-118",
+      "project": "tidewater",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-tidewater-118.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-tidewater-118",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "editing the projection",
+        "observed_at": "2099-01-01T09:14:40.000Z"
+      },
+      "pr": null
+    },
+    {
+      "id": "wi-lamplight-207",
+      "project": "lamplight",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-lamplight-207.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-lamplight-207",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "validating",
+        "detail": "validating (running)",
+        "observed_at": "2099-01-01T09:14:31.000Z"
+      },
+      "pr": null
+    }
+  ],
+  "backlog": {
+    "present": false,
+    "records": []
+  }
+}

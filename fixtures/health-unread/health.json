@@ -1,0 +1,15 @@
+{
+  "asOf": "2099-01-01T09:15:00.000Z",
+  "supervisor": {
+    "read": "unreadable",
+    "detail": "The supervision cycle's heartbeat file is not where it was."
+  },
+  "overdue": {
+    "read": "unreadable",
+    "detail": "The wait ledger could not be opened."
+  },
+  "drift": {
+    "read": "unreadable",
+    "detail": "The durable records could not be compared."
+  }
+}

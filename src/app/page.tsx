@@ -1,9 +1,9 @@
 import { ContractIdentifierError } from "@/adapters/contract.ts";
 import { loadConfig, type Config } from "@/config/index.ts";
 import { clockFor, fleetRuntime } from "@/runtime/fleet.ts";
-import type { FleetDocument } from "@/types/document.ts";
+import type { PanelDocument } from "@/types/document.ts";
 import { ContractRefusal } from "@/ui/contract-refusal";
-import { FleetPanel } from "@/ui/fleet-panel";
+import { Shell } from "@/ui/shell";
 import { LiveRefresh } from "@/ui/live-refresh";
 
 /**
@@ -26,7 +26,7 @@ export const dynamic = "force-dynamic";
  * block had already been left, so the `catch` would never see its errors.
  */
 type Outcome =
-  | { readonly kind: "document"; readonly document: FleetDocument }
+  | { readonly kind: "document"; readonly document: PanelDocument }
   | {
       readonly kind: "refusal";
       readonly expected: string;
@@ -70,7 +70,7 @@ export default async function Page() {
   return (
     <>
       <LiveRefresh endpoint="/api/events" />
-      <FleetPanel document={outcome.document} nowMs={clockFor(config).nowMs()} />
+      <Shell document={outcome.document} nowMs={clockFor(config).nowMs()} />
     </>
   );
 }

@@ -1,11 +1,11 @@
 {
   "schema": "fm-fleet-snapshot.v2",
-  "generatedAt": "2099-01-01T09:15:00.000Z",
+  "generated_at": "2099-01-01T09:15:00.000Z",
   "crew": [
     {
-      "id": "wk-tidewater-01",
+      "id": "wi-tidewater-114",
       "project": "tidewater",
-      "role": "implement",
+      "role": "ship",
       "phase": "working",
       "enteredAt": "2099-01-01T09:02:11.000Z"
     }

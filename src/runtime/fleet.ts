@@ -6,11 +6,12 @@ import {
   readSnapshot,
   type SnapshotSource,
 } from "../adapters/contract.ts";
+import { readHealth } from "../adapters/health.ts";
 import type { Config } from "../config/index.ts";
-import { markReadFailed, projectDocument } from "../domain/project.ts";
+import { projectDocument, withSnapshotUnreadable } from "../domain/project.ts";
 import { fixedClock, systemClock, type Clock } from "../providers/clock.ts";
 import { consoleLogger, type Logger } from "../providers/logger.ts";
-import type { FleetDocument } from "../types/document.ts";
+import type { PanelDocument } from "../types/document.ts";
 
 /**
  * The refresh loop.
@@ -29,16 +30,21 @@ export interface RuntimeDeps {
   readonly logger: Logger;
   /** Directory whose changes invalidate the cache. */
   readonly watchDir: string;
+  /**
+   * Where the health signals are read from. Passed through to the quarantined
+   * module, which is the only file allowed to know what is inside it.
+   */
+  readonly healthDir: string;
 }
 
 export class FleetRuntime {
   readonly #deps: RuntimeDeps;
   /** The last document that parsed. Never discarded because a later read failed. */
-  #lastKnownGood: FleetDocument | null = null;
+  #lastKnownGood: PanelDocument | null = null;
   /** Set when the watcher fires; cleared once a read has answered for it. */
   #stale = true;
   /** At most one read is ever in flight; concurrent callers share it. */
-  #inFlight: Promise<FleetDocument> | null = null;
+  #inFlight: Promise<PanelDocument> | null = null;
   #listeners = new Set<() => void>();
   #watcher: FSWatcher | null = null;
   #debounce: NodeJS.Timeout | null = null;
@@ -53,7 +59,7 @@ export class FleetRuntime {
    * Returns the cache when the watcher has seen nothing since the last read.
    * Otherwise reads once, however many callers ask at the same time.
    */
-  async document(): Promise<FleetDocument> {
+  async document(): Promise<PanelDocument> {
     if (!this.#stale && this.#lastKnownGood) return this.#lastKnownGood;
     this.#inFlight ??= this.#read().finally(() => {
       this.#inFlight = null;
@@ -61,17 +67,20 @@ export class FleetRuntime {
     return this.#inFlight;
   }
 
-  async #read(): Promise<FleetDocument> {
-    const { config, source, clock, logger } = this.#deps;
+  async #read(): Promise<PanelDocument> {
+    const { config, source, clock, logger, healthDir } = this.#deps;
+    const options = { clock, staleAfterMs: config.staleAfterMs };
+
+    // Read first and unconditionally: health never throws, and it is the one
+    // lens that stays useful when the snapshot does not parse.
+    const health = await readHealth(healthDir, AbortSignal.timeout(config.readTimeoutMs));
+
     try {
       const snapshot = await readSnapshot(
         source,
         AbortSignal.timeout(config.readTimeoutMs),
       );
-      const document = projectDocument(snapshot, {
-        clock,
-        staleAfterMs: config.staleAfterMs,
-      });
+      const document = projectDocument(snapshot, health, options);
       this.#lastKnownGood = document;
       this.#stale = false;
       return document;
@@ -82,13 +91,11 @@ export class FleetRuntime {
       if (error instanceof ContractIdentifierError) throw error;
 
       const detail = error instanceof Error ? error.message : String(error);
-      if (!this.#lastKnownGood) {
-        logger.error("fleet read failed with nothing to fall back to", { detail });
-        throw error;
-      }
-      logger.warn("fleet read failed; showing last known good", { detail });
+      logger.warn("fleet read failed; showing the fleet and deck lenses as unreadable", {
+        detail,
+      });
       // Deliberately leaves `#stale` set, so the next render tries again.
-      return markReadFailed(this.#lastKnownGood, detail, clock);
+      return withSnapshotUnreadable(this.#lastKnownGood, detail, health, options);
     }
   }
 
@@ -168,6 +175,7 @@ export function fleetRuntime(config: Config): FleetRuntime {
       clock: clockFor(config),
       logger: consoleLogger,
       watchDir,
+      healthDir: watchDir,
     });
     runtime.start();
     host[SINGLETON] = runtime;
