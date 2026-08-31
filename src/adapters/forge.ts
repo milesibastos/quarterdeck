@@ -68,6 +68,7 @@ const FORGE_COMMAND = "gh";
 const FORGE_QUERY = [
   "query($url: URI!) {",
   "  resource(url: $url) {",
+  "    __typename",
   "    ... on PullRequest {",
   "      comments(last: 100) { totalCount nodes { author { __typename } } }",
   "      reviews(last: 100) { totalCount nodes { author { __typename } body } }",
@@ -90,9 +91,10 @@ const FORGE_QUERY = [
 /**
  * The forge's rollup verdict, in the document's three words.
  *
- * The rollup is pending while any single check still is, so anything that is
- * not pending is a run that has finished - which is what lets the count below
- * be exact for a finished run however many checks it had.
+ * This is only ever used for the outcome word, never for how many checks have
+ * finished: the rollup can reach `FAILURE` the moment one context fails or
+ * errors, while the rest are still `PENDING`, so "not pending" does not mean
+ * "every check reported". See `checksOf`.
  */
 const ROLLUP_OUTCOME: Readonly<Record<string, SnapshotCheckOutcome>> = {
   SUCCESS: "passing",
@@ -136,10 +138,14 @@ function countOf(connection: unknown, fallback: number): number {
  * outstanding and nothing failed, and the card branches on the count before it
  * ever reads the word - see `Checks` in `src/ui/fleet/worker-card.tsx`.
  *
- * `finished` is exact whenever the run has finished, because a rollup that is
- * not pending means every check reported. Only a pending run with more than a
- * page of checks understates its own progress, and understating it is the safe
- * direction: it says less than is true rather than more.
+ * `finished` is counted from the individual checks, never from the rollup
+ * verdict: the verdict can reach `FAILURE` while other checks are still
+ * running (see `ROLLUP_OUTCOME`), and taking that as "every check reported"
+ * would overstate progress rather than understate it, which is the one
+ * direction this field must never be wrong in. When the forge reports more
+ * checks exist than the page it listed (`contexts(first: 100)`), there is no
+ * way to tell how many of the unlisted ones have finished, so the reading is
+ * `unreadable` rather than a guessed count.
  */
 function checksOf(pullRequest: Record<string, unknown>, asOf: string): SnapshotChecks {
   const commit = nodesOf(pullRequest.commits)[0]?.commit;
@@ -150,9 +156,16 @@ function checksOf(pullRequest: Record<string, unknown>, asOf: string): SnapshotC
 
   const contexts = nodesOf(rollup.contexts);
   const total = countOf(rollup.contexts, contexts.length);
+  if (total > contexts.length) {
+    return {
+      read: "unreadable",
+      detail: `the forge lists ${total} checks on this pull request but reported on only ${contexts.length}, so how many have finished cannot be established.`,
+    };
+  }
+
   const outcome = ROLLUP_OUTCOME[String(rollup.state)] ?? "pending";
-  const finished = outcome === "pending" ? contexts.filter(hasReported).length : total;
-  return { read: "ok", outcome, finished: Math.min(finished, total), total, as_of: asOf };
+  const finished = contexts.filter(hasReported).length;
+  return { read: "ok", outcome, finished, total, as_of: asOf };
 }
 
 /**
@@ -218,10 +231,13 @@ export function ghForge(
 
     const data = isRecord(parsed) ? parsed.data : null;
     const resource = isRecord(data) ? data.resource : null;
-    // A resolved address that is not a pull request, or one the credentials in
-    // use cannot see. Both are things the operator can correct, and neither is
-    // a reason to claim nobody asked.
-    if (!isRecord(resource)) {
+    // A resolved address that is not a pull request, one the credentials in use
+    // cannot see, or one that resolved to something else entirely - an issue, a
+    // discussion, a commit, all of which share `resource(url:)`'s type and would
+    // otherwise come back as a non-null object with none of the fragment's
+    // fields on it. All are things the operator can correct, and none is a
+    // reason to claim nobody asked.
+    if (!isRecord(resource) || resource.__typename !== "PullRequest") {
       return unreadable(`The forge did not answer for ${url} with a pull request.`);
     }
 

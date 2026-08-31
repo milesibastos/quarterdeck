@@ -101,10 +101,14 @@ which understates by one on a pull request somebody has already engaged with.
 Counting bodiless approvals instead would overstate in the other direction, and
 "approved without a word" is not a comment. Recorded in `docs/quality.md`.
 
-**A pending run of more than a hundred checks understates its own progress.** A
-rollup that is not pending means every check reported, so a finished run counts
-exactly however large it is. Only a pending run past the forge's page bound is
-approximate, and it is approximate in the safe direction.
+**A run whose checks cannot all be listed is unreadable, not approximated.**
+`finished` is counted from the individual checks, never from the rollup
+verdict - the verdict can reach `FAILURE` the moment one check fails while the
+rest are still running, and treating that as "every check reported" would
+overstate progress, which is the one direction this field must never be wrong
+in. When the forge reports more checks exist than the page it listed
+(`contexts(first: 100)`), how many of them have finished cannot be
+established, so the reading is `unreadable` rather than a guessed count.
 
 ## See also
 

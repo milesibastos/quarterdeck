@@ -315,6 +315,7 @@ describe("what the forge is asked, and what is made of the answer", () => {
 
   function rollup(state: string, contexts: unknown[], totalCount = contexts.length) {
     return {
+      __typename: "PullRequest",
       comments: { totalCount: 0, nodes: [] },
       reviews: { totalCount: 0, nodes: [] },
       commits: {
@@ -331,7 +332,29 @@ describe("what the forge is asked, and what is made of the answer", () => {
     assert.deepEqual(runner.calls, [`gh ${A_URL}`]);
   });
 
-  test("counts a finished run exactly, however many checks it had", async () => {
+  test("a failing rollup with checks still running reports only what actually finished", async () => {
+    const { read } = forgeOn(() =>
+      forgeAnswer(
+        rollup("FAILURE", [
+          { __typename: "CheckRun", status: "COMPLETED", conclusion: "FAILURE" },
+          { __typename: "CheckRun", status: "IN_PROGRESS", conclusion: null },
+          { __typename: "StatusContext", state: "PENDING" },
+        ]),
+      ),
+    );
+    const reading = await read(A_URL, AbortSignal.timeout(1_000));
+    // A fast failure does not mean the rest reported too: the outcome word
+    // comes from the rollup, but the count comes from the checks themselves.
+    assert.deepEqual(reading.checks, {
+      read: "ok",
+      outcome: "failing",
+      finished: 1,
+      total: 3,
+      as_of: "2099-01-01T09:16:00.000Z",
+    });
+  });
+
+  test("a rollup whose checks cannot all be listed is unreadable, not a guessed count", async () => {
     const { read } = forgeOn(() =>
       forgeAnswer(
         rollup(
@@ -342,15 +365,9 @@ describe("what the forge is asked, and what is made of the answer", () => {
       ),
     );
     const reading = await read(A_URL, AbortSignal.timeout(1_000));
-    // A rollup that is not pending is a run in which every check reported, so
-    // the count is exact even though the forge only listed a page of them.
-    assert.deepEqual(reading.checks, {
-      read: "ok",
-      outcome: "failing",
-      finished: 127,
-      total: 127,
-      as_of: "2099-01-01T09:16:00.000Z",
-    });
+    // The forge only ever lists a page of contexts; past that bound there is no
+    // way to say how many of the rest finished, so this must not claim a count.
+    assert.equal(reading.checks.read, "unreadable");
   });
 
   test("counts how far a pending run has got", async () => {
@@ -372,6 +389,7 @@ describe("what the forge is asked, and what is made of the answer", () => {
   test("a pull request with no checks is answered, not left unread", async () => {
     const { read } = forgeOn(() =>
       forgeAnswer({
+        __typename: "PullRequest",
         comments: { totalCount: 0, nodes: [] },
         reviews: { totalCount: 0, nodes: [] },
         commits: { nodes: [{ commit: { statusCheckRollup: null } }] },
@@ -387,6 +405,7 @@ describe("what the forge is asked, and what is made of the answer", () => {
   test("counts comments a person left, and not a bot's", async () => {
     const { read } = forgeOn(() =>
       forgeAnswer({
+        __typename: "PullRequest",
         comments: {
           totalCount: 3,
           nodes: [
@@ -443,6 +462,15 @@ describe("what the forge is asked, and what is made of the answer", () => {
     const reading = await read(A_URL, AbortSignal.timeout(1_000));
     assert.equal(reading.checks.read, "unreadable");
     assert.ok(reading.review.read === "unreadable" && reading.review.detail.includes(A_URL));
+  });
+
+  test("an address that resolves to something other than a pull request is unreadable", async () => {
+    const { read } = forgeOn(() => forgeAnswer({ __typename: "Issue" }));
+    const reading = await read(A_URL, AbortSignal.timeout(1_000));
+    // An issue, a discussion, a commit - all share `resource(url:)`'s type and
+    // come back as a non-null object with none of the pull request's fields.
+    assert.equal(reading.checks.read, "unreadable");
+    assert.equal(reading.review.read, "unreadable");
   });
 
   test("output that is not JSON is unreadable, and does not throw", async () => {
