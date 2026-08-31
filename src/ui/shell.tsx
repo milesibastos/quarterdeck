@@ -40,7 +40,7 @@ export function Shell({
             arrives as a bare identity, and the work it names has usually
             already started. */}
         <DeckLens lens={document.deck} fleet={document.fleet.content} nowMs={nowMs} />
-        <ShipshapeLens lens={document.health} />
+        <ShipshapeLens lens={document.health} nowMs={nowMs} />
       </div>
     </main>
   );
