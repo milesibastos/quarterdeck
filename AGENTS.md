@@ -6,7 +6,9 @@ and whether the machinery is healthy (shipshape). The fleet lens draws a worker
 card and lifecycle rail, the deck lens draws its four piles and offers an
 answer control on work held for a person, and the shipshape lens draws the
 three health signals and the designed dark state. All three sit over a frozen
-document shape, filled from synthetic fixtures rather than a real fleet.
+document shape, filled from a configured fleet home or from synthetic fixtures
+when there is none. The operator picks which of the configured fleets they are
+looking at, and their browser remembers it.
 
 The panel reads. The one thing it writes is an answer record, and the page
 executes nothing - see
@@ -17,7 +19,7 @@ path.
 
 | Where | What is there |
 | --- | --- |
-| `src/types/` | The document the UI reads. Imports nothing. |
+| `src/types/` | The document the UI reads, and the fleet-selection cookie's name. Imports nothing. |
 | `src/config/` | Environment and defaults. The port derivation lives here. |
 | `src/adapters/` | The only I/O. Exactly three files. |
 | `src/domain/` | The projection: snapshot to document. Pure. |
@@ -36,9 +38,10 @@ npm start                      # builds if needed, prints the URL it bound
 npm test                       # lints, checks the invariants, drives the built server
 ```
 
-`QUARTERDECK_FLEET_HOME` points the panel at a real fleet home; unset, it reads
-a synthetic fixture set picked by `QUARTERDECK_FIXTURE_SET`. See
-`fixtures/README.md`.
+`QUARTERDECK_FLEET_HOME` points the panel at real fleet homes; unset, it reads
+synthetic fixture sets picked by `QUARTERDECK_FIXTURE_SET`. Both take a
+colon-separated list, and the operator switches between them in the panel; the
+choice is remembered in their browser. See `fixtures/README.md`.
 
 ## Read before changing anything
 

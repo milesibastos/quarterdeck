@@ -1,4 +1,5 @@
-import { loadConfig } from "@/config/index.ts";
+import { cookies } from "next/headers";
+import { fleetById, loadConfig } from "@/config/index.ts";
 import {
   requestIdFor,
   submitIntent,
@@ -6,6 +7,7 @@ import {
   type CloseMode,
 } from "@/adapters/intent.ts";
 import { SESSION_HEADER, isValidSession } from "@/runtime/session.ts";
+import { FLEET_COOKIE } from "@/types/selection.ts";
 
 /**
  * The acting guard, and the one thing behind it.
@@ -111,6 +113,17 @@ async function answerDecision(request: Request): Promise<Response> {
     mode: parsed.mode,
   });
 
+  // Resolved the same way the page resolves it, so the destination follows the
+  // operator's selection without a fleet field ever travelling in the request.
+  // Because the selection lives in a cookie shared across a browser's tabs, an
+  // operator who opens the control in one tab and switches fleets in another
+  // before submitting would have this resolve against the newer selection -
+  // narrower than the configured wrong-fleet bug this guards against, and a
+  // property of per-viewer cookie selection generally rather than something a
+  // fleet field on the request would fix.
+  const config = loadConfig(process.cwd());
+  const fleet = fleetById(config, (await cookies()).get(FLEET_COOKIE)?.value);
+
   const result = await submitIntent(
     {
       kind: "answer-decision",
@@ -120,7 +133,7 @@ async function answerDecision(request: Request): Promise<Response> {
       label: parsed.label,
       mode: parsed.mode,
     },
-    { intentDir: loadConfig(process.cwd()).intentDir },
+    { intentDir: fleet.intentDir },
   );
 
   if (!result.accepted) return refuse(result.detail, 409);

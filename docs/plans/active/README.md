@@ -22,7 +22,10 @@ from fixtures when none is configured - see `docs/contract.md` and
 The deck lens has landed - see `docs/plans/done/2026-08-30-deck-lens.md`. The
 shipshape lens has landed too - see
 `docs/plans/done/2026-08-30-shipshape-lens.md`. The write path has landed too -
-see `docs/decisions/2026-08-30-answering-a-held-decision.md`.
+see `docs/decisions/2026-08-30-answering-a-held-decision.md`. So has choosing
+which fleet the panel is looking at; that one settled where a per-viewer
+choice lives, which is worth reading before adding a second one - see
+`docs/decisions/2026-08-30-choosing-a-fleet.md`.
 
 Then, and not in parallel with those:
 

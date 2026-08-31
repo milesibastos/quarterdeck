@@ -6,12 +6,14 @@ or held for a decision, and whether the machinery supervising it all is healthy.
 Today the fleet lens draws a worker card and lifecycle rail per piece of work
 under way, the deck lens draws its four piles - held, blocked, queued, in
 flight - and offers a control to answer work held for a person, and the
-shipshape lens draws the three health signals and its own dark state. It can
-read a real fleet's own files - see `fixtures/README.md` for
-`QUARTERDECK_FLEET_HOME` - but the fleet and deck still come from a synthetic
-fixture fleet. The panel still executes nothing: answering a decision writes a
-durable record for the fleet to pick up, never a command the page runs itself -
-see `docs/decisions/2026-08-30-answering-a-held-decision.md`.
+shipshape lens draws the three health signals and its own dark state. All
+three read from a configured fleet home, or from a synthetic fixture fleet
+when none is configured - see `fixtures/README.md` for
+`QUARTERDECK_FLEET_HOME`. An operator with more than one configured fleet
+picks which they are looking at, and their browser remembers it. The panel
+still executes nothing: answering a decision writes a durable record for the
+fleet to pick up, never a command the page runs itself - see
+`docs/decisions/2026-08-30-answering-a-held-decision.md`.
 
 ## Run it
 

@@ -9,7 +9,7 @@ import {
   type SnapshotSource,
 } from "../adapters/contract.ts";
 import { readFleetHomeHealth, readHealth } from "../adapters/health.ts";
-import type { Config } from "../config/index.ts";
+import type { Config, FleetRef } from "../config/index.ts";
 import { projectDocument, withSnapshotUnreadable } from "../domain/project.ts";
 import { fixedClock, systemClock, type Clock } from "../providers/clock.ts";
 import { consoleLogger, type Logger } from "../providers/logger.ts";
@@ -41,10 +41,19 @@ export interface RuntimeDeps {
    * Where the health signals are read from. Passed through to the quarantined
    * module, which is the only file allowed to know what is inside it.
    *
-   * A configured fleet home wins: it is a real fleet's own files, and the
-   * fixture health file is the stand-in for when there is no fleet to read.
+   * A real fleet's home wins: it is a fleet's own files, and the fixture health
+   * file is the stand-in for when there is no fleet to read.
    */
   readonly healthDir: string;
+  /**
+   * Set when this runtime is reading a real fleet home, which is read for
+   * health a different way from a fixture set's health file.
+   *
+   * Per runtime rather than per config, because the panel now holds one runtime
+   * per fleet and an operator can have a real fleet and a fixture set in the
+   * same list.
+   */
+  readonly fleetHome: string | null;
 }
 
 export class FleetRuntime {
@@ -78,14 +87,14 @@ export class FleetRuntime {
   }
 
   async #read(): Promise<PanelDocument> {
-    const { config, source, clock, logger, healthDir } = this.#deps;
+    const { config, source, clock, logger, healthDir, fleetHome } = this.#deps;
     const options = { clock, staleAfterMs: config.staleAfterMs };
 
     // Read first and unconditionally: health never throws, and it is the one
     // lens that stays useful when the snapshot does not parse.
     const deadline = AbortSignal.timeout(config.readTimeoutMs);
-    const health = config.fleetHome
-      ? await readFleetHomeHealth(config.fleetHome, clock, deadline)
+    const health = fleetHome
+      ? await readFleetHomeHealth(fleetHome, clock, deadline)
       : await readHealth(healthDir, deadline);
 
     try {
@@ -174,39 +183,66 @@ export function clockFor(config: Config): Clock {
 }
 
 /**
- * One runtime per process.
+ * One runtime per fleet, one set of them per process.
  *
- * Route modules can be evaluated more than once in the same process, which
- * would otherwise leave two watchers on the same directory publishing every
- * change twice. Hanging the instance off `globalThis` is the only place a
- * module-scope value survives that.
+ * Per fleet, because an operator switching between fleets must never be handed
+ * the other one's cached document - and a single runtime with a swappable
+ * source would do exactly that for as long as its cache stayed warm. Each fleet
+ * gets its own cache, its own last-known-good and its own watchers, so nothing
+ * one fleet read can be attributed to another.
+ *
+ * Per process, because route modules can be evaluated more than once in the
+ * same process, which would otherwise leave two watchers on the same directory
+ * publishing every change twice. Hanging the map off `globalThis` is the only
+ * place a module-scope value survives that.
  */
-const SINGLETON = Symbol.for("quarterdeck.fleetRuntime");
+const RUNTIMES = Symbol.for("quarterdeck.fleetRuntimes");
 
-type Host = typeof globalThis & { [SINGLETON]?: FleetRuntime };
+type Host = typeof globalThis & { [RUNTIMES]?: Map<string, FleetRuntime> };
 
-export function fleetRuntime(config: Config): FleetRuntime {
+/**
+ * The runtime reading one fleet, started on first use.
+ *
+ * Lazily, so a panel configured with several fleets does not watch every one of
+ * them before anybody has looked at it.
+ */
+export function fleetRuntime(config: Config, fleet: FleetRef): FleetRuntime {
   const host = globalThis as Host;
-  if (!host[SINGLETON]) {
-    // One config value decides which fleet is on screen, so pointing the panel
-    // at a real one is a restart rather than a code change - and a machine with
-    // no fleet on it, which is every test run, needs no setting at all.
-    const fixtureDir = join(config.fixtureRoot, config.fixtureSet);
-    const runtime = new FleetRuntime({
-      config,
-      source: config.fleetHome
-        ? fleetSource(config.fleetHome, childProcessRunner, process.env)
-        : fixtureSource(config.fixtureRoot, config.fixtureSet),
-      clock: clockFor(config),
-      logger: consoleLogger,
-      watchDirs: config.fleetHome ? fleetWatchDirs(config.fleetHome) : [fixtureDir],
+  const runtimes = (host[RUNTIMES] ??= new Map<string, FleetRuntime>());
+
+  const existing = runtimes.get(fleet.id);
+  if (existing) return existing;
+
+  const runtime = new FleetRuntime(depsFor(config, fleet));
+  runtime.start();
+  runtimes.set(fleet.id, runtime);
+  return runtime;
+}
+
+/** How one fleet's source, watchers and health reading are wired. */
+function depsFor(config: Config, fleet: FleetRef): RuntimeDeps {
+  const common = { config, clock: clockFor(config), logger: consoleLogger };
+
+  if (fleet.source.kind === "home") {
+    const { home } = fleet.source;
+    return {
+      ...common,
+      source: fleetSource(home, childProcessRunner, process.env),
+      watchDirs: fleetWatchDirs(home),
       // Health is read by the quarantined module from wherever its signals are
-      // kept - beside the fixture set when the panel is running on fixtures,
-      // and inside the fleet home when it is not.
-      healthDir: config.fleetHome ?? fixtureDir,
-    });
-    runtime.start();
-    host[SINGLETON] = runtime;
+      // kept - inside the fleet home for a real fleet, and beside the fixture
+      // set when the panel is running on one.
+      healthDir: home,
+      fleetHome: home,
+    };
   }
-  return host[SINGLETON];
+
+  const fixtureDir = join(config.fixtureRoot, fleet.source.set);
+  return {
+    ...common,
+    source: fixtureSource(config.fixtureRoot, fleet.source.set),
+    watchDirs: [fixtureDir],
+    healthDir: fixtureDir,
+    fleetHome: null,
+  };
 }

@@ -271,7 +271,7 @@ quarantined module that can take the panel down is not quarantined.
 ## The fleet home
 
 The same three signals, read from a running fleet's own files when
-`QUARTERDECK_FLEET_HOME` names one. That is the source with no compatibility
+`QUARTERDECK_FLEET_HOME` names a home. That is the source with no compatibility
 promise at all, which is why it lives in the quarantined module beside the
 fixture reader and why every read below has a stated "could not be read" answer
 rather than an assumption.
@@ -296,8 +296,15 @@ on the machinery this lens watches.
 
 ## The answer record (the one thing the panel writes)
 
-The panel's only outbound shape, written by `src/adapters/intent.ts` into
-`QUARTERDECK_INTENT_DIR` and by nothing else.
+The panel's only outbound shape, written by `src/adapters/intent.ts` and by
+nothing else. Where it goes is declared per fleet, not once for the panel:
+`QUARTERDECK_INTENT_DIR` is a colon-separated list positionally aligned with the
+configured fleet list, the same convention `QUARTERDECK_FLEET_HOME` and
+`QUARTERDECK_FIXTURE_SET` use. A request is written to the selected fleet's own
+directory, resolved from the selection cookie the same way the page resolves
+which fleet to render - never from a field the client sends. A fleet whose slot
+is empty or absent has no spool, and its write path is closed rather than
+guessed at.
 
 One file per answered decision, named `<request-id>.keyed-answer-v1`, holding one
 line and nothing else:

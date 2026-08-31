@@ -47,11 +47,26 @@ the name is taken, and that failure *is* the duplicate check. It is atomic, it
 is the filesystem's own, it survives a restart, and two requests arriving at
 once cannot both win it.
 
-**Where the spool lives comes from the environment.** `QUARTERDECK_INTENT_DIR`,
-read in `src/config/`. Unset means the write path is closed and the card says
-so. It is deliberately not composed from `QUARTERDECK_FLEET_HOME`: which
-directory the source watches is the operator's arrangement, and invariant 4
-exists so this panel holds no knowledge of fleet-internal layout.
+**Where the spool lives comes from the environment, declared per fleet.**
+`QUARTERDECK_INTENT_DIR`, read in `src/config/`, is a colon-separated list
+positionally aligned with the configured fleet list - the same convention
+`QUARTERDECK_FLEET_HOME` and `QUARTERDECK_FIXTURE_SET` already use. A fleet
+whose slot is empty or absent has no spool and its write path is closed, and
+the card says so. It is deliberately not composed from `QUARTERDECK_FLEET_HOME`:
+which directory the source watches is the operator's arrangement, and
+invariant 4 exists so this panel holds no knowledge of fleet-internal layout.
+
+This was originally one value for the whole panel, which was correct as long
+as the panel could only ever show one fleet. Once more than one fleet became
+selectable in a single process (`docs/decisions/2026-08-30-choosing-a-fleet.md`),
+a single global spool stopped being safe: an answer given while looking at one
+fleet would land in whichever directory *some* fleet's registered process-event
+source happened to be watching, indistinguishable from an answer meant for that
+fleet. The panel still holds no knowledge of the operator's arrangement - the
+operator now declares it once per fleet instead of once for the panel, and the
+route resolves which fleet's spool to write to the same way the page resolves
+which fleet to render: from the selection cookie, never from a field the client
+sends on the request.
 
 ## The close mode is declared by the card, not derived
 

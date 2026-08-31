@@ -2,7 +2,7 @@ import { derivePort } from "./port.ts";
 import { isIsoInstant } from "../providers/clock.ts";
 
 /**
- * Everything the panel needs to know before it reads anything: which fleet,
+ * Everything the panel needs to know before it reads anything: which fleets,
  * which port, and the policy numbers the refresh loop runs on.
  *
  * Environment is a system boundary, so it is parsed here and nowhere else. A
@@ -10,35 +10,64 @@ import { isIsoInstant } from "../providers/clock.ts";
  * default, because a typo in `QUARTERDECK_FIXTURE_SET` that quietly renders the
  * healthy fleet is worse than a panel that refuses to start.
  */
-export interface Config {
+
+/**
+ * Where one fleet's snapshot comes from.
+ *
+ * The two shapes are the two the reader already has - a fleet home whose
+ * snapshot command is run, and a committed synthetic fixture set - and this
+ * carries nothing beyond what `src/adapters/contract.ts` needs to build a
+ * source from. Which one an operator is looking at is a selection made in the
+ * browser; see `src/ui/fleet-picker.tsx`.
+ */
+export type FleetSource =
+  | { readonly kind: "home"; readonly home: string }
+  | { readonly kind: "fixture"; readonly set: string };
+
+/**
+ * One fleet the panel can be pointed at.
+ *
+ * `source` is the identity - a home path or a fixture set name, exactly what
+ * the reader has always keyed a fleet by. `id` is a handle safe to put in a URL
+ * and a cookie, and `label` is what an operator reads. Neither invents a second
+ * notion of which fleet this is: both are derived from `source`, and a full
+ * home path stays out of the markup because an operator recognises a fleet by
+ * its name rather than by its path.
+ */
+export interface FleetRef {
+  /** Stable while the configured list is, which is what lets a cookie name one. */
+  readonly id: string;
+  readonly label: string;
+  readonly source: FleetSource;
   /**
-   * The fleet home to read, or `null` to read the fixture set instead.
+   * Where this fleet's answered decisions are spooled, or `null` when it has
+   * nowhere to write and so cannot accept an answer at all.
    *
-   * Which source the panel reads is this one value, so pointing it at a real
-   * fleet is a restart rather than a code change - and a machine with no fleet
-   * on it, which is every test run and most development, needs no setting at
-   * all. This is the only place a fleet home enters the panel outside the
-   * quarantined health module.
-   */
-  readonly fleetHome: string | null;
-  /** Directory under `fixtures/` to read the snapshot from, when `fleetHome` is null. */
-  readonly fixtureSet: string;
-  /** Absolute path of the fixtures root. */
-  readonly fixtureRoot: string;
-  /**
-   * Where answered decisions are spooled, or `null` when the panel has nowhere
-   * to write and so cannot accept an answer at all.
-   *
-   * The panel never acts on the fleet: it records an intent here and a
-   * registered process-event source picks it up, re-verifies the decision is
-   * still open, and feeds the fleet's one keyed-answer intake. Which directory
-   * that source watches is the operator's arrangement, not knowledge this
-   * panel is allowed to hold - so it arrives from the environment rather than
-   * being composed from `fleetHome`, and unset means the write path is closed
-   * rather than guessed at. See
+   * Declared per fleet, not once for the panel: once more than one fleet is
+   * selectable in one process, a single global spool would send an answer to
+   * whichever fleet's registered process-event source happens to be watching
+   * that directory, regardless of which fleet the operator was looking at. The
+   * panel still holds no knowledge of the operator's arrangement - it arrives
+   * from the environment, positionally aligned with the configured fleet list,
+   * rather than being composed from a fleet's own home. See
    * `docs/decisions/2026-08-30-answering-a-held-decision.md`.
    */
   readonly intentDir: string | null;
+}
+
+export interface Config {
+  /**
+   * Every fleet the panel can show, in the order they were configured. Never
+   * empty: with nothing set at all it holds the default fixture set, which is
+   * what every test run and most development reads.
+   *
+   * Which fleets exist is configuration, so adding one is a restart rather than
+   * a code change; which of them is on screen is the operator's, and is not
+   * configuration at all.
+   */
+  readonly fleets: readonly FleetRef[];
+  /** Absolute path of the fixtures root. */
+  readonly fixtureRoot: string;
   /** Loopback only. Never an address reachable from the network. */
   readonly host: string;
   readonly port: number;
@@ -63,6 +92,14 @@ export const DEFAULT_FIXTURE_SET = "healthy";
 
 const HOST = "127.0.0.1";
 
+/**
+ * How several fleets are written into one environment variable.
+ *
+ * A colon, because that is what an operator already types between paths in
+ * `PATH`, and because a fixture set name cannot contain one.
+ */
+const FLEET_SEPARATOR = ":";
+
 function intFromEnv(env: NodeJS.ProcessEnv, name: string, fallback: number): number {
   const raw = env[name];
   if (raw === undefined || raw === "") return fallback;
@@ -82,24 +119,124 @@ function instantFromEnv(env: NodeJS.ProcessEnv, name: string): string | null {
   return raw;
 }
 
+/** The non-empty entries of a colon-separated setting, in the order written. */
+function entriesOf(raw: string | undefined): string[] {
+  if (raw === undefined) return [];
+  return raw
+    .split(FLEET_SEPARATOR)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+}
+
 /**
- * The fleet home, checked to be absolute.
+ * The colon-separated entries of a setting that names one fleet each, kept
+ * positional rather than filtered.
+ *
+ * `QUARTERDECK_INTENT_DIR` lines up against the configured fleet list by
+ * index, so an empty slot between two real ones has to stay a slot - dropping
+ * it the way `entriesOf` does would shift every entry after it onto the wrong
+ * fleet.
+ */
+function positionalEntriesOf(raw: string | undefined): string[] {
+  if (raw === undefined || raw === "") return [];
+  return raw.split(FLEET_SEPARATOR).map((entry) => entry.trim());
+}
+
+/**
+ * The configured fleet homes, each checked to be absolute.
  *
  * A relative home would resolve against whatever directory the panel happened
  * to be started from, which makes "the panel is reading the wrong fleet" a
  * question about a shell's history rather than about a setting.
  */
-function fleetHomeFromEnv(env: NodeJS.ProcessEnv): string | null {
-  const raw = env.QUARTERDECK_FLEET_HOME;
-  if (raw === undefined || raw === "") return null;
-  if (!raw.startsWith("/")) {
-    throw new TypeError(
-      `QUARTERDECK_FLEET_HOME must be an absolute path, got: ${raw}`,
-    );
+function fleetHomesFromEnv(env: NodeJS.ProcessEnv): string[] {
+  return entriesOf(env.QUARTERDECK_FLEET_HOME).map((home) => {
+    if (!home.startsWith("/")) {
+      throw new TypeError(
+        `QUARTERDECK_FLEET_HOME must be an absolute path, got: ${home}`,
+      );
+    }
+    // A trailing separator would produce a doubled one in every path built from
+    // it, which turns up later as a confusing message rather than a broken read.
+    return home.replace(/\/+$/, "");
+  });
+}
+
+function fixtureSetsFromEnv(env: NodeJS.ProcessEnv): string[] {
+  const sets = entriesOf(env.QUARTERDECK_FIXTURE_SET);
+  for (const set of sets) {
+    if (!/^[a-z0-9-]+$/.test(set)) {
+      throw new TypeError(
+        `QUARTERDECK_FIXTURE_SET must be a lowercase fixture directory name, got: ${set}`,
+      );
+    }
   }
-  // A trailing separator would produce a doubled one in every path built from
-  // it, which turns up later as a confusing message rather than a broken read.
-  return raw.replace(/\/+$/, "");
+  return sets.length > 0 ? sets : [DEFAULT_FIXTURE_SET];
+}
+
+/** The last segment of a home, which is what an operator calls that fleet. */
+function homeLabel(home: string): string {
+  return home.slice(home.lastIndexOf("/") + 1) || home;
+}
+
+/** A label reduced to something that survives a URL and a cookie unescaped. */
+function slug(label: string): string {
+  const cleaned = label
+    .toLowerCase()
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return cleaned.length > 0 ? cleaned : "fleet";
+}
+
+/**
+ * The fleets, built from whichever setting names them.
+ *
+ * A configured fleet home wins over the fixture sets, exactly as it did when
+ * there was one of each: the fixtures are the stand-in for having no fleet to
+ * read, so a panel that has one never falls back to them.
+ *
+ * Two homes can share a last segment, so an id that collides is suffixed until
+ * it is actually unused - not merely bumped by one, since a bumped suffix can
+ * itself collide with another entry's own name. Order comes from the
+ * environment and does not change between restarts, which is what makes a
+ * remembered id still name the same fleet.
+ *
+ * `QUARTERDECK_INTENT_DIR` lines up with this same order, one slot per fleet:
+ * a single value with several fleets configured names only the first one's
+ * spool, never all of them, because broadcasting one directory across every
+ * fleet is exactly what would let an answer meant for one land in another's.
+ */
+function fleetsFromEnv(env: NodeJS.ProcessEnv): readonly FleetRef[] {
+  const homes = fleetHomesFromEnv(env);
+  const sources: FleetSource[] =
+    homes.length > 0
+      ? homes.map((home) => ({ kind: "home", home }))
+      : fixtureSetsFromEnv(env).map((set) => ({ kind: "fixture", set }));
+  const intentDirs = positionalEntriesOf(env.QUARTERDECK_INTENT_DIR);
+
+  const taken = new Set<string>();
+  return sources.map((source, index) => {
+    const label = source.kind === "home" ? homeLabel(source.home) : source.set;
+    const base = slug(label);
+    let id = base;
+    for (let suffix = 2; taken.has(id); suffix++) {
+      id = `${base}-${suffix}`;
+    }
+    taken.add(id);
+    return { id, label, source, intentDir: intentDirs[index] || null };
+  });
+}
+
+/**
+ * The fleet an operator's remembered choice names, or the first one.
+ *
+ * Falling back rather than refusing: a selection is remembered in a browser and
+ * the list of fleets is a setting, so a panel restarted with a different list
+ * will be asked for a fleet it no longer has. Showing the first one - and
+ * saying so, which is the picker's job - beats an error page.
+ */
+export function fleetById(config: Config, id: string | null | undefined): FleetRef {
+  return config.fleets.find((fleet) => fleet.id === id) ?? config.fleets[0];
 }
 
 /**
@@ -110,18 +247,10 @@ export function loadConfig(
   rootDir: string,
   env: NodeJS.ProcessEnv = process.env,
 ): Config {
-  const fixtureSet = env.QUARTERDECK_FIXTURE_SET || DEFAULT_FIXTURE_SET;
-  if (!/^[a-z0-9-]+$/.test(fixtureSet)) {
-    throw new TypeError(
-      `QUARTERDECK_FIXTURE_SET must be a lowercase fixture directory name, got: ${fixtureSet}`,
-    );
-  }
   const port = intFromEnv(env, "QUARTERDECK_PORT", derivePort(rootDir));
   return {
-    fleetHome: fleetHomeFromEnv(env),
-    fixtureSet,
+    fleets: fleetsFromEnv(env),
     fixtureRoot: env.QUARTERDECK_FIXTURE_ROOT || `${rootDir}/fixtures`,
-    intentDir: env.QUARTERDECK_INTENT_DIR || null,
     host: HOST,
     port,
     staleAfterMs: intFromEnv(env, "QUARTERDECK_STALE_AFTER_MS", 60_000),

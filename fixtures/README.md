@@ -10,16 +10,22 @@ whether a particular sample is safe to publish.
 uncommitted file that is not gitignored, for home directories, absolute
 machine paths and real operator identifiers.
 
-Which set the panel reads is a config value, not a code change:
+Which sets the panel can read is a config value, not a code change:
 
 ```sh
-QUARTERDECK_FIXTURE_SET=stale npm start
+QUARTERDECK_FIXTURE_SET=stale npm start                    # one
+QUARTERDECK_FIXTURE_SET=healthy:stale:deck-dark npm start  # three to switch between
 ```
 
-Whether it reads a fixture set at all is a config value too. Set
-`QUARTERDECK_FLEET_HOME` to an absolute fleet home and the panel runs that
-home's snapshot command instead; leave it unset - which is every test run, and
-development on a machine with no fleet - and it reads the set above.
+Each set in the list is one fleet the panel offers, in the order written. Which
+of them is on screen is the operator's, not the setting's: they pick it in the
+panel and their browser remembers it. See
+docs/decisions/2026-08-30-choosing-a-fleet.md.
+
+Whether it reads fixture sets at all is a config value too. Set
+`QUARTERDECK_FLEET_HOME` to one or more absolute fleet homes and the panel runs
+those homes' snapshot commands instead; leave it unset - which is every test
+run, and development on a machine with no fleet - and it reads the sets above.
 
 ## Two files per set
 
@@ -84,7 +90,11 @@ The panel reads a real fleet home when one is configured, and the fixture
 
 ```sh
 QUARTERDECK_FLEET_HOME=/path/to/a/fleet npm start
+QUARTERDECK_FLEET_HOME=/path/to/one:/path/to/another npm start
 ```
+
+A home's last path segment is what the picker calls that fleet; two homes
+sharing one still get distinct handles.
 
 ## Adding a set
 
