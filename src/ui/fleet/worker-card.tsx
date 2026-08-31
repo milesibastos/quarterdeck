@@ -46,8 +46,14 @@ function Pointer({ label, path }: { label: string; path: PathRef }) {
  *
  * The address is in the link rather than on the page: it is long, the column is
  * narrow, and what the operator is reading for is whether there is one and what
- * it is doing. `checks` is `unknown` for every worker today - nothing reads the
- * forge - and saying so is more use than a silence that reads as "no news".
+ * it is doing. Nothing reads the forge for a live fleet today, so every worker
+ * arrives `not-looked-up`, and saying so is more use than a silence that reads
+ * as "no news".
+ *
+ * This draws only that one case. The document now carries the checks outcome,
+ * its progress, and whether a person has commented, and none of it is on the
+ * card yet: reshaping the field and drawing it are two pieces of work, and this
+ * one is the field. Drawing it is the fleet lens's task.
  */
 function PullRequestLine({ pullRequest }: { pullRequest: PullRequest }) {
   return (
@@ -61,7 +67,7 @@ function PullRequestLine({ pullRequest }: { pullRequest: PullRequest }) {
       >
         {pullRequest.state === "landed" ? "pull request landed" : "pull request open"}
       </a>
-      {pullRequest.checks === "unknown" && (
+      {pullRequest.checks.read === "not-looked-up" && (
         <span className="text-muted-foreground">checks unknown</span>
       )}
     </span>

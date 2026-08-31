@@ -5,16 +5,17 @@
  * Anything the UI needs to show has to arrive here first, which is what stops
  * a component from reaching back into the fleet to fetch one missing field.
  *
- * Three lenses read it - fleet, deck, shipshape - and each gets its own
- * envelope entry rather than sharing one. See `docs/contract.md` for the shape
- * in prose and `docs/decisions/2026-08-30-the-document-seam.md` for why the
- * choices below are the way they are.
+ * Four regions, each with its own envelope entry rather than sharing one -
+ * fleet, deck, landed and shipshape - plus one statement about the page as a
+ * whole, `omissions`. See `docs/contract.md` for the shape in prose and
+ * `docs/decisions/2026-08-30-the-document-seam.md` for why the choices below
+ * are the way they are.
  *
  * Version history lives in docs/contract.md.
  */
 
 /** Bumped when this shape changes in a way a reader must notice. */
-export const DOCUMENT_VERSION = 3;
+export const DOCUMENT_VERSION = 4;
 
 /* -------------------------------------------------------- the envelope */
 
@@ -65,7 +66,46 @@ export interface PanelDocument {
   readonly generatedAt: string;
   readonly fleet: Lens<readonly Worker[]>;
   readonly deck: Lens<readonly DeckItem[]>;
+  /**
+   * Work that finished, including what a second mate landed in its own home.
+   *
+   * Its own lens rather than a corner of the deck: the deck is what is still
+   * coming, by the rule below it, and landed work arrives partly from homes the
+   * deck knows nothing about. A home that could not be read costs an entry in
+   * `omissions`, not the lens.
+   */
+  readonly landed: Lens<readonly LandedItem[]>;
   readonly health: Lens<Health>;
+  /**
+   * Everything this document does not carry, and why.
+   *
+   * Not a lens - it is a statement about the page rather than a part of it, and
+   * it is deliberately on the document rather than assembled in a component, so
+   * that an absence cannot be introduced by a reader that forgets to mention
+   * it. Empty means nothing was left out, which is itself a fact worth being
+   * able to state.
+   */
+  readonly omissions: readonly Omission[];
+}
+
+/**
+ * Why something the wireframe asks for is not on the page.
+ *
+ * Three reasons, and they are not interchangeable. `not-shown` is a deliberate
+ * bound - a list cut to a length, a filter the operator set. `not-looked-up` is
+ * work nobody has done yet, which is a thing that could still be done.
+ * `unreadable` is a read that was attempted and failed. Folding them into one
+ * "missing" would let a bound and a failure look alike, which is the exact
+ * ambiguity the disclosure bar exists to remove.
+ */
+export type OmissionReason = "not-shown" | "not-looked-up" | "unreadable";
+
+export interface Omission {
+  /** What is missing, named the way an operator would name it. */
+  readonly what: string;
+  readonly reason: OmissionReason;
+  /** One line, concrete: which bound, which read, which home. */
+  readonly detail: string;
 }
 
 /* ------------------------------------------------------------ the fleet */
@@ -75,6 +115,45 @@ export interface PanelDocument {
  * different kinds of work and the panel shows them differently.
  */
 export type WorkerKind = "build" | "research";
+
+/**
+ * How a worker's finished work is meant to reach the operator.
+ *
+ * Recorded when the worker is dispatched, never inferred, and - with `kind` -
+ * the whole of what decides which stages a worker can ever reach. `validated`
+ * runs the full pipeline and ends in a merged pull request; `direct-pr` skips
+ * the pipeline and opens one anyway; `local` never opens one at all. Research
+ * has no delivery contract: it produces a report, and a scout's `delivery` is
+ * `null` for that reason rather than for want of a reading.
+ *
+ * `null` is also what an unrecognised contract reads as, and deliberately so.
+ * A kind nobody recognised can safely fall back to building, because a worker
+ * is always doing something; a delivery contract cannot, because the fallback
+ * would be a rail with stages the work will never reach. A lens that does not
+ * know the shape draws no shape.
+ */
+export type Delivery = "validated" | "direct-pr" | "local";
+
+/**
+ * Where the work physically is and what is doing it, as recorded when the
+ * worker was dispatched.
+ *
+ * Every field is nullable and every null means the same single thing: upstream
+ * did not record it. There is no second absence to distinguish here - these are
+ * not read from the world and then found missing, they are either written down
+ * at dispatch or they are not. See `docs/quality.md` for which of them a live
+ * fleet publishes today.
+ */
+export interface Dispatch {
+  /** The branch the isolated copy is on. */
+  readonly branch: string | null;
+  /** What is running the worker - the harness, in upstream's word. */
+  readonly runtime: string | null;
+  /** The model doing the work. */
+  readonly model: string | null;
+  /** How hard it was told to think. Free text; upstream sets the vocabulary. */
+  readonly effort: string | null;
+}
 
 /** The stages a worker moves through while everything is going to plan. */
 export type ActiveStage =
@@ -157,21 +236,84 @@ export interface PathRef {
   readonly present: boolean;
 }
 
+/**
+ * The instructions a worker was dispatched with: where they are, and what they
+ * say.
+ *
+ * A path alone is what a card can only offer a path for. `summary` is the one
+ * line a collapsed card shows, `text` the full instructions behind it, and both
+ * are `null` when the text was not carried - which is one absence, not two:
+ * either the words arrived or they did not.
+ */
+export interface Brief {
+  readonly ref: string;
+  readonly present: boolean;
+  /** One line, for the card that has not been opened. */
+  readonly summary: string | null;
+  /** The instructions in full. */
+  readonly text: string | null;
+}
+
 export type PullRequestState = "open" | "landed";
 
+/** What a run of checks came out as, once somebody has looked. */
+export type CheckOutcome = "pending" | "passing" | "failing";
+
 /**
- * What a pull request's checks say.
+ * What a pull request's checks say, or why the panel is not saying.
  *
- * `unknown` is the honest answer while nothing reads the forge: upstream's
- * snapshot carries a pull request's address but not its checks, so the value is
- * `unknown` for every worker today. See docs/contract.md - open assumptions.
+ * Three readings, and the first two are the whole point of the shape. Nobody
+ * has asked the forge (`not-looked-up`) and the forge was asked and answered
+ * (`read: "ok"`) are different facts, and so are a green run and a run nobody
+ * looked at. A single string could not hold that: `"unknown"` had to stand for
+ * both "we did not ask" and "we asked and could not tell", and a lens reading
+ * it could only guess which it was looking at.
+ *
+ * Reading the forge is a network call, so it is opt-in and off the first paint
+ * by design - which makes `not-looked-up` the ordinary answer rather than the
+ * exceptional one, and makes it worth being able to state plainly.
  */
-export type ChecksState = "pending" | "passing" | "failing" | "unknown";
+export type ChecksSignal =
+  /** Nobody has asked the forge. Not a failure; the read is opt-in. */
+  | { readonly read: "not-looked-up" }
+  /** The forge was asked and could not answer. */
+  | { readonly read: "unreadable"; readonly detail: string }
+  | {
+      readonly read: "ok";
+      readonly outcome: CheckOutcome;
+      /** How many checks have finished, of how many there are. */
+      readonly finished: number;
+      readonly total: number;
+      /** ISO-8601 instant the forge was last asked. */
+      readonly asOf: string;
+    };
+
+/**
+ * Whether a person has commented on the pull request.
+ *
+ * The same three readings, for the same reason, and the middle one is what the
+ * count exists for: `comments: 0` is a forge that was asked and said nobody has
+ * commented, which the panel must never render as the same thing as not having
+ * asked. Those are different facts about whether anyone is waiting on the
+ * operator.
+ */
+export type ReviewSignal =
+  | { readonly read: "not-looked-up" }
+  | { readonly read: "unreadable"; readonly detail: string }
+  | {
+      readonly read: "ok";
+      /** Comments a person left. Zero means the forge said so. */
+      readonly comments: number;
+      /** ISO-8601 instant the forge was last asked. */
+      readonly asOf: string;
+    };
 
 export interface PullRequest {
+  /** The full address, always. Never a bare number. */
   readonly url: string;
   readonly state: PullRequestState;
-  readonly checks: ChecksState;
+  readonly checks: ChecksSignal;
+  readonly review: ReviewSignal;
 }
 
 export interface Worker {
@@ -179,10 +321,19 @@ export interface Worker {
   readonly id: string;
   readonly project: string;
   readonly kind: WorkerKind;
-  /** A pointer to the instructions the worker was dispatched with. */
-  readonly brief: PathRef;
+  /**
+   * How the work is meant to ship, or `null` when upstream recorded no contract
+   * this build recognises. With `kind`, this is what says which rail a worker
+   * even has - an investigation never reaches a pull request, and local-only
+   * work never reaches a review.
+   */
+  readonly delivery: Delivery | null;
+  /** The instructions the worker was dispatched with, and where they are. */
+  readonly brief: Brief;
   /** The isolated copy of the repository the worker is working in. */
   readonly worktree: PathRef;
+  /** The rest of what was fixed at dispatch: branch, runtime, model, effort. */
+  readonly dispatch: Dispatch;
   readonly lifecycle: Lifecycle;
   readonly pullRequest: PullRequest | null;
 }
@@ -254,6 +405,54 @@ export interface DeckItem {
   readonly actionable: boolean;
 }
 
+/* ----------------------------------------------------------- the landed */
+
+/**
+ * Whose home a piece of finished work landed in.
+ *
+ * Work a second mate landed in its own home is still the operator's work, and
+ * prior boards lost it by only ever looking at one home. Carrying which home it
+ * was is what stops the two being silently merged into a single list where the
+ * operator cannot tell whose fleet did what.
+ */
+export type LandedWhere = "this-home" | "second-mate";
+
+export interface LandedItem {
+  /** The work item. Stable, and the UI's React key. */
+  readonly id: string;
+  readonly title: string;
+  readonly where: LandedWhere;
+  /**
+   * The home it landed in, or `null` when upstream named none.
+   *
+   * Nullable rather than defaulted to the panel's own home: a record with no
+   * home is a record whose provenance was not stated, and answering "here" for
+   * it would attribute a second mate's work to the fleet being looked at.
+   */
+  readonly home: string | null;
+  /** The project, or `null` when the record did not say. */
+  readonly project: string | null;
+  /** The full address of the pull request it landed as, or `null` for none. */
+  readonly pullRequest: string | null;
+  /**
+   * How it closed, in upstream's own word - `merged`, `reported`, `done` - or
+   * `null` when the record did not say. Free text, deliberately: it is copied
+   * out of a hand-written record and a word this build has not seen is still
+   * worth showing verbatim.
+   */
+  readonly closedAs: string | null;
+  /**
+   * The day it closed, `YYYY-MM-DD`, or `null`.
+   *
+   * `null` for a record that carried no date and for one whose date field held
+   * something that is not a date - upstream lifts it out of a hand-written
+   * record, and a live fleet has been seen writing a whole sentence there. The
+   * same rule `Hold.deferredTo` gets, for the same reason: prose rendered where
+   * the panel promised a date is a dishonest render.
+   */
+  readonly landedOn: string | null;
+}
+
 /* ----------------------------------------------------------- the health */
 
 /**
@@ -302,8 +501,39 @@ export type DriftSignal =
   | { readonly read: "ok"; readonly disagreements: readonly Disagreement[] }
   | Unreadable;
 
+/**
+ * Is the notification queue draining?
+ *
+ * A depth, not a verdict: a queue holding nothing is draining, and a queue that
+ * has been holding four things is a fleet that has stopped delivering. Whether
+ * a given depth is a problem is the lens's judgement, not this reading's.
+ * `queued: 0` is a queue that was read and found empty, which is not the same
+ * fact as a queue that could not be read - hence the `Unreadable` arm.
+ */
+export type QueueSignal =
+  | { readonly read: "ok"; readonly queued: number }
+  | Unreadable;
+
+/**
+ * Is away mode on, and is the home held by a session?
+ *
+ * One signal carrying two facts rather than two signals, because they are read
+ * from the same directory in the same pass and fail together: whatever hides
+ * one hides the other, and two signals would only be able to say so twice. The
+ * shipshape strip draws them as two entries, which is the lens's business.
+ *
+ * `locked` is whether a lock is held, and nothing finer. Whether the holder is
+ * still alive is the fleet's own liveness policy, and reimplementing that here
+ * is exactly what the quarantine exists to refuse - see `docs/quality.md`.
+ */
+export type AttendanceSignal =
+  | { readonly read: "ok"; readonly away: boolean; readonly locked: boolean }
+  | Unreadable;
+
 export interface Health {
   readonly supervisor: SupervisorSignal;
+  readonly queue: QueueSignal;
+  readonly attendance: AttendanceSignal;
   readonly overdue: OverdueSignal;
   readonly drift: DriftSignal;
 }

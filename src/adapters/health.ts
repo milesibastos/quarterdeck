@@ -2,11 +2,13 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { isIsoInstant, type Clock } from "../providers/clock.ts";
 import type {
+  AttendanceSignal,
   Disagreement,
   DriftSignal,
   Health,
   Overdue,
   OverdueSignal,
+  QueueSignal,
   SupervisorSignal,
   Unreadable,
 } from "../types/document.ts";
@@ -72,6 +74,12 @@ function flag(value: unknown, path: string): boolean {
   return typeof value === "boolean" ? value : fail(`${path} must be a boolean`);
 }
 
+function count(value: unknown, path: string): number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value >= 0
+    ? value
+    : fail(`${path} must be a whole number of zero or more`);
+}
+
 function list(value: unknown, path: string): unknown[] {
   return Array.isArray(value) ? value : fail(`${path} must be an array`);
 }
@@ -121,6 +129,47 @@ function parseOverdue(value: unknown): OverdueSignal {
   return { read: "ok", overdue };
 }
 
+function parseQueue(value: unknown): QueueSignal {
+  const entry = record(value, "queue");
+  return (
+    unreadableSignal(entry, "queue") ?? {
+      read: "ok",
+      queued: count(entry.queued, "queue.queued"),
+    }
+  );
+}
+
+function parseAttendance(value: unknown): AttendanceSignal {
+  const entry = record(value, "attendance");
+  return (
+    unreadableSignal(entry, "attendance") ?? {
+      read: "ok",
+      away: flag(entry.away, "attendance.away"),
+      locked: flag(entry.locked, "attendance.locked"),
+    }
+  );
+}
+
+/**
+ * A signal a health file predating it does not carry.
+ *
+ * The strictness everywhere else in this parser is deliberate - a shape that
+ * changed under us must be noticed - but a key that was simply not invented yet
+ * is not a shape that changed, and darkening the whole file over one would take
+ * four working signals down with the fifth. So an absent signal is that signal
+ * being dark and nothing more, which is precisely what the type is for.
+ *
+ * The cost is that a misspelled key reads as an absent one. That is the right
+ * side of the trade for a file with no compatibility promise: this module's
+ * contract is to degrade rather than throw, and it degrades one signal.
+ */
+function orAbsent<T>(value: unknown, name: string, parse: (value: unknown) => T): T | Unreadable {
+  if (value === null || value === undefined) {
+    return { read: "unreadable", detail: `The health file carries no ${name} signal.` };
+  }
+  return parse(value);
+}
+
 function parseDrift(value: unknown): DriftSignal {
   const entry = record(value, "drift");
   const dark = unreadableSignal(entry, "drift");
@@ -145,6 +194,8 @@ function parseHealth(raw: string): HealthReading {
     asOf: instant(top.asOf, "asOf"),
     health: {
       supervisor: parseSupervisor(top.supervisor),
+      queue: orAbsent(top.queue, "notification queue", parseQueue),
+      attendance: orAbsent(top.attendance, "away and lock", parseAttendance),
       overdue: parseOverdue(top.overdue),
       drift: parseDrift(top.drift),
     },
@@ -199,6 +250,12 @@ const BUSY_STATE_SUFFIX = ".busy-state";
 const BUSY_GEN_SUFFIX = ".busy-gen";
 /** A worker's append-only status event log. */
 const STATUS_SUFFIX = ".status";
+/** One queued notification per line. Its depth is the whole signal. */
+const QUEUE_FILE = ".wake-queue";
+/** Present while away mode is on. It holds nothing; its presence is the signal. */
+const AWAY_FILE = ".afk";
+/** The per-home session lock. Present while a session holds the home. */
+const LOCK_FILE = ".lock";
 /** The durable work item record. */
 const BACKLOG_DIR = "data";
 const BACKLOG_FILE = "backlog.md";
@@ -470,6 +527,60 @@ async function readOverdue(
   return { read: "ok", overdue };
 }
 
+/**
+ * Is the notification queue draining?
+ *
+ * The queue is one queued notification per line, so its depth is the count of
+ * non-empty lines. An absent file is an empty queue rather than an unreadable
+ * one: the fleet creates it when it first has something to deliver, so "not
+ * there yet" and "nothing queued" are the same fact. Anything else - a
+ * directory where a file should be, a permission refusal - is unreadable,
+ * because that is a file that exists and would not be read.
+ */
+async function readQueue(stateDir: string, signal: AbortSignal): Promise<QueueSignal> {
+  const queue = join(stateDir, QUEUE_FILE);
+  try {
+    const text = await readFile(queue, { encoding: "utf8", signal });
+    return {
+      read: "ok",
+      queued: text.split("\n").filter((line) => line.trim().length > 0).length,
+    };
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return { read: "ok", queued: 0 };
+    return dark(`Could not read the notification queue ${STATE_DIR}/${QUEUE_FILE}: ${why(error)}`);
+  }
+}
+
+/**
+ * Is away mode on, and is the home held by a session?
+ *
+ * Both are a file's presence and nothing more, and both are read here in one
+ * pass because they fail together: the directory is listed once, and whatever
+ * hides one marker hides the other. Listing rather than two `stat` calls is
+ * what makes the failure shared - a `stat` that says ENOENT cannot distinguish
+ * "the marker is not there" from "the directory is not there", and answering
+ * "away mode is off" for a state directory that has moved would be the panel
+ * inventing a fact about a fleet it cannot see.
+ *
+ * `locked` is whether the lock file is there. Whether its holder is still alive
+ * is the fleet's own liveness policy, read from a process table with the
+ * fleet's own rules about what counts as a harness - reimplementing that here
+ * is what the quarantine exists to refuse. See `docs/quality.md`.
+ */
+async function readAttendance(
+  stateDir: string,
+  signal: AbortSignal,
+): Promise<AttendanceSignal> {
+  let entries: readonly string[];
+  try {
+    entries = await withDeadline(readdir(stateDir), signal);
+  } catch (error) {
+    return dark(`Could not list ${STATE_DIR}/ for away mode and the home lock: ${why(error)}`);
+  }
+  const present = new Set(entries);
+  return { read: "ok", away: present.has(AWAY_FILE), locked: present.has(LOCK_FILE) };
+}
+
 interface BacklogRow {
   readonly id: string;
   readonly inFlight: boolean;
@@ -573,10 +684,16 @@ export async function readFleetHomeHealth(
   }
 
   const stateDir = join(home, STATE_DIR);
-  const [supervisor, overdue, drift] = await Promise.all([
+  const [supervisor, queue, attendance, overdue, drift] = await Promise.all([
     readSupervisor(stateDir, clock, signal),
+    readQueue(stateDir, signal),
+    readAttendance(stateDir, signal),
     readOverdue(stateDir, clock, signal),
     readDrift(home, stateDir, signal),
   ]);
-  return { read: "ok", asOf: clock.now(), health: { supervisor, overdue, drift } };
+  return {
+    read: "ok",
+    asOf: clock.now(),
+    health: { supervisor, queue, attendance, overdue, drift },
+  };
 }

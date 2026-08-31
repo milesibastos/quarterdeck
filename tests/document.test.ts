@@ -10,7 +10,12 @@ import {
 import { readHealth, type HealthReading } from "../src/adapters/health.ts";
 import { projectDocument, withSnapshotUnreadable } from "../src/domain/project.ts";
 import { fixedClock } from "../src/providers/clock.ts";
-import type { LensStatus, PanelDocument } from "../src/types/document.ts";
+import {
+  DOCUMENT_VERSION,
+  type LensStatus,
+  type OmissionReason,
+  type PanelDocument,
+} from "../src/types/document.ts";
 import { REPO_ROOT } from "./lib/server.ts";
 
 /**
@@ -83,7 +88,10 @@ async function documentOf(set: string): Promise<PanelDocument> {
 type Shape = {
   readonly fleet: readonly [LensStatus["state"], number];
   readonly deck: readonly [LensStatus["state"], number];
+  readonly landed: readonly [LensStatus["state"], number];
   readonly health: LensStatus["state"];
+  /** The reason of each omission, in order. Empty means nothing was left out. */
+  readonly omissions: readonly OmissionReason[];
 };
 
 /**
@@ -93,29 +101,29 @@ type Shape = {
  * document, and is asserted separately below.
  */
 const SHAPES: Readonly<Record<string, Shape>> = {
-  healthy: { fleet: ["fresh", 11], deck: ["fresh", 6], health: "fresh" },
+  healthy: { fleet: ["fresh", 11], deck: ["fresh", 6], landed: ["fresh", 4], health: "fresh", omissions: ["not-shown", "unreadable", "unreadable"] },
   // The large end of the range the layout has to survive; see
   // docs/decisions/2026-08-31-the-fold-line.md.
-  crowded: { fleet: ["fresh", 30], deck: ["fresh", 15], health: "fresh" },
-  empty: { fleet: ["fresh", 0], deck: ["fresh", 0], health: "fresh" },
-  stale: { fleet: ["stale", 2], deck: ["stale", 2], health: "stale" },
-  malformed: { fleet: ["unreadable", 0], deck: ["unreadable", 0], health: "fresh" },
-  "health-dark": { fleet: ["fresh", 3], deck: ["fresh", 3], health: "unreadable" },
-  "health-unread": { fleet: ["fresh", 3], deck: ["fresh", 3], health: "fresh" },
-  "deck-dark": { fleet: ["fresh", 3], deck: ["unreadable", 0], health: "fresh" },
-  "deck-only": { fleet: ["fresh", 0], deck: ["fresh", 6], health: "fresh" },
-  "fleet-only": { fleet: ["fresh", 12], deck: ["fresh", 0], health: "fresh" },
-  "fleet-empty-stale": { fleet: ["stale", 0], deck: ["stale", 1], health: "stale" },
+  crowded: { fleet: ["fresh", 30], deck: ["fresh", 15], landed: ["fresh", 3], health: "fresh", omissions: ["not-looked-up", "not-shown"] },
+  empty: { fleet: ["fresh", 0], deck: ["fresh", 0], landed: ["fresh", 0], health: "fresh", omissions: [] },
+  stale: { fleet: ["stale", 2], deck: ["stale", 2], landed: ["stale", 0], health: "stale", omissions: [] },
+  malformed: { fleet: ["unreadable", 0], deck: ["unreadable", 0], landed: ["unreadable", 0], health: "fresh", omissions: [] },
+  "health-dark": { fleet: ["fresh", 3], deck: ["fresh", 3], landed: ["fresh", 0], health: "unreadable", omissions: [] },
+  "health-unread": { fleet: ["fresh", 3], deck: ["fresh", 3], landed: ["fresh", 0], health: "fresh", omissions: [] },
+  "deck-dark": { fleet: ["fresh", 3], deck: ["unreadable", 0], landed: ["unreadable", 0], health: "fresh", omissions: ["unreadable"] },
+  "deck-only": { fleet: ["fresh", 0], deck: ["fresh", 6], landed: ["fresh", 1], health: "fresh", omissions: [] },
+  "fleet-only": { fleet: ["fresh", 12], deck: ["fresh", 0], landed: ["fresh", 0], health: "fresh", omissions: ["not-looked-up"] },
+  "fleet-empty-stale": { fleet: ["stale", 0], deck: ["stale", 1], landed: ["stale", 0], health: "stale", omissions: [] },
   // The one set in upstream's real shape and real vocabulary; its projection is
   // asserted field by field in tests/fleet-source.test.ts.
-  "upstream-shape": { fleet: ["fresh", 8], deck: ["fresh", 5], health: "fresh" },
+  "upstream-shape": { fleet: ["fresh", 8], deck: ["fresh", 5], landed: ["fresh", 1], health: "fresh", omissions: ["not-looked-up"] },
   // A refusal quoting a 180-character token with no break opportunity in it.
   // The lens statuses are `malformed`'s; what this set is for is the width of
   // the sentence they carry.
-  "wide-detail": { fleet: ["unreadable", 0], deck: ["unreadable", 0], health: "fresh" },
+  "wide-detail": { fleet: ["unreadable", 0], deck: ["unreadable", 0], landed: ["unreadable", 0], health: "fresh", omissions: [] },
   // Every lens dark at once, with nothing left over to draw: the page with the
   // least on it that the panel can still be asked to render.
-  "all-dark": { fleet: ["unreadable", 0], deck: ["unreadable", 0], health: "unreadable" },
+  "all-dark": { fleet: ["unreadable", 0], deck: ["unreadable", 0], landed: ["unreadable", 0], health: "unreadable", omissions: [] },
 };
 
 test("every fixture set on disk is walked here", () => {
@@ -126,12 +134,16 @@ describe("every fixture set produces the document it should", () => {
   for (const [set, shape] of Object.entries(SHAPES)) {
     test(set, async () => {
       const document = await documentOf(set);
-      assert.equal(document.version, 3);
+      // Pinned to the constant rather than to a literal: a bump is a deliberate
+      // edit to one place, and every fixture is then re-walked against it.
+      assert.equal(document.version, DOCUMENT_VERSION);
       assert.deepEqual(
         {
           fleet: [document.fleet.status.state, document.fleet.content.length],
           deck: [document.deck.status.state, document.deck.content.length],
+          landed: [document.landed.status.state, document.landed.content.length],
           health: document.health.status.state,
+          omissions: document.omissions.map((omission) => omission.reason),
         },
         shape,
       );
@@ -187,8 +199,20 @@ describe("the fleet part", () => {
       id: "wi-saltmarsh-302",
       project: "saltmarsh",
       kind: "build",
-      brief: { ref: "/anchorage/briefs/wi-saltmarsh-302.md", present: true },
+      delivery: "validated",
+      brief: {
+        ref: "/anchorage/briefs/wi-saltmarsh-302.md",
+        present: true,
+        summary: null,
+        text: null,
+      },
       worktree: { ref: "/anchorage/worktrees/wi-saltmarsh-302", present: true },
+      dispatch: {
+        branch: "crew/saltmarsh-302",
+        runtime: "claude",
+        model: "opus",
+        effort: "high",
+      },
       lifecycle: {
         stage: "pr-open",
         step: null,
@@ -198,10 +222,102 @@ describe("the fleet part", () => {
       pullRequest: {
         url: "https://forge.invalid/saltmarsh/pull/302",
         state: "open",
-        // Upstream carries the address but not the checks; see docs/contract.md.
-        checks: "unknown",
+        checks: {
+          read: "ok",
+          outcome: "pending",
+          finished: 2,
+          total: 5,
+          asOf: "2099-01-01T09:14:20.000Z",
+        },
+        review: { read: "ok", comments: 1, asOf: "2099-01-01T09:14:20.000Z" },
       },
     });
+  });
+
+  test("what was recorded at dispatch is carried, and what was not says so", async () => {
+    const { content } = (await documentOf("healthy")).fleet;
+    const by = (id: string) => content.find((worker) => worker.id === id)!;
+
+    // Nothing recorded at all. Four nulls rather than four guesses: a branch
+    // derived from the work item id would be the panel stating where the work
+    // is on evidence nobody wrote down.
+    assert.deepEqual(by("wi-cordage-404").dispatch, {
+      branch: null,
+      runtime: null,
+      model: null,
+      effort: null,
+    });
+    // Half recorded. Each field answers for itself; one absence does not take
+    // the others with it.
+    assert.deepEqual(by("wi-tidewater-121").dispatch, {
+      branch: "crew/tidewater-121",
+      runtime: null,
+      model: null,
+      effort: null,
+    });
+  });
+
+  test("a delivery contract nobody recognises draws no rail rather than the wrong one", async () => {
+    const { content } = (await documentOf("healthy")).fleet;
+    const by = (id: string) => content.find((worker) => worker.id === id)!;
+
+    assert.equal(by("wi-tidewater-114").delivery, "validated");
+    assert.equal(by("wi-tidewater-118").delivery, "direct-pr");
+    assert.equal(by("wi-lamplight-207").delivery, "local");
+    // Upstream said `cargo-cult`. Deliberately not defaulted the way an
+    // unrecognised kind is: a wrong kind costs a word, a wrong contract costs a
+    // rail with stages the work will never reach.
+    assert.equal(by("wi-lamplight-211").delivery, null);
+    // A scout is dispatched with no delivery contract at all.
+    assert.equal(by("wi-lamplight-215").delivery, null);
+  });
+
+  test("the brief carries its text where there is text, and says so where there is not", async () => {
+    const { content } = (await documentOf("healthy")).fleet;
+    const by = (id: string) => content.find((worker) => worker.id === id)!;
+
+    const full = by("wi-tidewater-114").brief;
+    assert.equal(full.summary, "Draw the lifecycle rail.");
+    assert.match(full.text!, /hollow ahead of it/);
+    // A card with a line to show and nothing behind the click.
+    assert.equal(by("wi-tidewater-118").brief.text, null);
+    assert.equal(by("wi-tidewater-118").brief.summary, "Pin the redis image to a digest.");
+    // The pointer is still there when neither is.
+    assert.deepEqual(by("wi-cordage-404").brief, {
+      ref: "/anchorage/briefs/wi-cordage-404.md",
+      present: true,
+      summary: null,
+      text: null,
+    });
+  });
+
+  test("a forge nobody asked is not a forge that answered", async () => {
+    const healthy = (await documentOf("healthy")).fleet.content;
+    const by = (id: string) => healthy.find((worker) => worker.id === id)!;
+
+    // Asked, and nobody has commented. The fact this shape exists to keep
+    // apart from the one below it.
+    assert.deepEqual(by("wi-saltmarsh-305").pullRequest?.review, {
+      read: "ok",
+      comments: 0,
+      asOf: "2099-01-01T09:14:20.000Z",
+    });
+    assert.deepEqual(by("wi-cordage-401").pullRequest?.checks, {
+      read: "ok",
+      outcome: "passing",
+      finished: 6,
+      total: 6,
+      asOf: "2099-01-01T09:14:20.000Z",
+    });
+    // Asked, and the forge could not say.
+    assert.equal(by("wi-cordage-401").pullRequest?.review.read, "unreadable");
+
+    // Nobody asked. Not a failure - the forge read is opt-in and off the first
+    // paint - and not the same as a green run or an empty review.
+    const live = (await documentOf("upstream-shape")).fleet.content;
+    const open = live.find((worker) => worker.pullRequest !== null)!;
+    assert.deepEqual(open.pullRequest?.checks, { read: "not-looked-up" });
+    assert.deepEqual(open.pullRequest?.review, { read: "not-looked-up" });
   });
 
   test("a landed worker's pull request is landed, and a scout is research", async () => {
@@ -315,7 +431,13 @@ describe("the health part", () => {
   test("a signal that could not be read says so, one signal at a time", async () => {
     const { content, status } = (await documentOf("health-unread")).health;
     assert.equal(status.state, "fresh", "the file read; its signals did not");
-    for (const signal of [content.supervisor, content.overdue, content.drift]) {
+    for (const signal of [
+      content.supervisor,
+      content.queue,
+      content.attendance,
+      content.overdue,
+      content.drift,
+    ]) {
       assert.equal(signal.read, "unreadable");
       assert.ok(signal.read === "unreadable" && signal.detail.length > 0);
     }
@@ -325,6 +447,129 @@ describe("the health part", () => {
     const { content } = (await documentOf("healthy")).health;
     assert.deepEqual(content.overdue, { read: "ok", overdue: [] });
     assert.deepEqual(content.drift, { read: "ok", disagreements: [] });
+  });
+
+  test("the queue is a depth and the attendance is two facts", async () => {
+    // A queue that was read and found empty, and a home held with nobody away.
+    const healthy = (await documentOf("healthy")).health.content;
+    assert.deepEqual(healthy.queue, { read: "ok", queued: 0 });
+    assert.deepEqual(healthy.attendance, { read: "ok", away: false, locked: true });
+
+    // A queue that is not draining, and an operator who is away with the home
+    // unlocked. Both facts move independently of each other.
+    const stale = (await documentOf("stale")).health.content;
+    assert.deepEqual(stale.queue, { read: "ok", queued: 4 });
+    assert.deepEqual(stale.attendance, { read: "ok", away: true, locked: false });
+  });
+
+  test("a health file predating a signal darkens that signal and no other", async () => {
+    // `wide-detail`'s health file carries the three original signals and not
+    // the two added in version 4. Refusing the whole file over a key that was
+    // not invented yet would take three working signals down with the two that
+    // are missing, which is the opposite of what this module is for.
+    const { content, status } = (await documentOf("wide-detail")).health;
+    assert.equal(status.state, "fresh", "the file itself read cleanly");
+    assert.equal(content.supervisor.read, "ok");
+    assert.equal(content.overdue.read, "ok");
+    assert.equal(content.drift.read, "ok");
+    assert.equal(content.queue.read, "unreadable");
+    assert.equal(content.attendance.read, "unreadable");
+  });
+});
+
+describe("the landed part", () => {
+  test("carries this home's work and a second mate's, told apart", async () => {
+    const { content } = (await documentOf("healthy")).landed;
+    assert.deepEqual(
+      content.map((item) => `${item.id} ${item.where} ${item.home ?? "-"}`),
+      [
+        "wi-tidewater-109 this-home /anchorage/homes/tidewater",
+        "wi-brackish-088 second-mate /anchorage/homes/brackish",
+        "wi-brackish-091 second-mate /anchorage/homes/brackish",
+        // Upstream carried the record without naming a home. Left null rather
+        // than defaulted to the home on screen, which would attribute a second
+        // mate's work to the fleet being looked at.
+        "wi-driftwood-512 second-mate -",
+      ],
+    );
+  });
+
+  test("a landed item says how it closed, and says nothing where the record did not", async () => {
+    const { content } = (await documentOf("healthy")).landed;
+    const by = (id: string) => content.find((item) => item.id === id)!;
+
+    assert.deepEqual(by("wi-tidewater-109"), {
+      id: "wi-tidewater-109",
+      title: "Vendor the display font",
+      where: "this-home",
+      home: "/anchorage/homes/tidewater",
+      project: "tidewater",
+      pullRequest: "https://forge.invalid/tidewater/pull/109",
+      closedAs: "merged",
+      landedOn: "2099-01-01",
+    });
+    // Reported rather than merged: no pull request, and no date recorded.
+    assert.deepEqual(by("wi-brackish-091").pullRequest, null);
+    assert.deepEqual(by("wi-brackish-091").closedAs, "reported");
+    assert.deepEqual(by("wi-brackish-091").landedOn, null);
+    // Upstream's roll-up carries no project per record, so a second mate's
+    // landed work names none rather than borrowing the parent home's.
+    assert.deepEqual(by("wi-brackish-088").project, null);
+  });
+
+  test("the deck keeps what is coming and the landed lens keeps what finished", async () => {
+    const document = await documentOf("healthy");
+    const deck = new Set(document.deck.content.map((item) => item.id));
+    const landed = new Set(document.landed.content.map((item) => item.id));
+    assert.ok(landed.has("wi-tidewater-109"));
+    assert.ok(!deck.has("wi-tidewater-109"), "a done row is not on the deck");
+    assert.equal([...deck].filter((id) => landed.has(id)).length, 0);
+  });
+
+  test("a second mate's landed work survives this home's backlog going dark", async () => {
+    // A home this panel cannot read says nothing about a home it can. Dropping
+    // the mate's work over the parent's unreadable backlog is exactly how a
+    // prior board lost it.
+    const { content, status } = (await documentOf("deck-dark")).landed;
+    assert.equal(status.state, "unreadable", "this home's landed work is gone with the backlog");
+    assert.deepEqual(content, [], "and this set's fleet has no second mates");
+  });
+});
+
+describe("the omissions", () => {
+  test("name what is missing and keep the three reasons apart", async () => {
+    const { omissions } = await documentOf("healthy");
+    assert.deepEqual(
+      omissions.map((omission) => `${omission.reason}: ${omission.what}`),
+      [
+        // A bound upstream applied - the work exists, it is past the cut.
+        "not-shown: landed work in /anchorage/homes/brackish",
+        // A home that did not answer.
+        "unreadable: landed work in /anchorage/homes/shoalwater",
+        // A home that answered without full trust. Not a bound: calling a
+        // partial read `not-shown` would make a failure sound deliberate.
+        "unreadable: landed work in /anchorage/homes/driftwood",
+      ],
+    );
+    for (const omission of omissions) assert.ok(omission.detail.length > 0);
+  });
+
+  test("a forge nobody read is named as not looked up, not as a failure", async () => {
+    const { omissions } = await documentOf("upstream-shape");
+    assert.deepEqual(
+      omissions.map((omission) => omission.reason),
+      ["not-looked-up"],
+    );
+    assert.match(omissions[0].what, /pull request checks/);
+  });
+
+  test("an unreadable backlog is named, and nothing is silently dropped", async () => {
+    const { omissions } = await documentOf("deck-dark");
+    assert.deepEqual(omissions.map((omission) => omission.reason), ["unreadable"]);
+  });
+
+  test("nothing left out is an empty list rather than a silence", async () => {
+    assert.deepEqual((await documentOf("empty")).omissions, []);
   });
 });
 

@@ -24,6 +24,15 @@
       "pr": {
         "url": null,
         "source": "absent"
+      },
+      "harness": "claude",
+      "mode": "no-mistakes",
+      "branch": "crew/tidewater-114",
+      "model": "opus",
+      "effort": "high",
+      "brief": {
+        "summary": "Draw the lifecycle rail.",
+        "text": "Draw the lifecycle rail as a row of stages, filled behind the worker and hollow ahead of it, with the current stage ringed. Do not invent a percentage: the shape of the rail is the progress."
       }
     },
     {
@@ -48,6 +57,14 @@
       "pr": {
         "url": null,
         "source": "absent"
+      },
+      "harness": "codex",
+      "mode": "direct-PR",
+      "branch": "crew/tidewater-118",
+      "model": "o-series",
+      "effort": "medium",
+      "brief": {
+        "summary": "Pin the redis image to a digest."
       }
     },
     {
@@ -72,7 +89,13 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "harness": "claude",
+      "mode": "local-only",
+      "branch": "crew/lamplight-207",
+      "model": "sonnet",
+      "effort": "low",
+      "brief": {}
     },
     {
       "id": "wi-lamplight-211",
@@ -96,7 +119,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "harness": "claude",
+      "mode": "cargo-cult",
+      "branch": "crew/lamplight-211",
+      "model": "opus",
+      "effort": "high"
     },
     {
       "id": "wi-saltmarsh-302",
@@ -119,8 +147,25 @@
       },
       "pr": {
         "url": "https://forge.invalid/saltmarsh/pull/302",
-        "source": "meta"
-      }
+        "source": "meta",
+        "checks": {
+          "read": "ok",
+          "outcome": "pending",
+          "finished": 2,
+          "total": 5,
+          "as_of": "2099-01-01T09:14:20.000Z"
+        },
+        "review": {
+          "read": "ok",
+          "comments": 1,
+          "as_of": "2099-01-01T09:14:20.000Z"
+        }
+      },
+      "harness": "claude",
+      "mode": "no-mistakes",
+      "branch": "crew/saltmarsh-302",
+      "model": "opus",
+      "effort": "high"
     },
     {
       "id": "wi-saltmarsh-305",
@@ -143,8 +188,24 @@
       },
       "pr": {
         "url": "https://forge.invalid/saltmarsh/pull/305",
-        "source": "meta"
-      }
+        "source": "meta",
+        "checks": {
+          "read": "ok",
+          "outcome": "failing",
+          "finished": 5,
+          "total": 5,
+          "as_of": "2099-01-01T09:14:20.000Z"
+        },
+        "review": {
+          "read": "ok",
+          "comments": 0,
+          "as_of": "2099-01-01T09:14:20.000Z"
+        }
+      },
+      "harness": "claude",
+      "branch": "crew/saltmarsh-305",
+      "model": "opus",
+      "effort": "high"
     },
     {
       "id": "wi-cordage-401",
@@ -167,8 +228,24 @@
       },
       "pr": {
         "url": "https://forge.invalid/cordage/pull/401",
-        "source": "meta"
-      }
+        "source": "meta",
+        "checks": {
+          "read": "ok",
+          "outcome": "passing",
+          "finished": 6,
+          "total": 6,
+          "as_of": "2099-01-01T09:14:20.000Z"
+        },
+        "review": {
+          "read": "unreadable",
+          "detail": "The forge refused the review listing."
+        }
+      },
+      "harness": "claude",
+      "mode": "no-mistakes",
+      "branch": "crew/cordage-401",
+      "model": "opus",
+      "effort": "high"
     },
     {
       "id": "wi-cordage-404",
@@ -216,7 +293,8 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "branch": "crew/tidewater-121"
     },
     {
       "id": "wi-lamplight-215",
@@ -240,7 +318,10 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "harness": "claude",
+      "model": "haiku",
+      "effort": "low"
     },
     {
       "id": "wi-saltmarsh-309",
@@ -264,7 +345,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "harness": "opencode",
+      "mode": "no-mistakes",
+      "branch": "crew/saltmarsh-309",
+      "model": "glm",
+      "effort": "medium"
     }
   ],
   "backlog": {
@@ -350,7 +436,12 @@
         "hold_kind": null,
         "hold_reason": null,
         "hold_until": null,
-        "captain_actionable": false
+        "captain_actionable": false,
+        "pr_url": "https://forge.invalid/tidewater/pull/109",
+        "completion": {
+          "verb": "merged",
+          "date": "2099-01-01"
+        }
       },
       {
         "structured": true,
@@ -382,6 +473,47 @@
         "hold_until": null,
         "captain_actionable": false
       }
+    ]
+  },
+  "fm_home": "/anchorage/homes/tidewater",
+  "secondmate_landed": {
+    "records": [
+      {
+        "id": "wi-brackish-088",
+        "title": "Reconcile the mate's own backlog",
+        "home": "/anchorage/homes/brackish",
+        "pr_url": "https://forge.invalid/brackish/pull/88",
+        "completion": {
+          "verb": "merged",
+          "date": "2099-01-01"
+        }
+      },
+      {
+        "id": "wi-brackish-091",
+        "title": "Write up what the survey found",
+        "home": "/anchorage/homes/brackish",
+        "pr_url": null,
+        "completion": {
+          "verb": "reported",
+          "date": null
+        }
+      },
+      {
+        "id": "wi-driftwood-512",
+        "title": "Retire the old delivery path",
+        "home": null,
+        "pr_url": null,
+        "completion": null
+      }
+    ],
+    "truncated": [
+      "/anchorage/homes/brackish"
+    ],
+    "unreadable": [
+      "/anchorage/homes/shoalwater"
+    ],
+    "partial": [
+      "/anchorage/homes/driftwood"
     ]
   }
 }
