@@ -42,6 +42,11 @@ function workerCards(html: string): number {
   return (html.match(/data-worker="/g) ?? []).length;
 }
 
+/** How many rows the deck lens drew. */
+function deckItems(html: string): number {
+  return (html.match(/data-deck-item="/g) ?? []).length;
+}
+
 /**
  * A fleet home: the snapshot command, and the two directories a real one keeps
  * its worker records and its backlog in. What the command prints is whatever is
@@ -98,7 +103,7 @@ describe("the panel pointed at a fleet home", () => {
     assert.equal(lensStatus(html, "fleet"), "fresh");
     assert.equal(lensStatus(html, "deck"), "fresh");
     assert.equal(workerCards(html), 8);
-    assert.ok(html.includes("5 items in the document"));
+    assert.equal(deckItems(html), 5);
   });
 
   test("draws the fleet and the deck without naming the home", async () => {
@@ -165,7 +170,7 @@ describe("a fleet home whose backlog changes", () => {
   });
 
   test("is noticed, even though no worker moved", async () => {
-    assert.ok((await body(panel)).includes("5 items in the document"));
+    assert.equal(deckItems(await body(panel)), 5);
 
     const snapshot = JSON.parse(await readFile(join(home, "snapshot.json"), "utf8"));
     snapshot.backlog.records.push({
@@ -191,7 +196,7 @@ describe("a fleet home whose backlog changes", () => {
 
     const html = await until(
       () => body(panel),
-      (text) => text.includes("6 items in the document"),
+      (text) => deckItems(text) === 6,
     );
     assert.equal(lensStatus(html, "deck"), "fresh");
   });
