@@ -78,5 +78,22 @@
   "backlog": {
     "present": false,
     "records": []
+  },
+  "secondmate_landed": {
+    "records": [
+      {
+        "id": "wi-kelpwick-031",
+        "title": "Chase down the flaky timeout",
+        "home": "/anchorage/homes/kelpwick",
+        "pr_url": "https://forge.invalid/kelpwick/pull/31",
+        "completion": {
+          "verb": "merged",
+          "date": "2099-01-01"
+        }
+      }
+    ],
+    "truncated": [],
+    "unreadable": [],
+    "partial": []
   }
 }

@@ -110,7 +110,7 @@ const SHAPES: Readonly<Record<string, Shape>> = {
   malformed: { fleet: ["unreadable", 0], deck: ["unreadable", 0], landed: ["unreadable", 0], health: "fresh", omissions: [] },
   "health-dark": { fleet: ["fresh", 3], deck: ["fresh", 3], landed: ["fresh", 0], health: "unreadable", omissions: [] },
   "health-unread": { fleet: ["fresh", 3], deck: ["fresh", 3], landed: ["fresh", 0], health: "fresh", omissions: [] },
-  "deck-dark": { fleet: ["fresh", 3], deck: ["unreadable", 0], landed: ["unreadable", 0], health: "fresh", omissions: ["unreadable"] },
+  "deck-dark": { fleet: ["fresh", 3], deck: ["unreadable", 0], landed: ["unreadable", 1], health: "fresh", omissions: ["unreadable"] },
   "deck-only": { fleet: ["fresh", 0], deck: ["fresh", 6], landed: ["fresh", 1], health: "fresh", omissions: [] },
   "fleet-only": { fleet: ["fresh", 12], deck: ["fresh", 0], landed: ["fresh", 0], health: "fresh", omissions: ["not-looked-up"] },
   "fleet-empty-stale": { fleet: ["stale", 0], deck: ["stale", 1], landed: ["stale", 0], health: "stale", omissions: [] },
@@ -532,7 +532,11 @@ describe("the landed part", () => {
     // prior board lost it.
     const { content, status } = (await documentOf("deck-dark")).landed;
     assert.equal(status.state, "unreadable", "this home's landed work is gone with the backlog");
-    assert.deepEqual(content, [], "and this set's fleet has no second mates");
+    assert.deepEqual(
+      content.map((item) => item.id),
+      ["wi-kelpwick-031"],
+      "a second mate's landed work is still on the page",
+    );
   });
 });
 

@@ -370,7 +370,7 @@ function projectDeckItem(record: SnapshotRecord): DeckItem {
   };
 }
 
-export /* ------------------------------------------------------------ the landed */
+/* ------------------------------------------------------------------ the landed */
 
 /**
  * Work that finished in the home being looked at.
@@ -484,7 +484,7 @@ function omissionsOf(snapshot: FleetSnapshot, workers: readonly Worker[]): reado
   return omissions;
 }
 
-interface ProjectOptions {
+export interface ProjectOptions {
   readonly clock: Clock;
   /** Content older than this is still shown, but marked stale. */
   readonly staleAfterMs: number;

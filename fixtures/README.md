@@ -49,7 +49,7 @@ combination below has somewhere to live.
 | `malformed` | A truncated snapshot beside a healthy health file. Fleet and deck go dark; shipshape stays current. |
 | `health-dark` | No `health.json` at all. Shipshape goes dark on its own while fleet and deck render normally. |
 | `health-unread` | A health file that reads cleanly and whose five signals each report that they could not be read. The lens is `fresh`; its contents are not. |
-| `deck-dark` | Upstream reporting `backlog.present: false`. The deck goes dark alone. |
+| `deck-dark` | Upstream reporting `backlog.present: false`. The deck goes dark alone, and this home's own landed work goes with it - but a second mate's landed work, rolled up separately, survives. |
 | `deck-only` | An empty fleet with a non-empty deck. |
 | `fleet-only` | A non-empty fleet with an empty deck. Every stage the document can carry, including a worker the panel cannot see - whose detail names a pipeline step, so that nothing may quietly place it on the track from words upstream wrote about its own blindness. Nothing was recorded at dispatch for any of them and no forge was read, which is the all-absent end of every field version 4 added. |
 | `fleet-empty-stale` | A stale read that found nothing running, with a non-empty backlog. The last good picture is empty, but it still shows its age rather than reading as a clean current empty state. Its health file holds the fourth combination of away and lock - away, with the home still held - which no other set carries. |
@@ -94,8 +94,8 @@ instead of the panel falling over.
 
 | Home | What it exercises |
 | --- | --- |
-| `steady` | A fleet running normally: workers busy, one idle for an hour having declared why, and a work item record that agrees with what the workers are doing. |
-| `adrift` | A fleet with something wrong in it: one worker idle past the point that is normal with nothing declared, one whose busy record carries a retired incarnation token, one work item held after its decision was answered, and one in flight with no worker behind it. |
+| `steady` | A fleet running normally: workers busy, one idle for an hour having declared why, a work item record that agrees with what the workers are doing, a queue with two notifications on it, and no away or lock marker. |
+| `adrift` | A fleet with something wrong in it: one worker idle past the point that is normal with nothing declared, one whose busy record carries a retired incarnation token, one work item held after its decision was answered, one in flight with no worker behind it, an empty queue file, and both the away and lock markers present. |
 | `moved` | Upstream restructured: the state directory is not a directory any more. Every signal reads unreadable and nothing throws. |
 
 None of them carries the liveness beacon, because the beacon holds nothing but
