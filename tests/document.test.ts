@@ -114,6 +114,9 @@ const SHAPES: Readonly<Record<string, Shape>> = {
   "deck-only": { fleet: ["fresh", 0], deck: ["fresh", 6], landed: ["fresh", 1], health: "fresh", omissions: [] },
   "fleet-only": { fleet: ["fresh", 12], deck: ["fresh", 0], landed: ["fresh", 0], health: "fresh", omissions: ["not-looked-up", "not-looked-up"] },
   "fleet-empty-stale": { fleet: ["stale", 0], deck: ["stale", 1], landed: ["stale", 0], health: "stale", omissions: [] },
+  // Every rail shape in its working, stopped and finished states, plus the two
+  // ways a rail's length can be unknown; see tests/fleet-lens.test.ts.
+  rails: { fleet: ["fresh", 17], deck: ["fresh", 0], landed: ["fresh", 0], health: "fresh", omissions: ["not-looked-up", "not-looked-up"] },
   // The one set in upstream's real shape and real vocabulary; its projection is
   // asserted field by field in tests/fleet-source.test.ts.
   "upstream-shape": { fleet: ["fresh", 8], deck: ["fresh", 5], landed: ["fresh", 1], health: "fresh", omissions: ["not-looked-up", "not-looked-up"] },
@@ -325,7 +328,7 @@ describe("the fleet part", () => {
   test("a landed worker's pull request is landed, and a scout is research", async () => {
     const { content } = (await documentOf("healthy")).fleet;
     assert.equal(content[7].pullRequest?.state, "landed");
-    assert.equal(content[6].kind, "research");
+    assert.equal(content[10].kind, "research", "the one scout in the set");
     assert.equal(content[11].worktree.present, false, "a worktree can be gone");
   });
 });

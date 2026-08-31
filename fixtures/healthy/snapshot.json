@@ -211,7 +211,7 @@
     {
       "id": "wi-saltmarsh-305",
       "project": "saltmarsh",
-      "kind": "scout",
+      "kind": "ship",
       "paths": {
         "meta": {
           "path": "/anchorage/briefs/wi-saltmarsh-305.md",
@@ -243,6 +243,7 @@
           "as_of": "2099-01-01T09:14:20.000Z"
         }
       },
+      "mode": "direct-PR",
       "harness": "claude",
       "branch": "crew/saltmarsh-305",
       "model": "opus",
