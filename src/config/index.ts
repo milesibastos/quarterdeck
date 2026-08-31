@@ -40,17 +40,19 @@ export interface FleetRef {
   readonly label: string;
   readonly source: FleetSource;
   /**
-   * Where this fleet's answered decisions are spooled, or `null` when it has
-   * nowhere to write and so cannot accept an answer at all.
+   * Where this fleet's intents - answered decisions and merge orders alike -
+   * are spooled, or `null` when it has nowhere to write and so cannot accept
+   * either at all.
    *
    * Declared per fleet, not once for the panel: once more than one fleet is
-   * selectable in one process, a single global spool would send an answer to
+   * selectable in one process, a single global spool would send an intent to
    * whichever fleet's registered process-event source happens to be watching
    * that directory, regardless of which fleet the operator was looking at. The
    * panel still holds no knowledge of the operator's arrangement - it arrives
    * from the environment, positionally aligned with the configured fleet list,
    * rather than being composed from a fleet's own home. See
-   * `docs/decisions/2026-08-30-answering-a-held-decision.md`.
+   * `docs/decisions/2026-08-30-answering-a-held-decision.md` and
+   * `docs/decisions/2026-08-31-ordering-a-merge.md`.
    */
   readonly intentDir: string | null;
 }
