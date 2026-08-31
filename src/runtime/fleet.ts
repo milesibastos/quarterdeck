@@ -53,7 +53,7 @@ function describeLenses(names: readonly string[]): string {
  * place, so an expanded card stays expanded and the scroll does not jump.
  */
 
-export interface RuntimeDeps {
+interface RuntimeDeps {
   readonly config: Config;
   readonly source: SnapshotSource;
   readonly clock: Clock;

@@ -36,7 +36,7 @@ import type { Logger } from "../providers/logger.ts";
 /** No pull request is asked about more than this often. */
 export const FORGE_MIN_INTERVAL_MS = 60_000;
 
-export interface ForgeCacheDeps {
+interface ForgeCacheDeps {
   readonly read: ForgeRead;
   readonly clock: Clock;
   readonly logger: Logger;

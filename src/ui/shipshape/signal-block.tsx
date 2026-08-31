@@ -48,7 +48,7 @@ import { cn } from "@/ui/lib/utils";
  * this lens is most likely to be read in on a bad day. Brighter than the
  * question, colourless, and dashed at the edge.
  */
-export type Tone = "good" | "watch" | "bad" | "dark";
+type Tone = "good" | "watch" | "bad" | "dark";
 
 const TONE: Readonly<
   Record<Tone, { readonly ink: string; readonly edge: string }>

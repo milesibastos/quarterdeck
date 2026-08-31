@@ -104,7 +104,7 @@ export interface Config {
   readonly now: string | null;
 }
 
-export const DEFAULT_FIXTURE_SET = "healthy";
+const DEFAULT_FIXTURE_SET = "healthy";
 
 const HOST = "127.0.0.1";
 

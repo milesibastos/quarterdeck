@@ -66,7 +66,7 @@ const TONE: Readonly<Record<Lens<unknown>["status"]["state"], string>> = {
  * itself, and a layout that drew them at equal size would be saying it is. The
  * rest are `lens`.
  */
-export type Prominence = "lens" | "primary";
+type Prominence = "lens" | "primary";
 
 const TITLE_SIZE: Readonly<Record<Prominence, string>> = {
   lens: "text-lg",

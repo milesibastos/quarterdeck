@@ -50,7 +50,7 @@ import { link, mkdir, rm, writeFile } from "node:fs/promises";
  * argument for this panel is that there is exactly one file that writes, and a
  * second intent kind arriving as a second file would end that argument quietly.
  */
-export type IntentKind = "answer-decision" | "merge-pull-request";
+type IntentKind = "answer-decision" | "merge-pull-request";
 
 /**
  * How the fleet should close the call once it has recorded the answer.
@@ -72,7 +72,7 @@ export const CLOSE_MODES: readonly CloseMode[] = ["done", "release"];
  * means an answer this panel accepts is one the intake will still accept after
  * the record has been wrapped in the fleet's own prose.
  */
-export const MAX_ANSWER_BYTES = 4096;
+const MAX_ANSWER_BYTES = 4096;
 
 /**
  * What every intent carries, whatever it is asking for.
@@ -95,7 +95,7 @@ interface IntentBase {
 }
 
 /** An answer to a decision the fleet is holding for a person. */
-export interface AnswerDecisionIntent extends IntentBase {
+interface AnswerDecisionIntent extends IntentBase {
   readonly kind: "answer-decision";
   /**
    * The held task the answer is for. This is the intake's key, verbatim: the
@@ -122,7 +122,7 @@ export interface AnswerDecisionIntent extends IntentBase {
  * or the operator's confidence travels with it, because none of that is
  * something the command would be entitled to trust from here.
  */
-export interface MergeIntent extends IntentBase {
+interface MergeIntent extends IntentBase {
   readonly kind: "merge-pull-request";
   /** The work item whose pull request this is. Upstream's id, verbatim. */
   readonly taskId: string;
@@ -145,7 +145,7 @@ export interface MergeIntent extends IntentBase {
  * the point. A single interface with optional fields would let a new kind be
  * added and silently written with the old kind's format.
  */
-export type Intent = AnswerDecisionIntent | MergeIntent;
+type Intent = AnswerDecisionIntent | MergeIntent;
 
 /**
  * How one kind of intent becomes a file: its extension, and the bytes inside.
@@ -174,7 +174,7 @@ interface RecordFormat<T extends Intent> {
   readonly aNoun: string;
 }
 
-export interface IntentResult {
+interface IntentResult {
   readonly requestId: string;
   readonly accepted: boolean;
   /**
@@ -299,7 +299,7 @@ const FORMATS: {
 };
 
 /** Everything a record is refused for. Format only; never "is this still open". */
-export type Refusal =
+type Refusal =
   | { readonly ok: true }
   | { readonly ok: false; readonly detail: string };
 
@@ -315,7 +315,7 @@ export type Refusal =
  * decision is still open - the fleet re-verifies that, and it is the only
  * reader whose answer to that question is current.
  */
-export function keyedAnswerLine(
+function keyedAnswerLine(
   intent: AnswerDecisionIntent,
 ): Refusal & { readonly line?: string } {
   const fields: readonly [string, string][] = [
@@ -405,7 +405,7 @@ export function mergeOrderLine(
   return { ok: true, line: `${intent.taskId}\t${intent.url}\n` };
 }
 
-export interface SpoolOptions {
+interface SpoolOptions {
   /** The directory the fleet's source watches, or `null` when none is configured. */
   readonly intentDir: string | null;
 }

@@ -39,7 +39,7 @@ export function readSourceFiles(rootDir: string): SourceFile[] {
   return files.sort((a, b) => a.path.localeCompare(b.path));
 }
 
-export interface ImportRef {
+interface ImportRef {
   /** The module specifier, verbatim. */
   readonly specifier: string;
   /** 1-indexed. */

@@ -65,7 +65,7 @@ import { cn } from "@/ui/lib/utils";
  */
 
 /** One fleet, as the operator sees it. The id is the panel's, the label theirs. */
-export interface FleetChoice {
+interface FleetChoice {
   readonly id: string;
   readonly label: string;
 }

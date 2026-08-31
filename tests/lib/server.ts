@@ -31,7 +31,7 @@ const STAGING_LOCK = join(STANDALONE, ".staging.lock");
  * marker, keyed to the build, then skips it once another process has already
  * staged this exact build, and re-stages if a later build left it behind.
  */
-export async function stageAssets(): Promise<void> {
+async function stageAssets(): Promise<void> {
   await mkdir(STANDALONE, { recursive: true });
   await withStagingLock(async () => {
     const buildId = await readFile(
@@ -100,7 +100,7 @@ export interface Panel {
   stop(): Promise<void>;
 }
 
-export interface StartOptions {
+interface StartOptions {
   readonly port: number;
   readonly fixtureSet?: string;
   /** Pins "now", making staleness deterministic instead of a race with the clock. */
@@ -243,7 +243,7 @@ export async function until<T>(
   );
 }
 
-export interface RawResponse {
+interface RawResponse {
   readonly status: number;
   readonly headers: NodeJS.Dict<string | string[]>;
   readonly body: string;

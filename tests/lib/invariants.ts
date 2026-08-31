@@ -31,7 +31,7 @@ const THEME = "docs/decisions/2026-08-30-theme-and-palette.md";
  * `src/app/` and `src/proxy.ts` - and it is the only place allowed to see both
  * a way of reading the fleet and a way of rendering it.
  */
-export const ALLOWED_IMPORTS: Readonly<Record<Layer, readonly Layer[]>> = {
+const ALLOWED_IMPORTS: Readonly<Record<Layer, readonly Layer[]>> = {
   types: [],
   providers: ["types"],
   config: ["types", "providers"],
@@ -101,7 +101,7 @@ function commentRanges(text: string, path: string): ts.CommentRange[] {
   return ranges.sort((a, b) => a.pos - b.pos);
 }
 
-export function stripComments(text: string, path: string): string {
+function stripComments(text: string, path: string): string {
   let out = "";
   let i = 0;
   for (const { pos, end } of commentRanges(text, path)) {
@@ -124,9 +124,7 @@ function codeLines(file: SourceFile): { line: number; text: string }[] {
 
 /* ------------------------------------------------------------------ 1 */
 
-export function checkForwardDependencies(
-  files: readonly SourceFile[],
-): Violation[] {
+function checkForwardDependencies(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
   for (const file of files) {
     const from = layerOf(file.path);
@@ -160,7 +158,7 @@ export function checkForwardDependencies(
 
 /* ------------------------------------------------------------------ 2 */
 
-export function checkDomainPurity(files: readonly SourceFile[]): Violation[] {
+function checkDomainPurity(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
   for (const file of files) {
     if (layerOf(file.path) !== "domain") continue;
@@ -182,8 +180,8 @@ export function checkDomainPurity(files: readonly SourceFile[]): Violation[] {
 
 /* ------------------------------------------------------------------ 3 */
 
-export const PERMITTED_WRITER = "src/adapters/intent.ts";
-export const WRITER_MARKER = "quarterdeck:permitted-writer";
+const PERMITTED_WRITER = "src/adapters/intent.ts";
+const WRITER_MARKER = "quarterdeck:permitted-writer";
 
 /**
  * Starting a process is its own capability, and it has its own one file.
@@ -194,8 +192,8 @@ export const WRITER_MARKER = "quarterdeck:permitted-writer";
  * confines the second the way the writer marker confines writing: one file, one
  * marker, and a failing build for any other file that reaches for it.
  */
-export const PERMITTED_SPAWNER = "src/providers/process.ts";
-export const SPAWNER_MARKER = "quarterdeck:permitted-spawner";
+const PERMITTED_SPAWNER = "src/providers/process.ts";
+const SPAWNER_MARKER = "quarterdeck:permitted-spawner";
 
 /**
  * APIs that mutate something outside this process. Reads are not listed.
@@ -338,7 +336,7 @@ const MARKED_CAPABILITIES = [
   { path: PERMITTED_SPAWNER, marker: SPAWNER_MARKER, verb: "start a process" },
 ] as const;
 
-export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
+function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
 
   for (const { path, marker, verb } of MARKED_CAPABILITIES) {
@@ -466,12 +464,12 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
 
 /* ------------------------------------------------------------------ 4 */
 
-export const QUARANTINED_MODULE = "src/adapters/health.ts";
+const QUARANTINED_MODULE = "src/adapters/health.ts";
 
 /** The app's own URL space. Everything else starting with `/` is a machine path. */
 const ROUTE_PREFIXES = [/^\/api\//, /^\/api$/, /^\/_next\//, /^\/\(/];
 
-export function checkPathQuarantine(files: readonly SourceFile[]): Violation[] {
+function checkPathQuarantine(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
   for (const file of files) {
     if (`src/${file.path}` === QUARANTINED_MODULE) continue;
@@ -527,9 +525,9 @@ export function checkPathQuarantine(files: readonly SourceFile[]): Violation[] {
 
 /* ------------------------------------------------------------------ 5 */
 
-export const CONTRACT_MODULE = "src/adapters/contract.ts";
+const CONTRACT_MODULE = "src/adapters/contract.ts";
 
-export function checkPinnedContract(files: readonly SourceFile[]): Violation[] {
+function checkPinnedContract(files: readonly SourceFile[]): Violation[] {
   const contract = files.find((f) => `src/${f.path}` === CONTRACT_MODULE);
   if (!contract) return [];
 
@@ -582,7 +580,7 @@ export function checkPinnedContract(files: readonly SourceFile[]): Violation[] {
 
 /* ------------------------------------------------------------------ 6 */
 
-export function checkUiIsolation(files: readonly SourceFile[]): Violation[] {
+function checkUiIsolation(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
   for (const file of files) {
     if (layerOf(file.path) !== "ui") continue;
@@ -605,7 +603,7 @@ export function checkUiIsolation(files: readonly SourceFile[]): Violation[] {
 
 /* ------------------------------------------------------------------ 7 */
 
-export function checkNoEgress(files: readonly SourceFile[]): Violation[] {
+function checkNoEgress(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
   for (const file of files) {
     for (const ref of importsOf(file)) {
@@ -647,7 +645,7 @@ export function checkNoEgress(files: readonly SourceFile[]): Violation[] {
  * Not one of the seven, but the reason `src/providers/` exists: nothing reaches
  * for the wall clock or the console directly. `Date.parse` is pure and stays.
  */
-export function checkProviderBypass(files: readonly SourceFile[]): Violation[] {
+function checkProviderBypass(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
   const probes: [RegExp, string][] = [
     [/\bDate\.now\s*\(/, "Date.now()"],
@@ -778,7 +776,7 @@ const COLOUR_PROBES: [RegExp, (m: RegExpExecArray) => string][] = [
  * at all: the stylesheet is where the hex is *supposed* to be, and it is not
  * scanned.
  */
-export function checkRawColour(files: readonly SourceFile[]): Violation[] {
+function checkRawColour(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
   for (const file of files) {
     for (const { line, text } of codeLines(file)) {

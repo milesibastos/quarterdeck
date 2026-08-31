@@ -18,7 +18,7 @@ const LOOPBACK_HOSTS: ReadonlySet<string> = new Set([
   "[::1]",
 ]);
 
-export type GuardVerdict =
+type GuardVerdict =
   | { readonly ok: true }
   | { readonly ok: false; readonly reason: string };
 
@@ -29,7 +29,7 @@ function hostname(hostHeader: string): string {
   return hostHeader;
 }
 
-export function checkHost(hostHeader: string | null): GuardVerdict {
+function checkHost(hostHeader: string | null): GuardVerdict {
   if (!hostHeader)
     return { ok: false, reason: "request carried no Host header" };
   const name = hostname(hostHeader);
@@ -49,7 +49,7 @@ export function checkHost(hostHeader: string | null): GuardVerdict {
  * bound to. A page served by some other loopback-bound process is not "us"
  * just because it also happens to be on 127.0.0.1.
  */
-export function checkOrigin(
+function checkOrigin(
   originHeader: string | null,
   expectedPort: string,
 ): GuardVerdict {
@@ -84,6 +84,3 @@ export function checkRequest(
   if (!host.ok) return host;
   return checkOrigin(headers.origin, expectedPort);
 }
-
-/** Requests under this prefix act on the fleet and need the session secret. */
-export const ACTING_PREFIX = "/api/act";

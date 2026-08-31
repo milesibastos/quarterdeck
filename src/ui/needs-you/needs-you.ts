@@ -66,7 +66,7 @@ export function isMergeReady(worker: Worker): boolean {
   );
 }
 
-export interface NeedsYou {
+interface NeedsYou {
   /**
    * Decisions held for a person. The ones the fleet says can be answered right
    * now lead, because a decision that is available today must not be buried

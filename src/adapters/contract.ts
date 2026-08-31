@@ -59,7 +59,7 @@ export const SNAPSHOT_SCHEMA_ID = "fm-fleet-snapshot.v1";
  * recognises a fleet by its name, and a machine path in the markup is a path
  * that leaks. See `src/ui/snapshot-badge.tsx`.
  */
-export const SNAPSHOT_COMMAND = "bin/fm-fleet-snapshot.sh";
+const SNAPSHOT_COMMAND = "bin/fm-fleet-snapshot.sh";
 
 /** Asks for the structured surface rather than the human one. */
 const SNAPSHOT_ARGS = ["--json"];
@@ -345,7 +345,7 @@ export interface FleetSnapshot {
 }
 
 /** Base for every refusal at this boundary, so callers can catch the family. */
-export class ContractError extends Error {}
+class ContractError extends Error {}
 
 /**
  * The snapshot announced a schema this build does not understand.

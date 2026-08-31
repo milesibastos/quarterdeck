@@ -271,7 +271,7 @@ export function StageChip({ stage }: { stage: Stage }) {
 }
 
 /** What was recorded at dispatch, which is the whole of what picks a rail. */
-export interface RailFor {
+interface RailFor {
   readonly kind: WorkerKind;
   readonly delivery: Delivery | null;
 }

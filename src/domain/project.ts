@@ -523,7 +523,7 @@ function omissionsOf(
   return omissions;
 }
 
-export interface ProjectOptions {
+interface ProjectOptions {
   readonly clock: Clock;
   /** Content older than this is still shown, but marked stale. */
   readonly staleAfterMs: number;
@@ -573,7 +573,7 @@ function darkHealth(detail: string): Health {
  * last-known-good, while health simply goes dark. Either can happen without the
  * other, which is what the per-lens status exists to express.
  */
-export function projectHealth(
+function projectHealth(
   reading: HealthReading,
   options: ProjectOptions,
 ): Lens<Health> {

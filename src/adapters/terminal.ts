@@ -126,7 +126,7 @@ function printableLine(line: string): string {
  * that has said nothing, not a worker whose last fifteen lines are empty. That
  * is why `ok` can never carry an empty list: it would be `silent`.
  */
-export function readingOfCapture(captured: string): TerminalReading {
+function readingOfCapture(captured: string): TerminalReading {
   const lines = captured.split("\n").map(printableLine);
   while (lines.length > 0 && lines[lines.length - 1].trim() === "") lines.pop();
   if (lines.length === 0) return { read: "silent" };
