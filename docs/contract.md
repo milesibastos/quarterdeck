@@ -1,8 +1,9 @@
 # Contracts
 
-Three shapes and the boundaries between them. Upstream owns the fleet snapshot,
-the panel owns the document, and the health file sits in between - the panel's
-own shape, read from a location upstream can move without telling anyone.
+Three shapes the panel reads, the boundaries between them, and the one shape it
+writes. Upstream owns the fleet snapshot, the panel owns the document, and the
+health file sits in between - the panel's own shape, read from a location
+upstream can move without telling anyone.
 
 `src/domain/` is the only thing that knows more than one of them.
 
@@ -292,6 +293,33 @@ two ways of saying an idle worker is idle on purpose, and reporting either as a
 stall would teach an operator to ignore the signal. `blocked:` and
 `needs-decision:` are not declared waits: a worker stopped for those is waiting
 on the machinery this lens watches.
+
+## The answer record (the one thing the panel writes)
+
+The panel's only outbound shape, written by `src/adapters/intent.ts` into
+`QUARTERDECK_INTENT_DIR` and by nothing else.
+
+One file per answered decision, named `<request-id>.keyed-answer-v1`, holding one
+line and nothing else:
+
+```
+<task-id>\t<answer>\t<label>\t<mode>\n
+```
+
+That is the line `bin/fm-captain-hold.sh answers` reads on stdin, unchanged. The
+key is the task id verbatim; `<mode>` is `done` or `release` and is whichever
+close the card declared and the operator pressed. Nothing else may appear in the
+file - a header or a second line would reach the intake as a bogus key.
+
+The request id is `sha256(task id, since, answer, label, mode)`, truncated,
+which makes the same question-and-answer name the same record every time. The
+record is published with `link`, so a replay collides with the existing name and
+writes nothing.
+
+The panel does not feed the intake and does not run anything. A registered
+process-event source reads these records, re-verifies the decision is still
+open, and pipes the lines in. See
+`docs/decisions/2026-08-30-answering-a-held-decision.md`.
 
 ## The pinned identifier
 

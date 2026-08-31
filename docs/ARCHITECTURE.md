@@ -184,19 +184,36 @@ makes "the fixtures behave exactly as a fleet does" a claim the suite can check.
 
 ## Security
 
-The panel will act on the fleet later, so the server carries this from the first
-commit even while it only reads:
+The server has carried this since the first commit, from before there was
+anything behind it to protect:
 
 - Bound to loopback only.
 - Every request's `Host` is checked, and its `Origin` when the browser sends
   one. Loopback is not a boundary against a page in the operator's own browser:
   any site can point a form at `http://127.0.0.1`.
 - A session secret minted at start. Everything under `/api/act` requires it;
-  reading requires none of it. The guard is in front of a write path that does
-  not exist yet, so no build ever ships an acting route without it.
+  reading requires none of it. The guard went in before the acting route, so no
+  build ever shipped an acting route without it. The secret reaches the page
+  that carries an answer control, and only such a page.
 - No cross-origin sharing headers, so another page cannot read a response.
-- An `Intent` carries a `requestId`, so a retry or a double click cannot act
-  twice.
+- An `Intent` carries a `requestId`, derived from the question and the answer,
+  so a retry or a double click cannot act twice.
+
+## Acting
+
+There is one acting endpoint, `POST /api/act/answer-decision`, and it executes
+nothing. It records a durable intent through `src/adapters/intent.ts` - one file,
+one line, the shape the fleet's keyed-answer intake reads - and the fleet picks
+that up on its next check and re-verifies the decision is still open before
+acting on it. A web request is never the thing that spawns a fleet command, and
+invariant 3 is what makes that structural rather than careful: no file in `src/`
+outside the permitted writer may reach `child_process` at all, and the permitted
+writer does not import it.
+
+That is also why nothing here filters a stale answer out. The panel's reading is
+always older than the fleet's, so whether a decision is still open is not a
+question it can answer, and it does not pretend to. See
+`docs/decisions/2026-08-30-answering-a-held-decision.md`.
 
 ## Tests
 

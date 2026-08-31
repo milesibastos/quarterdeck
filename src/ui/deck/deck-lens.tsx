@@ -1,6 +1,7 @@
 import type { DeckItem, Lens, Worker } from "@/types/document.ts";
 import { groupDeck, type DeckRow } from "@/ui/deck/deck-groups";
 import { DeckItemRow } from "@/ui/deck/deck-row";
+import type { AnsweringSession } from "@/ui/deck/answer-control";
 import { LensFrame } from "@/ui/lens-frame";
 import { ago } from "@/ui/lib/age";
 import { cn } from "@/ui/lib/utils";
@@ -26,6 +27,7 @@ function Section({
   rows,
   nowMs,
   note,
+  session,
   urgent = false,
 }: {
   /** The pile's handle in the markup, so a test can assert one pile alone. */
@@ -33,6 +35,7 @@ function Section({
   title: string;
   rows: readonly DeckRow[];
   nowMs: number;
+  session: AnsweringSession | null;
   /** One line to the right of the heading, or `null` when there is nothing to add. */
   note?: string | null;
   /** Draw the note in the accent colour: something here is waiting on the reader. */
@@ -54,7 +57,7 @@ function Section({
       </header>
       <ul className="flex flex-col gap-2">
         {rows.map((row) => (
-          <DeckItemRow key={row.item.id} row={row} nowMs={nowMs} />
+          <DeckItemRow key={row.item.id} row={row} nowMs={nowMs} session={session} />
         ))}
       </ul>
     </section>
@@ -83,12 +86,19 @@ export function DeckLens({
   lens,
   fleet,
   nowMs,
+  session = null,
 }: {
   lens: Lens<readonly DeckItem[]>;
   /** The fleet's work items, read only to name and settle the deck's blockers. */
   fleet: readonly Worker[];
   /** Chosen by the composition point, so every age on the page agrees. */
   nowMs: number;
+  /**
+   * How an answer reaches the server. Handed down from the composition point
+   * because `src/ui/` may not read the runtime, and `null` when the panel has
+   * nowhere to record one.
+   */
+  session?: AnsweringSession | null;
 }) {
   const groups = groupDeck(lens.content, fleet);
   const actionable = groups.held.filter((row) => row.item.actionable).length;
@@ -117,12 +127,31 @@ export function DeckLens({
             title="Waiting on a person"
             rows={groups.held}
             nowMs={nowMs}
+            session={session}
             note={actionable > 0 ? `${actionable} to answer` : "none actionable"}
             urgent={actionable > 0}
           />
-          <Section name="blocked" title="Blocked" rows={groups.blocked} nowMs={nowMs} />
-          <Section name="queued" title="Queued" rows={groups.queued} nowMs={nowMs} />
-          <Section name="in-flight" title="In flight" rows={groups.inFlight} nowMs={nowMs} />
+          <Section
+            name="blocked"
+            title="Blocked"
+            rows={groups.blocked}
+            nowMs={nowMs}
+            session={session}
+          />
+          <Section
+            name="queued"
+            title="Queued"
+            rows={groups.queued}
+            nowMs={nowMs}
+            session={session}
+          />
+          <Section
+            name="in-flight"
+            title="In flight"
+            rows={groups.inFlight}
+            nowMs={nowMs}
+            session={session}
+          />
         </div>
       )}
     </LensFrame>

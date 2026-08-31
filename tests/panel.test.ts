@@ -220,7 +220,13 @@ describe("the deck lens", () => {
 
   test("sorts what is queued, blocked and held into piles of their own", async () => {
     const html = await body(panel);
-    assert.deepEqual(pile(html, "held"), ["wi-tidewater-126"]);
+    // Actionable first, then what is deferred or waiting on something that is
+    // not a person. All three are held; only two can be answered.
+    assert.deepEqual(pile(html, "held"), [
+      "wi-tidewater-126",
+      "wi-driftwood-540",
+      "wi-brackish-277",
+    ]);
     assert.deepEqual(pile(html, "queued"), ["wi-lamplight-231", "wi-cordage-412"]);
     assert.deepEqual(pile(html, "in-flight"), ["wi-saltmarsh-318"]);
   });

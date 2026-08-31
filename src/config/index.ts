@@ -25,6 +25,20 @@ export interface Config {
   readonly fixtureSet: string;
   /** Absolute path of the fixtures root. */
   readonly fixtureRoot: string;
+  /**
+   * Where answered decisions are spooled, or `null` when the panel has nowhere
+   * to write and so cannot accept an answer at all.
+   *
+   * The panel never acts on the fleet: it records an intent here and a
+   * registered process-event source picks it up, re-verifies the decision is
+   * still open, and feeds the fleet's one keyed-answer intake. Which directory
+   * that source watches is the operator's arrangement, not knowledge this
+   * panel is allowed to hold - so it arrives from the environment rather than
+   * being composed from `fleetHome`, and unset means the write path is closed
+   * rather than guessed at. See
+   * `docs/decisions/2026-08-30-answering-a-held-decision.md`.
+   */
+  readonly intentDir: string | null;
   /** Loopback only. Never an address reachable from the network. */
   readonly host: string;
   readonly port: number;
@@ -107,6 +121,7 @@ export function loadConfig(
     fleetHome: fleetHomeFromEnv(env),
     fixtureSet,
     fixtureRoot: env.QUARTERDECK_FIXTURE_ROOT || `${rootDir}/fixtures`,
+    intentDir: env.QUARTERDECK_INTENT_DIR || null,
     host: HOST,
     port,
     staleAfterMs: intFromEnv(env, "QUARTERDECK_STALE_AFTER_MS", 60_000),

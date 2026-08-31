@@ -3,6 +3,8 @@ import { Badge } from "@/ui/components/badge";
 import { ago } from "@/ui/lib/age";
 import { cn } from "@/ui/lib/utils";
 import type { Blocker, DeckRow as Row } from "@/ui/deck/deck-groups";
+import { isAnswerable } from "@/ui/deck/deck-groups";
+import { AnswerControl, type AnsweringSession } from "@/ui/deck/answer-control";
 
 /**
  * One line of the deck: what the work is, and whatever is in its way.
@@ -57,7 +59,19 @@ function BlockerLine({ blocker }: { blocker: Blocker }) {
   );
 }
 
-export function DeckItemRow({ row, nowMs }: { row: Row; nowMs: number }) {
+export function DeckItemRow({
+  row,
+  nowMs,
+  session,
+}: {
+  row: Row;
+  nowMs: number;
+  /**
+   * How an answer reaches the server, for the items that can be answered.
+   * `null` when nothing is configured to carry one.
+   */
+  session?: AnsweringSession | null;
+}) {
   const { item, blocking, cleared } = row;
   const hold = item.hold;
 
@@ -97,6 +111,12 @@ export function DeckItemRow({ row, nowMs }: { row: Row; nowMs: number }) {
             <p className="font-mono text-[0.6875rem] text-muted-foreground">
               deferred until <time dateTime={hold.deferredTo}>{hold.deferredTo}</time>
             </p>
+          )}
+          {/* Only a hold that waits on a person gets the control. A queue or a
+              date cannot be answered, and offering a text box against one
+              would promise something pressing it could never deliver. */}
+          {isAnswerable(item) && (
+            <AnswerControl taskId={item.id} since={item.since} session={session ?? null} />
           )}
         </div>
       )}

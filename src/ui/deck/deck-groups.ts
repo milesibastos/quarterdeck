@@ -11,6 +11,31 @@ import type { DeckItem, Priority, Worker } from "@/types/document.ts";
  */
 
 /**
+ * Upstream's word for a hold that waits on a person.
+ *
+ * Its hold vocabulary is `captain`, `external`, `load`, `parked` and `future`,
+ * and only the first is a question someone can answer. The word is carried
+ * through the document rather than reinterpreted, so a hold this panel has
+ * never heard of reads as unanswerable instead of as answerable-by-default.
+ */
+const HELD_FOR_A_PERSON = "captain";
+
+/**
+ * Can this item be answered from the panel at all?
+ *
+ * Deliberately narrower than "has a hold" and deliberately wider than
+ * `actionable`. Narrower, because an item waiting on a queue or on a date is
+ * not waiting on the reader and offering them a text box is a lie about what
+ * would happen. Wider, because a deferred or blocked call is still a question
+ * the person can answer early, and whether it is still open is the fleet's to
+ * re-verify at the moment it acts - not this panel's to guess from a reading
+ * that is already older than the fleet.
+ */
+export function isAnswerable(item: DeckItem): boolean {
+  return item.hold?.waitingOn === HELD_FOR_A_PERSON;
+}
+
+/**
  * One work item another one waits on, named as far as the document can name it.
  *
  * A blocker is an identity, and identities live in two places: the deck, for

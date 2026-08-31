@@ -76,6 +76,32 @@
         "hold_reason": null,
         "hold_until": null,
         "captain_actionable": false
+      },
+      {
+        "id": "wi-driftwood-540",
+        "title": "Choose between the two rail layouts",
+        "state": "in_flight",
+        "priority": "now",
+        "since": "2099-01-01T09:35:00.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": "captain",
+        "hold_reason": "Needs a call before the work can carry on",
+        "hold_until": null,
+        "captain_actionable": true
+      },
+      {
+        "id": "wi-brackish-277",
+        "title": "Adopt the upstream snapshot flag",
+        "state": "queued",
+        "priority": "later",
+        "since": "2099-01-01T06:45:00.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": "external",
+        "hold_reason": "Waits on the upstream release",
+        "hold_until": null,
+        "captain_actionable": false
       }
     ]
   }

@@ -36,7 +36,7 @@ combination below has somewhere to live.
 
 | Set | What it exercises |
 | --- | --- |
-| `healthy` | A worker in every coarse stage, on-track and off, plus both validating shapes - a detail that names a pipeline step and one that names none. A deck with something queued, something blocked by another item, something held for a person with a reason and a deferral date, and one done record the projection drops. Health signals good. |
+| `healthy` | A worker in every coarse stage, on-track and off, plus both validating shapes - a detail that names a pipeline step and one that names none. A deck with something queued, something blocked by another item, something held for a person with a reason and a deferral date, another held for a person with no deferral so it can be answered outright, one held for something that is not a person and so cannot be answered at all, and one done record the projection drops. Health signals good. |
 | `empty` | A clean read of all three lenses that reports nothing running and nothing queued - the definitive empty state, not a blank area. |
 | `stale` | Valid content generated long ago. Renders, with all three lenses marked stale. Its health signals read cleanly and have something to report: a supervision cycle last seen a while back, one overdue item, one record that disagrees. |
 | `mismatched` | A schema identifier this build does not understand. The loud typed refusal, and no lens rendered at all. |
