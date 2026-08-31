@@ -33,6 +33,11 @@ function lens(html: string, name: string): string {
   return next < 0 ? rest : rest.slice(0, next);
 }
 
+/** What a fragment of markup actually says, with the tags and classes gone. */
+function text(html: string): string {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+}
+
 /** The work items one band drew, in the order it drew them. */
 function items(html: string, name: string): string[] {
   return [...lens(html, name).matchAll(/data-deck-item="([^"]+)"/g)].map((match) => match[1]);
@@ -123,9 +128,54 @@ describe("a deck that could not be read", () => {
     assert.ok(!band.includes("Nothing needs you"));
   });
 
+  test("reports no count at all, rather than the count zero", async () => {
+    const band = lens(await body(panel), "needs-you");
+    const header = /<header role="status" data-lens-headline[\s\S]*?<\/header>/.exec(band)?.[0];
+    assert.ok(header, "the band drew its pinned header");
+    const said = text(header);
+
+    // Zero is the most dangerous wrong answer this panel can give: it is the
+    // one number that tells an operator to stop looking, and a deck nobody
+    // could read has not earned it. So the header states no size at all -
+    // `sizeOf` is never called with a number the band did not count - and the
+    // separator that would introduce one is absent with it. There is no
+    // quantity anywhere on the band to be believed.
+    assert.ok(said.includes("Could not be read"), said);
+    assert.ok(!said.includes("·"), `the header appended a summary: ${said}`);
+    assert.ok(!/\d+ decisions?/.test(text(band)), `the band claimed a count: ${text(band)}`);
+    assert.ok(!/to answer/.test(text(band)), `the band claimed something answerable`);
+  });
+
   test("and carries the unreadable trust word into its own header", async () => {
     const html = await body(panel);
     assert.match(html, /data-lens="needs-you" data-lens-status="unreadable"/);
+  });
+});
+
+describe("an empty deck and an unreadable one, side by side", () => {
+  let clean: Panel;
+  let dark: Panel;
+  before(async () => {
+    clean = await startPanel({ port: nextPort(), fixtureSet: "fleet-only" });
+    dark = await startPanel({ port: nextPort(), fixtureSet: "deck-dark" });
+  });
+  after(async () => {
+    await clean.stop();
+    await dark.stop();
+  });
+
+  test("never render the same, because they are not the same fact", async () => {
+    const cleanBand = lens(await body(clean), "needs-you");
+    const darkBand = lens(await body(dark), "needs-you");
+
+    // Both bands are empty of cards. Only one of them is entitled to say so.
+    assert.equal(/data-deck-item=/.test(cleanBand), false);
+    assert.equal(/data-deck-item=/.test(darkBand), false);
+    assert.notEqual(
+      /data-needs-you-empty="([a-z]+)"/.exec(cleanBand)?.[1],
+      /data-needs-you-empty="([a-z]+)"/.exec(darkBand)?.[1],
+      "an emptiness that might be ignorance has to be labelled as ignorance",
+    );
   });
 });
 
