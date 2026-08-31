@@ -30,13 +30,13 @@ import { cn } from "@/ui/lib/utils";
  * has read anything. That is precisely the ambiguity above, built into the
  * control. A chip that changes only when the render behind it does cannot lie.
  *
- * ## Why it owns the page's height too
+ * ## Why it no longer owns the page's height
  *
- * At `md` and up the panel is exactly one viewport tall and each lens scrolls
- * inside itself. Since this wraps everything the panel draws, it is where that
- * height starts: `md:h-full` here, and the content below takes what the nav
- * leaves. See `src/ui/shell.tsx` and
- * `docs/decisions/2026-08-31-the-fold-line.md`.
+ * It used to: the panel was exactly one viewport tall and each lens scrolled
+ * inside itself, and the height chain started here. The page scrolls as a page
+ * again, so this wrapper only stacks the nav above the panel. It also carries
+ * no maximum width any more - see
+ * `docs/decisions/2026-08-31-what-needs-you-owns-the-first-screen.md`.
  */
 
 /** One fleet, as the operator sees it. The id is the panel's, the label theirs. */
@@ -89,11 +89,11 @@ export function FleetPicker({
     <div
       data-fleet={showing}
       data-switching-to={switching ? wanted : undefined}
-      className="flex min-h-full flex-col md:h-full md:min-h-0"
+      className="flex min-h-full w-full min-w-0 flex-col"
     >
       <nav
         aria-label="Fleet"
-        className="mx-auto flex w-full max-w-6xl shrink-0 flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-4 sm:px-6 md:pt-5"
+        className="flex w-full min-w-0 shrink-0 flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-4 sm:px-6 md:pt-5"
       >
         <span className="font-mono text-[0.6875rem] tracking-widest uppercase text-muted-foreground">
           Fleet
@@ -151,7 +151,7 @@ export function FleetPicker({
       <div
         aria-busy={switching || undefined}
         className={cn(
-          "flex flex-col transition-opacity md:min-h-0 md:flex-1",
+          "flex min-w-0 flex-col transition-opacity",
           switching && "opacity-50",
         )}
       >

@@ -1,7 +1,13 @@
 # The fold line: one viewport, three columns, each scrolling on its own
 
 Date: 2026-08-31
-Status: accepted
+Status: superseded by `docs/decisions/2026-08-31-what-needs-you-owns-the-first-screen.md`
+
+> Superseded the same day. The layout below weighted the three lenses equally
+> inside a centred maximum width, and the wireframe rules both out: what needs
+> the operator personally owns the first screen, and width buys cards. The
+> problem this decision solved is real and the successor names what it gave up
+> to solve a different one - read both.
 
 ## Context
 

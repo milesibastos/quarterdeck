@@ -52,11 +52,20 @@ export const SNAPSHOT_SCHEMA_ID = "fm-fleet-snapshot.v1";
  * Read-only by upstream's own contract: it takes no lock, drains nothing, arms
  * nothing and writes nothing. That is the whole reason the panel is allowed to
  * run it while claiming to be a reader.
+ *
+ * Exported because the panel offers it to the operator as well as running it:
+ * the snapshot badge says how old the picture is and, in the same breath, what
+ * makes a newer one. It goes out relative, never joined to a home - an operator
+ * recognises a fleet by its name, and a machine path in the markup is a path
+ * that leaks. See `src/ui/snapshot-badge.tsx`.
  */
-const SNAPSHOT_COMMAND = "bin/fm-fleet-snapshot.sh";
+export const SNAPSHOT_COMMAND = "bin/fm-fleet-snapshot.sh";
 
 /** Asks for the structured surface rather than the human one. */
 const SNAPSHOT_ARGS = ["--json"];
+
+/** The whole line, as an operator would type it in the fleet home. */
+export const SNAPSHOT_REBUILD = [SNAPSHOT_COMMAND, ...SNAPSHOT_ARGS].join(" ");
 
 /**
  * Where a fleet home keeps the files whose changes mean the snapshot has moved

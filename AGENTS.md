@@ -1,14 +1,15 @@
 # quarterdeck
 
 A local command panel giving its operator visibility into a running firstmate
-fleet: what is running (fleet), what is queued or held for a decision (deck),
-and whether the machinery is healthy (shipshape). The fleet lens draws a worker
-card and lifecycle rail, the deck lens draws its four piles and offers an
-answer control on work held for a person, and the shipshape lens draws the
-five health signals and the designed dark state. All three sit over a pinned
-document shape, filled from a configured fleet home or from synthetic fixtures
-when there is none. The operator picks which of the configured fleets they are
-looking at, and their browser remembers it.
+fleet: what needs them personally, what is running (fleet), what is queued or
+stuck (deck), and whether the machinery is healthy (shipshape). The needs-you
+band owns the first screen and offers an answer control on each decision held
+for a person; the fleet lens draws a worker card and lifecycle rail, the deck
+lens draws what the fleet is handling by itself, and the shipshape lens draws
+the five health signals and the designed dark state. All of them sit over a
+pinned document shape, filled from a configured fleet home or from synthetic
+fixtures when there is none. The operator picks which of the configured fleets
+they are looking at, and their browser remembers it.
 
 The panel reads. The one thing it writes is an answer record, and the page
 executes nothing - see

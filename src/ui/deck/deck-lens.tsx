@@ -1,19 +1,25 @@
 import type { DeckItem, Lens, Worker } from "@/types/document.ts";
-import { groupDeck, type DeckRow } from "@/ui/deck/deck-groups";
+import type { DeckRow } from "@/ui/deck/deck-groups";
 import { DeckItemRow } from "@/ui/deck/deck-row";
 import type { AnsweringSession } from "@/ui/deck/answer-control";
 import { LensFrame } from "@/ui/lens-frame";
 import { ago } from "@/ui/lib/age";
-import { cn } from "@/ui/lib/utils";
+import { needsYou } from "@/ui/needs-you/needs-you";
 
 /**
- * The deck lens: what is coming, what is stuck, and what is waiting on a
- * person.
+ * The deck lens: what is coming, and what is stuck.
  *
- * The order of the piles is the whole argument. A decision nobody knows is
- * pending is the failure this lens exists to prevent, so what waits on a person
- * is drawn first and what is merely queued last - and within the first pile,
- * what can be answered right now leads what has been deferred to a date.
+ * What waits on the operator personally is not here any more. It is the band
+ * that owns the first screen - see `src/ui/needs-you/needs-you-band.tsx` - and
+ * this lens draws everything the fleet is handling by itself. The split is one
+ * fold called from both, in `src/ui/needs-you/needs-you.ts`, rather than a
+ * predicate in each: a row that belongs to one list and is drawn by neither is
+ * exactly the bug the band exists to prevent, and two predicates is how that
+ * bug gets written.
+ *
+ * The order of the piles is still an argument. A hold that waits on something
+ * other than a person is drawn first, because it is the closest thing here to a
+ * question, and what is merely queued comes last.
  *
  * It is handed the fleet's work items alongside its own, as a directory and
  * nothing more: a blocker arrives as a bare identity, and the work it names has
@@ -26,9 +32,7 @@ function Section({
   title,
   rows,
   nowMs,
-  note,
   session,
-  urgent = false,
 }: {
   /** The pile's handle in the markup, so a test can assert one pile alone. */
   name: string;
@@ -36,26 +40,19 @@ function Section({
   rows: readonly DeckRow[];
   nowMs: number;
   session: AnsweringSession | null;
-  /** One line to the right of the heading, or `null` when there is nothing to add. */
-  note?: string | null;
-  /** Draw the note in the accent colour: something here is waiting on the reader. */
-  urgent?: boolean;
 }) {
   if (rows.length === 0) return null;
   return (
     <section data-deck-group={name} className="flex flex-col gap-2">
       <header className="flex flex-wrap items-baseline justify-between gap-x-3">
         <h3 className="font-display text-sm tracking-wide text-foreground">{title}</h3>
-        <span
-          className={cn(
-            "font-mono text-[0.6875rem] tracking-wide uppercase",
-            urgent ? "text-primary" : "text-muted-foreground",
-          )}
-        >
-          {note ?? `${rows.length}`}
+        <span className="font-mono text-[0.6875rem] tracking-wide uppercase text-muted-foreground">
+          {rows.length}
         </span>
       </header>
-      <ul className="flex flex-col gap-2">
+      {/* A pile of rows is a grid too: a wider monitor shows more of the queue
+          at once rather than three rows of whitespace. */}
+      <ul className="card-grid [--qd-card-min:26rem]">
         {rows.map((row) => (
           <DeckItemRow key={row.item.id} row={row} nowMs={nowMs} session={session} />
         ))}
@@ -71,7 +68,16 @@ function Section({
  * says which it is, and the difference matters more than anything else here:
  * one means there is nothing waiting, the other means nobody knows.
  */
-function EmptyDeck({ status, nowMs }: { status: Lens<unknown>["status"]; nowMs: number }) {
+function EmptyDeck({
+  status,
+  nowMs,
+  counted,
+}: {
+  status: Lens<unknown>["status"];
+  nowMs: number;
+  /** How many rows the deck carried, all of which the band above is drawing. */
+  counted: number;
+}) {
   if (status.state === "unreadable") {
     return (
       <p className="text-sm text-muted-foreground">
@@ -79,13 +85,24 @@ function EmptyDeck({ status, nowMs }: { status: Lens<unknown>["status"]; nowMs: 
       </p>
     );
   }
+  if (counted > 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {`Nothing here: every one of the ${counted} ${counted === 1 ? "item" : "items"} the deck carried is waiting on you, and is in the band above.`}
+      </p>
+    );
+  }
   return <p className="text-sm text-muted-foreground">Nothing queued, blocked or held.</p>;
 }
 
 /**
- * How many items, for the pinned header. The same rule the fleet's header
- * follows, and for the same reason: a count says whether the piles on screen
- * are all of them, and judging them is the lens's job below.
+ * How many items this lens is holding, for the pinned header.
+ *
+ * What it is not is how many the deck carried: the decisions are counted by the
+ * band above, and adding them here would put one work item under two headline
+ * numbers. The same rule the fleet's header follows otherwise - a count says
+ * whether the piles on screen are all of them, and judging them is the lens's
+ * job below.
  */
 function sizeOf(count: number): string | null {
   if (count === 0) return null;
@@ -110,11 +127,12 @@ export function DeckLens({
    */
   session?: AnsweringSession | null;
 }) {
-  const groups = groupDeck(lens.content, fleet);
-  const actionable = groups.held.filter((row) => row.item.actionable).length;
+  const { rest } = needsYou(lens.content, fleet);
+  const shown =
+    rest.held.length + rest.blocked.length + rest.queued.length + rest.inFlight.length;
 
   return (
-    <LensFrame lens={lens} name="deck" title="Deck" summary={sizeOf(lens.content.length)}>
+    <LensFrame lens={lens} name="deck" title="Deck" summary={sizeOf(shown)}>
       {/* How old the picture is, which the frame's one line deliberately does
           not say - it names the policy that was breached instead. */}
       {lens.status.state === "stale" && (
@@ -128,37 +146,38 @@ export function DeckLens({
         </p>
       )}
 
-      {lens.content.length === 0 ? (
-        <EmptyDeck status={lens.status} nowMs={nowMs} />
+      {shown === 0 ? (
+        <EmptyDeck status={lens.status} nowMs={nowMs} counted={lens.content.length} />
       ) : (
         <div className="flex flex-col gap-4">
+          {/* Held, but not for a person: a queue, a date, or a word this build
+              has never heard of. None of them is a question the operator can
+              answer, which is why they are here and not in the band. */}
           <Section
             name="held"
-            title="Waiting on a person"
-            rows={groups.held}
+            title="Waiting on something else"
+            rows={rest.held}
             nowMs={nowMs}
             session={session}
-            note={actionable > 0 ? `${actionable} to answer` : "none actionable"}
-            urgent={actionable > 0}
           />
           <Section
             name="blocked"
             title="Blocked"
-            rows={groups.blocked}
+            rows={rest.blocked}
             nowMs={nowMs}
             session={session}
           />
           <Section
             name="queued"
             title="Queued"
-            rows={groups.queued}
+            rows={rest.queued}
             nowMs={nowMs}
             session={session}
           />
           <Section
             name="in-flight"
             title="In flight"
-            rows={groups.inFlight}
+            rows={rest.inFlight}
             nowMs={nowMs}
             session={session}
           />

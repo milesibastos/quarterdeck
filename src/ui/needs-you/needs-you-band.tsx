@@ -1,0 +1,180 @@
+import type { DeckItem, Lens, Worker } from "@/types/document.ts";
+import type { AnsweringSession } from "@/ui/deck/answer-control";
+import { DeckItemRow } from "@/ui/deck/deck-row";
+import { LensFrame } from "@/ui/lens-frame";
+import { ago } from "@/ui/lib/age";
+import { needsYou } from "@/ui/needs-you/needs-you";
+
+/**
+ * The band that owns the first screen: everything waiting on the operator
+ * personally.
+ *
+ * ## Why it is the biggest thing on the page
+ *
+ * Not taste. A prior board undercounted open decisions - ten shown against
+ * sixteen real - and nobody noticed, because the zone was sized to look
+ * balanced rather than to make an omission obvious. A band whose height is
+ * decided by its content cannot fail visibly: four cards in a zone sized for
+ * four look exactly as complete as sixteen cards in a zone sized for sixteen.
+ * So the band's height is a rule and not a measurement - see
+ * `src/ui/shell.tsx` - and an under-filled one shows the space it is not
+ * using. That empty space is the feature.
+ *
+ * It is also why the band never bounds what it draws. Sixteen decisions
+ * overflowing the first screen is the correct render: the operator scrolls, and
+ * the count in the header says how far. A cap would reintroduce exactly the
+ * silence this band exists to break.
+ *
+ * ## Where the count comes from
+ *
+ * From the deck the document carries, folded once in
+ * `src/ui/needs-you/needs-you.ts` - never from prose, and never from counting
+ * the cards that happen to have been rendered. A count taken from the render is
+ * a count that agrees with the render by construction, which is another way of
+ * saying it cannot detect the bug above.
+ *
+ * And the band never reports a count it did not count: `sizeOf` returns null
+ * whenever the count is zero, whatever the deck's status, so a read that never
+ * happened can never surface as the number zero - the one number that tells an
+ * operator to stop looking. That does not mean the band goes blank the moment a
+ * read fails: a deck that could not be read but still carries decisions from
+ * the last clean read draws those decisions and their count, under a caveat
+ * naming when the read failed and that the count may be short - the same
+ * last-known-good rule the deck and fleet lenses already follow. Only a deck
+ * that could not be read and carries nothing behind it draws "Unknown, not
+ * nothing".
+ */
+
+/** How many decisions, for the pinned header. A count, never a verdict. */
+function sizeOf(count: number, actionable: number): string | null {
+  if (count === 0) return null;
+  const decisions = count === 1 ? "1 decision" : `${count} decisions`;
+  return actionable > 0 ? `${decisions} · ${actionable} to answer` : decisions;
+}
+
+/**
+ * Nothing is waiting - and which kind of nothing it is.
+ *
+ * A deck that read cleanly and holds no decision, and a deck nobody could read,
+ * look identical unless the band says which it is. The whole point of the band
+ * is that its emptiness carries information, so an emptiness that might be
+ * ignorance has to be labelled as ignorance.
+ */
+function NothingNeedsYou({
+  status,
+  deckSize,
+  nowMs,
+}: {
+  status: Lens<unknown>["status"];
+  /** How many rows the deck carried, so the zero can be shown to be derived. */
+  deckSize: number;
+  nowMs: number;
+}) {
+  if (status.state === "unreadable") {
+    return (
+      <div
+        data-needs-you-empty="unknown"
+        className="rounded-lg border border-dashed border-danger/50 px-4 py-10 text-center"
+      >
+        <p className="font-display text-xl tracking-wide text-foreground">
+          Unknown, not nothing
+        </p>
+        <p className="mx-auto mt-2 max-w-prose text-sm wrap-anywhere text-muted-foreground">
+          {`The deck could not be read ${ago(status.observedAt, nowMs)}, so how much is waiting on you is not zero - it is unknown. Nothing on this page counted it.`}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      data-needs-you-empty="none"
+      className="rounded-lg border border-dashed border-border px-4 py-10 text-center"
+    >
+      <p className="font-display text-xl tracking-wide text-foreground">Nothing needs you</p>
+      {/* Says where the zero came from, and claims nothing about how fresh
+          the deck was while doing it - the trust word in the header above is
+          the only thing on this page entitled to make that claim. */}
+      <p className="mx-auto mt-2 max-w-prose text-sm text-muted-foreground">
+        {deckSize === 0
+          ? "The deck carried nothing at all, so nothing in it is held for a person."
+          : `The deck carried ${deckSize} ${deckSize === 1 ? "item" : "items"} and none of them is held for a person.`}
+      </p>
+    </div>
+  );
+}
+
+export function NeedsYouBand({
+  lens,
+  fleet,
+  nowMs,
+  session = null,
+  className,
+}: {
+  /** The deck, with its own status: the band's count is only as good as this. */
+  lens: Lens<readonly DeckItem[]>;
+  /** The fleet's work items, read only to name and settle the deck's blockers. */
+  fleet: readonly Worker[];
+  /** Chosen by the composition point, so every age on the page agrees. */
+  nowMs: number;
+  /** How an answer reaches the server. `null` when it has nowhere to go. */
+  session?: AnsweringSession | null;
+  /** The share of the first screen the shell reserves for it. */
+  className?: string;
+}) {
+  const { decisions, actionable } = needsYou(lens.content, fleet);
+
+  return (
+    <LensFrame
+      lens={lens}
+      name="needs-you"
+      title="Needs you"
+      prominence="primary"
+      summary={sizeOf(decisions.length, actionable)}
+      className={className}
+    >
+      {/* How old the picture is, which the frame's one line deliberately does
+          not say - it names the policy that was breached instead. A count off a
+          stale deck is still a count, and it is still worth showing; what it is
+          not is current, and that has to be on screen beside it. */}
+      {lens.status.state === "stale" && (
+        <p className="font-mono text-[0.6875rem] text-muted-foreground">
+          {`Counted from a deck current as of ${ago(lens.status.asOf, nowMs)}; anything raised since is not here.`}
+        </p>
+      )}
+      {lens.status.state === "unreadable" && decisions.length > 0 && (
+        <p
+          data-needs-you-caveat="unreadable"
+          className="rounded-lg border border-dashed border-danger/50 px-4 py-3 text-sm wrap-anywhere text-foreground"
+        >
+          {`The read failed ${ago(lens.status.observedAt, nowMs)}. What follows is the last deck that read cleanly, and the count above may be short.`}
+        </p>
+      )}
+
+      {decisions.length === 0 ? (
+        <NothingNeedsYou status={lens.status} deckSize={lens.content.length} nowMs={nowMs} />
+      ) : (
+        <ul data-needs-group="decisions" className="card-grid [--qd-card-min:24rem]">
+          {decisions.map((row) => (
+            <DeckItemRow
+              key={row.item.id}
+              row={row}
+              nowMs={nowMs}
+              session={session}
+              tone="card"
+            />
+          ))}
+        </ul>
+      )}
+
+      {/*
+        The second group belongs here: work that is ready to merge, which needs
+        the operator exactly as personally as a decision does. It is a task of
+        its own and deliberately not built - the place is kept, not filled. When
+        it lands it is another `data-needs-group` list beside the one above, and
+        another field on `NeedsYou` so the two counts are folded together rather
+        than added by a component. See `src/ui/needs-you/needs-you.ts`.
+      */}
+    </LensFrame>
+  );
+}

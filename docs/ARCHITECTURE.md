@@ -37,13 +37,14 @@ Seven positions, one direction. Dependencies point right, and only right.
   Pure.
 - `src/runtime/` - watch, debounce, coalesce, cache, publish the change signal.
 - `src/ui/` - server-rendered components. Reads the document and the terminal
-  shape beside it, nothing else. One directory per lens - `fleet/`, `deck/`, `shipshape/` - so the worker building
-  a lens edits no file another worker is also editing. `shell.tsx` lays the
-  three out, `lens-frame.tsx` is the chrome they share, and `fleet-picker.tsx`
-  wraps the lot with which fleet is being looked at. The fold line is
-  `lens-frame.tsx`'s: it pins a header and scrolls the body, so all three lenses
-  answer "what stays on screen" the same way at any fleet size. See
-  `docs/decisions/2026-08-31-the-fold-line.md`.
+  shape beside it, nothing else. One directory per lens - `fleet/`, `deck/`,
+  `shipshape/`, `needs-you/` - so the worker building one edits no file another
+  worker is also editing. `shell.tsx` stacks them as bands and owns the
+  proportions, `lens-frame.tsx` is the chrome they share, and `fleet-picker.tsx`
+  wraps the lot with which fleet is being looked at. One rule decides the
+  layout: what needs the operator personally owns the first screen, and width
+  buys more cards rather than wider ones. See
+  `docs/decisions/2026-08-31-what-needs-you-owns-the-first-screen.md`.
 
 Plus two positions off the line:
 
@@ -355,7 +356,8 @@ React's reconciliation contract; that nothing overflows the page sideways at a
 narrow width; that the theme follows the operator's system setting in both
 directions; that an expanded terminal is still expanded, with both its scroll
 offsets unchanged, after an update lands under it; and that a line far wider
-than its column scrolls inside its own box rather than pushing the page. What markup *can* carry - the pinned headers, the live regions, the
-focusable scroll bodies, the served stylesheet's two blocks - is in
+than its column scrolls inside its own box rather than pushing the page. What
+markup *can* carry - the heading outline, the live regions, each body named by
+its own heading, the served stylesheet's two blocks - is in
 `tests/shell.test.ts`. See `docs/plans/done/` and the two dated decisions of
 2026-08-31.

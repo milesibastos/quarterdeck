@@ -50,10 +50,11 @@ describe("the healthy fleet", () => {
   });
   after(() => panel.stop());
 
-  test("mounts all three lenses, each from its own directory", async () => {
+  test("mounts every band, each from its own directory", async () => {
     const html = await body(panel);
+    assert.ok(html.includes('data-lens="needs-you"'), "the band that owns the first screen");
     assert.ok(html.includes('data-lens="fleet"'));
-    assert.ok(html.includes("Waiting on a person"), "the deck lens drew its own piles");
+    assert.ok(html.includes("Queued"), "the deck lens drew its own piles");
     assert.ok(html.includes('data-signal="supervisor"'));
   });
 
@@ -65,7 +66,7 @@ describe("the healthy fleet", () => {
 
   test("says every lens is current", async () => {
     const html = await body(panel);
-    for (const lens of ["fleet", "deck", "shipshape"]) {
+    for (const lens of ["needs-you", "fleet", "deck", "shipshape"]) {
       assert.equal(lensStatus(html, lens), "fresh", `${lens} should be current`);
     }
   });
@@ -223,13 +224,10 @@ describe("the deck lens", () => {
 
   test("sorts what is queued, blocked and held into piles of their own", async () => {
     const html = await body(panel);
-    // Actionable first, then what is deferred or waiting on something that is
-    // not a person. All three are held; only two can be answered.
-    assert.deepEqual(pile(html, "held"), [
-      "wi-tidewater-126",
-      "wi-driftwood-540",
-      "wi-brackish-277",
-    ]);
+    // The two decisions held for a person are drawn by the band above and are
+    // deliberately not here; what is left in this pile waits on something that
+    // is not a person, and nobody can answer it. See tests/needs-you.test.ts.
+    assert.deepEqual(pile(html, "held"), ["wi-brackish-277"]);
     assert.deepEqual(pile(html, "queued"), ["wi-lamplight-231", "wi-cordage-412"]);
     assert.deepEqual(pile(html, "in-flight"), ["wi-saltmarsh-318"]);
   });
