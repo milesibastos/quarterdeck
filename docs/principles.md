@@ -62,9 +62,9 @@ implementation and no second caller in sight. No configuration nobody sets. A
 skeleton that is honest about what it does not do yet is easier to grow than one
 padded with machinery for a shape nobody has seen.
 
-The counter-example is the security baseline, which is in place before the write
-path exists - on purpose, because retrofitting a guard means shipping a build
-where the acting route exists and the guard does not.
+The counter-example is the security baseline, which was put in place before the
+write path existed - on purpose, because retrofitting a guard means shipping a
+build where the acting route exists and the guard does not.
 
 ## Comments say why
 
