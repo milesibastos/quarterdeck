@@ -271,7 +271,7 @@ quarantined module that can take the panel down is not quarantined.
 ## The fleet home
 
 The same three signals, read from a running fleet's own files when
-`QUARTERDECK_FLEET_HOME` names one. That is the source with no compatibility
+`QUARTERDECK_FLEET_HOME` names a home. That is the source with no compatibility
 promise at all, which is why it lives in the quarantined module beside the
 fixture reader and why every read below has a stated "could not be read" answer
 rather than an assumption.
