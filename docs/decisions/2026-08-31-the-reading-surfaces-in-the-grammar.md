@@ -140,6 +140,7 @@ lens under a converted frame was.
 
 ## What this does not cover
 
-The needs-you band and the shipshape strip. The band draws its decisions through
-`DeckItemRow`'s card tone, which converted with the deck, so its decision cards
-are already in the grammar; its merge card and its own chrome are not.
+The shipshape strip. The needs-you band has since converted too - see
+`docs/decisions/2026-08-31-the-needs-you-band-in-the-grammar.md`; it drew its
+decisions through `DeckItemRow`'s card tone at the time of this change, which
+converted with the deck, but it now draws its own `DecisionCard` instead.
