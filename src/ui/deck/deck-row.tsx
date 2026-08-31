@@ -26,6 +26,12 @@ const STATE_WORDS: Readonly<Record<DeckItem["state"], string>> = {
   "in-flight": "in flight",
 };
 
+/** The same two words the fleet's cards use, so one job reads the same in both. */
+const KIND_WORDS: Readonly<Record<NonNullable<DeckItem["kind"]>, string>> = {
+  build: "build",
+  research: "research",
+};
+
 /**
  * The accent, in the panel's state vocabulary.
  *
@@ -94,9 +100,26 @@ export function DeckItemRow({
         </Badge>
       </div>
 
+      {/*
+        What this is and how long it has been: enough identity to recognise a
+        piece of work by. Project and kind are shown only when the row said -
+        a hand-written backlog line often names neither, and a guessed project
+        is worse than an absent one. The date is the same: a row with no start
+        says so rather than being stamped with the moment upstream looked.
+      */}
       <p className="mt-0.5 font-mono text-[0.6875rem] text-muted-foreground">
-        <span className="text-foreground">{ago(item.since, nowMs)}</span>
-        {` · ${STATE_WORDS[item.state]} · ${item.id}`}
+        <span className={item.since === null ? undefined : "text-foreground"}>
+          {item.since === null ? "no start date" : ago(item.since, nowMs)}
+        </span>
+        {` · ${STATE_WORDS[item.state]}`}
+        {item.project !== null && (
+          <>
+            {" · "}
+            <span className="text-foreground">{item.project}</span>
+          </>
+        )}
+        {item.kind !== null && ` · ${KIND_WORDS[item.kind]}`}
+        {` · ${item.id}`}
       </p>
 
       {hold !== null && (
@@ -116,7 +139,11 @@ export function DeckItemRow({
               date cannot be answered, and offering a text box against one
               would promise something pressing it could never deliver. */}
           {isAnswerable(item) && (
-            <AnswerControl taskId={item.id} since={item.since} session={session ?? null} />
+            <AnswerControl
+              taskId={item.id}
+              since={item.since ?? ""}
+              session={session ?? null}
+            />
           )}
         </div>
       )}

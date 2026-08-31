@@ -1,7 +1,9 @@
 # Active plans
 
-Nothing is in flight. The document seam is frozen; see
-`docs/plans/done/2026-08-30-document-seam.md`, and the skeleton before it.
+Nothing is in flight. The document seam - see
+`docs/plans/done/2026-08-30-document-seam.md`, and the skeleton before it - is
+no longer frozen: it took its first bump since freezing, to version 3, in
+`docs/decisions/2026-08-31-what-the-document-may-not-say.md`.
 
 A plan here is one file: what is being built, why now, and a decision log
 appended as choices are settled. When it lands, move the file to

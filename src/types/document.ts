@@ -14,7 +14,7 @@
  */
 
 /** Bumped when this shape changes in a way a reader must notice. */
-export const DOCUMENT_VERSION = 2;
+export const DOCUMENT_VERSION = 3;
 
 /* -------------------------------------------------------- the envelope */
 
@@ -95,7 +95,19 @@ export type HaltedStage =
   | "waiting"
   | "failed";
 
-export type Stage = ActiveStage | HaltedStage;
+/**
+ * Not a position at all: the panel could not see this worker.
+ *
+ * Upstream says `unknown` when nothing answered for a worker - the worktree was
+ * torn down, or no source of current state replied. That is a statement about
+ * the panel's own sight, not about where the work got to, so it is neither an
+ * active stage nor a halted one. Kept as its own group so that a reader folding
+ * the stages into "running" and "stopped" has to decide what to do with it
+ * rather than silently counting it as one of them.
+ */
+export type UnseenStage = "unseen";
+
+export type Stage = ActiveStage | HaltedStage | UnseenStage;
 
 /**
  * The validation pipeline's steps, in the order they run.
@@ -205,10 +217,33 @@ export interface Hold {
 export interface DeckItem {
   readonly id: string;
   readonly title: string;
+  /**
+   * The project the work belongs to, or `null` when the row did not say.
+   *
+   * Enough to recognise a piece of work by, which is what a queue is read for:
+   * two rows titled "wire the reader" are different jobs, and the project is
+   * what tells them apart.
+   */
+  readonly project: string | null;
+  /**
+   * Research or build, or `null` when the row did not say.
+   *
+   * Nullable where a worker's is not: a worker is dispatched with a kind, and a
+   * backlog row is written by hand and often omits it. Guessing `build` for a
+   * row that said nothing would put research work under the wrong word.
+   */
+  readonly kind: WorkerKind | null;
   readonly state: DeckState;
   readonly priority: Priority;
-  /** ISO-8601 instant the item entered `state`. A hold's age is measured from here. */
-  readonly since: string;
+  /**
+   * ISO-8601 instant the item entered `state`, or `null` when no start date was
+   * recorded. A hold's age is measured from here.
+   *
+   * Nullable because a hand-written backlog row often carries no date at all,
+   * and the alternative - stamping it with whenever upstream happened to look -
+   * makes every such row read as having just arrived.
+   */
+  readonly since: string | null;
   readonly blocked: Blocked | null;
   readonly hold: Hold | null;
   /**

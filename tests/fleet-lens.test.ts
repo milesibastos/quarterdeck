@@ -43,6 +43,7 @@ const EVERY_STAGE = [
   "held",
   "waiting",
   "failed",
+  "unseen",
 ] as const;
 
 describe("the lifecycle rail", () => {
@@ -99,6 +100,25 @@ describe("the lifecycle rail", () => {
     assert.equal(attribute(card(html, "wi-cordage-404") ?? "", "data-step"), "none");
     assert.ok(html.includes("blocked on wi-cordage-401"), "the reason is still there");
     assert.ok(!html.includes("Blocked in validation"), "the document does not say that");
+  });
+
+  test("draws a worker it cannot see as unseeable rather than as waiting", () => {
+    const tag = card(html, "wi-brackish-288");
+    assert.equal(attribute(tag ?? "", "data-stage"), "unseen");
+    assert.ok(html.includes("no state source answered"), "upstream's words for what it lost");
+    // The failure this stage exists to end: `waiting` is a claim that the
+    // worker stopped on something outside the fleet, which nobody established.
+    assert.ok(!/data-worker="wi-brackish-288"[^>]*data-stage="waiting"/.test(html));
+  });
+
+  test("claims no position on the track for a worker it cannot see", () => {
+    // Its detail names a pipeline step. A halted worker's step is what the rail
+    // deduces a position from, so a worker the panel cannot see must not be
+    // allowed to reach that deduction from words upstream wrote about its own
+    // blindness.
+    assert.equal(attribute(card(html, "wi-brackish-288") ?? "", "data-step"), "none");
+    assert.ok(!html.includes("Unseen in validation"), "the document does not say that");
+    assert.ok(html.includes("no state source answered; its last line said review"));
   });
 
   test("draws a pointer that stopped resolving as broken", () => {

@@ -42,7 +42,7 @@ combination below has somewhere to live.
 
 | Set | What it exercises |
 | --- | --- |
-| `healthy` | A worker in every coarse stage, on-track and off, plus both validating shapes - a detail that names a pipeline step and one that names none. A deck with something queued, something blocked by another item, something held for a person with a reason and a deferral date, another held for a person with no deferral so it can be answered outright, one held for something that is not a person and so cannot be answered at all, and one done record the projection drops. Health signals good. |
+| `healthy` | A worker in every coarse stage, on-track and off, plus both validating shapes - a detail that names a pipeline step and one that names none. A deck with something queued, something blocked by another item, something held for a person with a reason and a deferral date, another held for a person with no deferral so it can be answered outright, one held for something that is not a person and so cannot be answered at all, and one done record the projection drops. Its rows name a project and a kind - research, build, and a kind nobody recognised - except one that names neither and carries no start date. Health signals good. |
 | `empty` | A clean read of all three lenses that reports nothing running and nothing queued - the definitive empty state, not a blank area. |
 | `stale` | Valid content generated long ago. Renders, with all three lenses marked stale. Its health signals read cleanly and have something to report: a supervision cycle last seen a while back, one overdue item, one record that disagrees. |
 | `mismatched` | A schema identifier this build does not understand. The loud typed refusal, and no lens rendered at all. |
@@ -51,9 +51,9 @@ combination below has somewhere to live.
 | `health-unread` | A health file that reads cleanly and whose three signals each report that they could not be read. The lens is `fresh`; its contents are not. |
 | `deck-dark` | Upstream reporting `backlog.present: false`. The deck goes dark alone. |
 | `deck-only` | An empty fleet with a non-empty deck. |
-| `fleet-only` | A non-empty fleet with an empty deck. |
+| `fleet-only` | A non-empty fleet with an empty deck. Every stage the document can carry, including a worker the panel cannot see - whose detail names a pipeline step, so that nothing may quietly place it on the track from words upstream wrote about its own blindness. |
 | `fleet-empty-stale` | A stale read that found nothing running, with a non-empty backlog. The last good picture is empty, but it still shows its age rather than reading as a clean current empty state. |
-| `upstream-shape` | A synthetic fleet in upstream's real shape and real vocabulary: every state a live fleet reconciles to, a project recorded as a path, a kind this build has never seen, numeric priorities, a start date rather than an instant, a row with no start at all, a backlog line nobody turned into a work item, and a deferral that is not a date. The set that keeps the real read honest without a real fleet. |
+| `upstream-shape` | A synthetic fleet in upstream's real shape and real vocabulary: every state a live fleet reconciles to, a project recorded as a path, a kind this build has never seen, numeric priorities, a start date rather than an instant, a row with no start, no project and no kind at all, a row asking for research, a backlog line nobody turned into a work item, and a deferral that is not a date. The set that keeps the real read honest without a real fleet. |
 
 `generated` in the fresh sets sits far enough in the future that they never
 drift into looking stale as the repository ages. `stale` is fixed in the past on

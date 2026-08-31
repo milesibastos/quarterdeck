@@ -164,11 +164,17 @@ export interface SnapshotTask {
  *
  * Everything but `id`, `state` and `captain_actionable` is text upstream lifted
  * out of a hand-written backlog, so it arrives as written. `null` throughout
- * means the row did not say.
+ * means the row did not say - which for `repo`, `kind` and `since` is the
+ * common case rather than the odd one, because a captain writing a queue line
+ * annotates what is worth annotating and leaves the rest.
  */
 export interface SnapshotRecord {
   readonly id: string;
   readonly title: string;
+  /** The project the row names, upstream's own word for it: `(repo: ...)`. */
+  readonly repo: string | null;
+  /** What kind of work the row asks for: `ship`, `scout`, or whatever was typed. */
+  readonly kind: string | null;
   readonly state: SnapshotRecordState;
   readonly priority: string | null;
   readonly since: string | null;
@@ -420,6 +426,8 @@ function parseRecord(value: unknown, at: string, source: string): SnapshotRecord
   return {
     id: requireString(entry.id, `${at}.id`, source),
     title: proseString(entry.title) ?? "",
+    repo: proseString(entry.repo),
+    kind: proseString(entry.kind),
     state: requireMember<SnapshotRecordState>(
       entry.state,
       RECORD_STATES,

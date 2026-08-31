@@ -76,6 +76,13 @@ and four it stops in: `blocked` (waiting on another work item), `held` (waiting
 for a person to decide), `waiting` (waiting on something outside the fleet), and
 `failed`.
 
+And one that is neither: `unseen`, the panel saying it cannot see this worker at
+all - the worktree was torn down, or no source of current state answered. It
+asserts no position on the track and no reason for stopping, because neither was
+established. It is deliberately its own group in the type rather than a fifth
+halted stage, so that a reader folding stages into "running" and "stopped" has
+to decide what to do with it instead of silently counting it as one of them.
+
 **The fine step** is which check is running inside the stage, from the
 validation pipeline's own vocabulary:
 
@@ -103,14 +110,31 @@ detail says why, in words an operator can act on. There is no separate
 DeckItem {
   id: string
   title: string
+  project: string | null           // null when the row did not say
+  kind: "build" | "research" | null // null when the row did not say
   state: "queued" | "in-flight"
   priority: "now" | "next" | "later"
-  since: string                    // ISO-8601; a hold's age is measured from here
+  since: string | null             // ISO-8601; null when no start date was recorded
   blocked: { ids: string[], reason: string | null } | null
   hold: { waitingOn: string, reason: string | null, deferredTo: string | null } | null
   actionable: boolean              // waiting on a person right now
 }
 ```
+
+See `docs/decisions/2026-08-31-what-the-document-may-not-say.md` for why all
+three of version 3's fields are nullable and what that cost.
+
+`project` and `kind` are enough identity to recognise a piece of work by, which
+is what a queue is read for. Both are nullable where a worker's are not: a
+worker is dispatched with a kind and works somewhere, while a backlog row is
+written by hand and often annotates neither. A row that said nothing renders
+without them rather than under a guessed word.
+
+`since` is nullable for the same reason. A row with no start date carries none,
+and the lens says so; dating it from the moment upstream happened to look made
+every such row read as having just arrived. It is also part of the answer
+record's identity, where the absence travels as the empty string - a stable name
+where the read's own moment was not.
 
 Blocked and held are overlays rather than states: an item can be queued and
 held, or in flight and blocked. Upstream keeps them orthogonal and so does this.
@@ -150,6 +174,7 @@ rather than throws.
 | --- | --- | --- |
 | 1 | 2026-08-30 | First shape. Workers and their states, and one degradation reason at a time. |
 | 2 | 2026-08-30 | Three lenses with a status each. Fleet gains the lifecycle stage model, the brief and worktree pointers, and its pull request; deck and health added. |
+| 3 | 2026-08-31 | Three things the frozen shape deferred, in one bump. `DeckItem` gains `project` and `kind`, both nullable, from the `repo` and `kind` upstream publishes per backlog record. `Stage` gains `unseen`, so upstream's `unknown` stops being reported as `waiting`. `DeckItem.since` becomes nullable, so a row with no start date is not dated from the read - which also makes an answer to such a row keep one stable request id instead of minting a fresh one every read. |
 
 Bump `DOCUMENT_VERSION` when a reader must notice the change, and add a row.
 
@@ -177,7 +202,8 @@ is allowed to run it.
   backlog: {
     present: boolean
     records: [{
-      structured: true, id, title, state: "queued" | "in_flight" | "done",
+      structured: true, id, title, repo, kind,
+      state: "queued" | "in_flight" | "done",
       priority, since, blocked_by_ids[], blocked_reason,
       hold_kind, hold_reason, hold_until, captain_actionable
     }]
@@ -198,8 +224,10 @@ merged pull request from a green one.
 
 What upstream **copies out of a hand-written backlog** is free text, lifted from
 markdown with a regular expression: a record's `priority`, `since`, `title`,
-`hold_kind`, `hold_reason`, `hold_until`, `blocked_reason`, and a task's
-`project` and `kind`. Those arrive as the strings they are, and `src/domain/`
+`repo`, `kind`, `hold_kind`, `hold_reason`, `hold_until`, `blocked_reason`, and
+a task's `project` and `kind`. `null` is the common answer for `repo`, `kind`
+and `since`, not the odd one - a captain writing a queue line annotates what is
+worth annotating and leaves the rest. Those arrive as the strings they are, and `src/domain/`
 maps them onto the document's own vocabulary. Darkening the whole deck because
 somebody typed `(priority: urgent)` in a list item would be the worse panel.
 
@@ -216,7 +244,7 @@ more positions than that, so several map onto one:
 | `done` | `landed` or `pr-open` | The run finished. Upstream says `done` for a merged pull request and for one whose checks merely went green, so the worker's own backlog row decides: `completion.verb` of `merged` lands it, anything else with a pull request leaves it at `pr-open`. |
 | `failed` | `failed` | |
 | `paused` | `waiting` | Deliberately idling on a wait it expects to clear |
-| `unknown` | `waiting` | Upstream could not tell; see open assumptions |
+| `unknown` | `unseen` | Upstream could not tell - a torn-down worktree, no source of current state answering. The document says the panel cannot see the worker rather than placing it |
 
 `dispatched`, `validating`, `pr_open`, `in_review`, `waiting_external` and
 `landed` are also accepted and mapped. A reconciled live snapshot has not been
@@ -368,8 +396,9 @@ to correct.
 
 ### Settled against a live fleet
 
-The four assumptions this section carried when the document seam was frozen have
-now been checked. Three were wrong, and the corrections are above:
+Every assumption this section carried when the document seam was frozen has now
+been checked against a live fleet. Only one held; the corrections for the rest
+are above:
 
 | Assumption | What a live fleet does | What changed |
 | --- | --- | --- |
@@ -377,11 +406,15 @@ now been checked. Three were wrong, and the corrections are above:
 | `current_state.state` is a six-stage on-track vocabulary | Seven reconciled states, coarser than the document's | The `STAGE` map gained `done`, `paused` and `unknown`; the finer values are still accepted. |
 | `priority` is `now`, `next` or `later` | Free text; a live fleet writes `1`, `2`, `3` | The projection maps both spellings and defaults to `later`. |
 | A pull request's checks are not carried | Confirmed: `pr` carries an address and its source, nothing about checks | Nothing. `ChecksState` is `"unknown"` for every worker, as designed. |
+| A backlog record carries no project and no kind | It carries both, per record: `repo` is the project and `kind` is `ship` or `scout` - the same build-versus-research distinction a task's kind makes. A live fleet also writes `task` and `docs`, and leaves both fields out entirely more often than not | The parser reads both, `DeckItem` carries them nullable, and the deck lens draws them. Document version 3. |
 
 ### Still open
 
+Two of the three rows this section carried are now settled, in document version
+3: `unknown` has a stage of its own and a record with no start date carries
+none. Both were the least wrong value in a frozen vocabulary rather than a right
+one, and both were fixed the first time the seam was unfrozen.
+
 | Assumption | Why it is a guess | What happens if it is wrong |
 | --- | --- | --- |
-| `unknown` belongs on the `waiting` stage | Upstream's `unknown` means it could not tell - a torn-down worktree, no source of current state answering. The document has no stage for "the panel cannot see this worker", so it lands on the one halted stage that asserts no cause inside the fleet, with upstream's own words in `detail`. | It is the least wrong position in a frozen vocabulary, not a good one. The honest fix is a stage of its own, which is a document version bump and a change under every lens - worth doing the next time the seam is unfrozen, not under three workers drawing it. |
-| A record with no `since` started when upstream looked | Upstream reports `since` as the operator wrote it, and a row often does not say. The document's `since` is not nullable and a hold's age is measured from it. | The item shows an age of zero rather than dropping off the deck. If ages need to distinguish "just started" from "nobody said", `since` becomes nullable, which is a document version bump. |
-| A worker's `kind` is `scout` or building | `kind` is free text copied from a dispatch record; upstream's own script defaults a missing one to `ship`, but the parser makes no such assumption and a missing or blank `kind` arrives here as an empty string. `secondmate` also occurs | Anything that is not `scout`, including the empty string, renders as building. A kind that deserves its own treatment gets one in `WorkerKind`, which is a document version bump. |
+| A `kind` is `scout` or building | `kind` is free text, copied from a worker's dispatch record or a row's `(kind: ...)` annotation. A live fleet writes `ship`, `scout`, `task`, `docs` and `secondmate`, and often nothing at all. | Anything that is not `scout` renders as building. A deck row that named no kind says so; a worker with none still reads as building, because a worker is always doing something. A kind that deserves its own treatment gets one in `WorkerKind`, which is a document version bump. |
