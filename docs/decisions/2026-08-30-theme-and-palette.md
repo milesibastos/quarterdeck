@@ -14,7 +14,9 @@ not fetch a font at runtime.
 Three layers in `src/app/globals.css`, and components only ever touch the third:
 
 1. `--qd-*` - the palette. Raw colour, no meaning.
-2. `:root` and `.dark` - semantic tokens pointing at palette entries.
+2. `:root` and, originally, `.dark` - semantic tokens pointing at palette
+   entries. See the superseded note below: `.dark` is gone, replaced by a
+   second `:root` block keyed on `prefers-color-scheme`.
 3. `@theme inline` - exposes them to Tailwind.
 
 A component writes `bg-primary text-primary-foreground`, never a palette value.

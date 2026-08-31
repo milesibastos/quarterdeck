@@ -202,7 +202,7 @@ describe("the theme", () => {
 
   test("nothing runs before the first paint to decide it", async () => {
     const html = await body(panel);
-    const head = /<head>(.*?)<\/head>/s.exec(html)?.[1] ?? "";
+    const head = /<head>([\s\S]*?)<\/head>/.exec(html)?.[1] ?? "";
     // A theme chosen in script is a theme that flashes the other one first.
     assert.ok(!/prefers-color-scheme|localStorage|classList/.test(head));
   });
