@@ -87,12 +87,15 @@ export function GrokSettings({
   defaultActive = "timestamps",
   onClose,
   onToggle,
+  onExpand,
   className,
 }: {
   sections?: GrokSettingSection[];
   defaultActive?: string;
   onClose?: () => void;
   onToggle?: (id: string) => void;
+  /** Fired when → is pressed on an `expandable` row. */
+  onExpand?: (id: string) => void;
   className?: string;
 }) {
   const flat = sections.flatMap((s) => s.items);
@@ -100,6 +103,7 @@ export function GrokSettings({
   const [values, setValues] = React.useState<Record<string, GrokSettingValue>>(
     () => Object.fromEntries(flat.map((i) => [i.id, i.value])),
   );
+  const itemRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
 
   function activate(id: string) {
     setActive(id);
@@ -109,13 +113,27 @@ export function GrokSettings({
     setValues((prev) => {
       const cur = prev[id];
       if (typeof cur === "boolean") {
-        const next = !cur;
-        onToggle?.(id);
-        return { ...prev, [id]: next };
+        return { ...prev, [id]: !cur };
       }
-      onToggle?.(id);
       return prev;
     });
+  }
+
+  function onItemKeyDown(e: React.KeyboardEvent<HTMLButtonElement>, item: GrokSetting) {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const idx = flat.findIndex((i) => i.id === item.id);
+      const next =
+        e.key === "ArrowDown"
+          ? (idx + 1) % flat.length
+          : (idx - 1 + flat.length) % flat.length;
+      const nextItem = flat[next];
+      activate(nextItem.id);
+      itemRefs.current[nextItem.id]?.focus();
+    } else if (e.key === "ArrowRight" && item.expandable) {
+      e.preventDefault();
+      onExpand?.(item.id);
+    }
   }
 
   return (
@@ -166,12 +184,17 @@ export function GrokSettings({
                   <li key={item.id}>
                     <button
                       type="button"
+                      ref={(el) => {
+                        itemRefs.current[item.id] = el;
+                      }}
                       onClick={() => {
                         activate(item.id);
                         if (typeof (values[item.id] ?? item.value) === "boolean") {
                           toggle(item.id);
+                          onToggle?.(item.id);
                         }
                       }}
+                      onKeyDown={(e) => onItemKeyDown(e, item)}
                       onFocus={() => activate(item.id)}
                       className="flex w-full items-baseline justify-between gap-4 px-3 py-0.5 text-left outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
                       style={{

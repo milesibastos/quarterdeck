@@ -17,9 +17,10 @@ const DIM = "var(--term-faint)";
 const GREEN = "var(--term-success)"; // active tool ◆ line
 
 function formatElapsed(secs: number) {
-  if (secs < 60) return `${secs.toFixed(secs < 10 ? 1 : 0)}s`;
-  const m = Math.floor(secs / 60);
-  const s = Math.round(secs % 60);
+  const rounded = secs < 10 ? secs : Math.round(secs);
+  if (rounded < 60) return `${rounded.toFixed(rounded < 10 ? 1 : 0)}s`;
+  const m = Math.floor(rounded / 60);
+  const s = rounded % 60;
   return `${m}m${String(s).padStart(2, "0")}s`;
 }
 

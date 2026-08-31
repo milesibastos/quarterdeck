@@ -63,9 +63,8 @@ export function GrokEvent({
       </span>
       {hooks != null && hooksOk != null ? (
         <span style={{ color: DIM }}>
-          [hooks:{" "}
-          <span style={{ color: GREEN }}>{hooks}</span>
-          <span>/{hooksOk}</span>]
+          [hooks: {hooks}/
+          <span style={{ color: GREEN }}>{hooksOk}</span>]
         </span>
       ) : (
         hooksText
