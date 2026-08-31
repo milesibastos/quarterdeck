@@ -258,7 +258,7 @@ describe("the deck lens", () => {
     const dark = await startPanel({ port: testPort(14), fixtureSet: "deck-dark" });
     try {
       const html = await body(dark);
-      assert.ok(html.includes("has not read cleanly"));
+      assert.ok(html.includes("the deck could not be read"));
       assert.ok(!html.includes("Nothing queued, blocked or held."), "not a definitive empty deck");
     } finally {
       await dark.stop();

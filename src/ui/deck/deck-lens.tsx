@@ -72,7 +72,7 @@ function EmptyDeck({ status, nowMs }: { status: Lens<unknown>["status"]; nowMs: 
   if (status.state === "unreadable") {
     return (
       <p className="text-sm text-muted-foreground">
-        {`Nothing to show: the deck has not read cleanly since the panel started. Noticed ${ago(status.observedAt, nowMs)}.`}
+        {`Nothing to show: the deck could not be read. Noticed ${ago(status.observedAt, nowMs)}.`}
       </p>
     );
   }
