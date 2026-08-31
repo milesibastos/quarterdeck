@@ -50,9 +50,10 @@ carries an index, because an index is only meaningful against a particular rail.
 **A stop keeps its position, and that position is rail-relative.** The stop is
 still a marker pinned to the step where the work stopped rather than a status
 floating beside it: a halted worker naming a pipeline step was doing that work
-when it stopped, so its marker lands on that rail's validating stage when it
-has one, wherever that stage happens to sit, and otherwise on the furthest
-stage the rail and the rest of the evidence support.
+when it stopped, so its marker lands on that rail's validating stage, wherever
+that stage happens to sit. A rail with no validating stage has nothing to land
+on - see Consequences for why the panel says the position is not known there
+rather than guessing one.
 
 **An unrecorded contract draws no shape.** A build worker whose contract nobody
 recorded gets the stages it has demonstrably reached, one open dashed end, and a
