@@ -21,9 +21,9 @@ const DEFAULT: GrokSlashCommand[] = [
   { name: "/fork", description: "Branch the current session into a peer agent" },
 ];
 
-const ACTIVE = "#e1e1e1";
-const INACTIVE = "#8b8b90";
-const RULE = "#505058";
+const ACTIVE = "var(--term-fg)";
+const INACTIVE = "var(--term-muted)";
+const RULE = "var(--term-rule-soft)";
 const NAME_COLS = 16;
 
 export function GrokSlashMenu({

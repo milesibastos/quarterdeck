@@ -22,6 +22,7 @@ import {
  */
 
 const ARCH = "docs/ARCHITECTURE.md";
+const THEME = "docs/decisions/2026-08-30-theme-and-palette.md";
 
 /**
  * Which layers each layer may import from. Same-layer imports are always fine.
@@ -649,6 +650,82 @@ export function checkProviderBypass(files: readonly SourceFile[]): Violation[] {
   return violations;
 }
 
+/* ------------------------------------------ beyond the seven: the palette */
+
+/**
+ * Tailwind's own palette families. A component reaching for one of these has
+ * left the product's palette entirely - `bg-red-500` is not our red, and it
+ * does not change when the theme does.
+ */
+const STOCK_PALETTE = [
+  "white", "black", "slate", "gray", "grey", "zinc", "neutral", "stone",
+  "red", "orange", "amber", "yellow", "lime", "green", "emerald", "teal",
+  "cyan", "sky", "blue", "indigo", "violet", "purple", "fuchsia", "pink",
+  "rose",
+].join("|");
+
+/** The utilities that take a colour. `bg-cover` and `text-sm` are not among them. */
+const COLOUR_UTILITIES = [
+  "bg", "text", "border", "ring", "fill", "stroke", "from", "via", "to",
+  "decoration", "outline", "shadow", "accent", "caret", "divide", "placeholder",
+].join("|");
+
+const COLOUR_PROBES: [RegExp, (m: RegExpExecArray) => string][] = [
+  // #rgb, #rgba, #rrggbb, #rrggbbaa. The trailing guard keeps `url(#g${id})`
+  // and a pull request's `#302` out of it - neither is eight hex digits and
+  // neither is followed by nothing.
+  [
+    /#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})(?![0-9a-zA-Z_-])/,
+    (m) => `The literal ${m[0]}`,
+  ],
+  // A colour function opening on a number is carrying its own value.
+  // `color-mix(in oklch, var(--secondary), ...)` opens on `in` and derives
+  // from tokens, which is the whole point and stays.
+  [
+    /\b(rgba?|hsla?|hwb|lab|lch|oklab|oklch)\s*\(\s*[-+.0-9]/,
+    (m) => `The literal ${m[1]}(...) value`,
+  ],
+  // Tailwind's stock palette, with or without a stop and an opacity.
+  [
+    new RegExp(
+      `\\b((?:${COLOUR_UTILITIES})-(?:${STOCK_PALETTE})(?:-\\d{2,3})?(?:\\/\\d{1,3})?)(?![\\w-])`,
+    ),
+    (m) => `The utility \`${m[1]}\``,
+  ],
+];
+
+/**
+ * Not one of the seven either, and the reason `src/app/globals.css` has three
+ * layers: no colour value is written in a component. Raw colour lives in the
+ * palette layer, meaning lives in the semantic tokens, and a component only
+ * ever names a token.
+ *
+ * Only `.ts` and `.tsx` are read here, which is what makes the rule expressible
+ * at all: the stylesheet is where the hex is *supposed* to be, and it is not
+ * scanned.
+ */
+export function checkRawColour(files: readonly SourceFile[]): Violation[] {
+  const violations: Violation[] = [];
+  for (const file of files) {
+    for (const { line, text } of codeLines(file)) {
+      for (const [pattern, describe] of COLOUR_PROBES) {
+        const match = pattern.exec(text);
+        if (!match) continue;
+        violations.push({
+          slug: "raw-colour",
+          file: `src/${file.path}`,
+          line,
+          what: `${describe(match)} is a colour written into a component. Components name semantic tokens; colour values live in the palette layer.`,
+          why: `A value written here cannot answer to the theme: it is the same in light and dark, so one of the two is wrong, and it is invisible to the one place a palette change is supposed to be made.`,
+          fix: `Decide which role the value is playing - a surface, a rule, a rank of text, or one of the four meanings - and use that token: bg-card, border-term-rule, text-term-muted, text-term-danger. If no token carries the role, add one to all three layers of src/app/globals.css rather than an exception here.`,
+          doc: `${THEME} - the three layers`,
+        });
+      }
+    }
+  }
+  return violations;
+}
+
 /* ------------------------------------------------------------------ all */
 
 export const CHECKS = {
@@ -660,6 +737,7 @@ export const CHECKS = {
   "ui-isolation": checkUiIsolation,
   "no-egress": checkNoEgress,
   "provider-bypass": checkProviderBypass,
+  "raw-colour": checkRawColour,
 } as const;
 
 export type CheckName = keyof typeof CHECKS;

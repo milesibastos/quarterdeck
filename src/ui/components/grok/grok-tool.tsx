@@ -8,11 +8,11 @@ import { cn } from "@/ui/lib/utils";
  *   1. Compact: `read app/page.tsx` (dim verb, blue path)
  *   2. Card:    `┃  ◆ Run Write …  [hooks: 3]` (left gutter + diamond)
  */
-const GREEN = "#00ff00"; // 38;5;10 — active Run tool cards
-const MUTED = "#8b8b90";
-const DIM = "#6c6c6c";
-const BLUE = "#8db0ff";
-const SILVER = "#c0c0c0";
+const GREEN = "var(--term-success)"; // 38;5;10 — active Run tool cards
+const MUTED = "var(--term-muted)";
+const DIM = "var(--term-faint)";
+const BLUE = "var(--term-info)";
+const SILVER = "var(--term-dim)";
 
 export function GrokTool({
   verb,
@@ -69,7 +69,7 @@ export function GrokTool({
   return (
     <div
       className={cn(
-        "flex min-w-0 flex-wrap items-baseline gap-2 font-mono text-[13px] leading-[1.6] text-[#8b8b90]",
+        "flex min-w-0 flex-wrap items-baseline gap-2 font-mono text-[13px] leading-[1.6] text-term-muted",
         className,
       )}
     >
@@ -79,7 +79,7 @@ export function GrokTool({
           {path}
         </span>
       ) : null}
-      {meta ? <span className="text-[#6a6a6a]">{meta}</span> : null}
+      {meta ? <span className="text-term-faint">{meta}</span> : null}
       {children}
     </div>
   );

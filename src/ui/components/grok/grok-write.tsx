@@ -20,12 +20,12 @@ export type GrokHookResult = {
   ms?: number;
 };
 
-const BORDER = "#808080";
-const FG = "#e1e1e1";
-const MUTED = "#8b8b90";
-const DIM = "#6c6c6c";
-const OK = "#00ff00"; // 38;5;10
-const BAD = "#ff0000"; // 38;5;9
+const BORDER = "var(--term-rule)";
+const FG = "var(--term-fg)";
+const MUTED = "var(--term-muted)";
+const DIM = "var(--term-faint)";
+const OK = "var(--term-success)"; // 38;5;10
+const BAD = "var(--term-danger)"; // 38;5;9
 
 export function GrokWrite({
   before = [{ n: 1, text: "hello" }],

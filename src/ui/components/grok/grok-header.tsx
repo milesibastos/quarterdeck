@@ -38,18 +38,32 @@ const LOGO_BITS = [
   "10000000000000000000000000",
 ];
 
-const AMBER = "#e0af68";
+const AMBER = "var(--term-accent)"; // grok's brand amber, wearing ours
+
+/*
+ * Upstream read the media query with `useState` plus an effect that set state
+ * on its first run, which this project's lint rejects: it renders once with the
+ * wrong answer and then again with the right one. `useSyncExternalStore` is the
+ * primitive for exactly this - an external store React did not write to - and
+ * it takes a server snapshot, so the server renders the still frame rather than
+ * one nobody asked for.
+ */
+const REDUCED_MOTION = "(prefers-reduced-motion: reduce)";
+
+function subscribeToMotionPreference(onChange: () => void): () => void {
+  const query = window.matchMedia(REDUCED_MOTION);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
 
 function usePrefersReducedMotion() {
-  const [reduced, setReduced] = React.useState(false);
-  React.useEffect(() => {
-    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setReduced(mq.matches);
-    const on = () => setReduced(mq.matches);
-    mq.addEventListener("change", on);
-    return () => mq.removeEventListener("change", on);
-  }, []);
-  return reduced;
+  return React.useSyncExternalStore(
+    subscribeToMotionPreference,
+    () => window.matchMedia(REDUCED_MOTION).matches,
+    // On the server there is nobody to ask. The sweep is decoration, so the
+    // still frame is the safe first paint either way.
+    () => true,
+  );
 }
 
 export function GrokLogo({
@@ -97,9 +111,6 @@ export function GrokLogo({
       className={className}
     >
       <defs>
-        <mask id={`m${uid}`}>
-          <g fill="#fff">{dots}</g>
-        </mask>
         <linearGradient
           id={`g${uid}`}
           gradientUnits="userSpaceOnUse"
@@ -109,8 +120,8 @@ export function GrokLogo({
           y2={H * 0.18}
           spreadMethod="reflect"
         >
-          <stop offset="0" stopColor="#616161" />
-          <stop offset="1" stopColor="#d4d4d4" />
+          <stop offset="0" stopColor="var(--term-faint)" />
+          <stop offset="1" stopColor="var(--term-fg)" />
           {reduced ? null : (
             <animateTransform
               attributeName="gradientTransform"
@@ -123,7 +134,12 @@ export function GrokLogo({
           )}
         </linearGradient>
       </defs>
-      <rect width={W} height={H} fill={`url(#g${uid})`} mask={`url(#m${uid})`} />
+      {/* The sweep paints the dots directly. Upstream painted a full-bleed
+          rect and cut it to shape with a luminance mask, which needs an opaque
+          white the theme has no name for; the gradient is `userSpaceOnUse`
+          across the whole viewBox either way, so the two draw the same thing
+          and this one has no colour in it. */}
+      <g fill={`url(#g${uid})`}>{dots}</g>
     </svg>
   );
 }
@@ -149,7 +165,7 @@ export function GrokHeader({
   return (
     <div
       className={cn(
-        "min-w-0 rounded-[6px] border border-[#2f2f33] px-3 py-4 font-mono text-[13px] leading-[1.5] text-[#e8e8e8] sm:px-4",
+        "min-w-0 rounded-[6px] border border-term-rule-soft px-3 py-4 font-mono text-[13px] leading-[1.5] text-term-fg sm:px-4",
         className,
       )}
     >
@@ -158,23 +174,23 @@ export function GrokHeader({
         <div className="min-w-0 flex-1">
           <div className="break-words">
             <span className="font-semibold">Grok Build Beta</span>{" "}
-            <span className="text-[#7a7a7a]">{version}</span>
+            <span className="text-term-faint">{version}</span>
           </div>
           <div className="mt-2 break-words font-semibold" style={{ color: AMBER }}>
             {headline}
           </div>
-          <div className="truncate text-[#8b8b90]">{subhead}</div>
+          <div className="truncate text-term-muted">{subhead}</div>
 
           <ul className="mt-2.5 min-w-0 space-y-0.5">
             {MENU.map((m) => (
               <li key={m.label}>
                 <button
                   type="button"
-                  className="flex w-full min-w-0 items-center justify-between gap-4 rounded px-1 py-0.5 text-left hover:bg-white/5"
+                  className="flex w-full min-w-0 items-center justify-between gap-4 rounded px-1 py-0.5 text-left hover:bg-term-selected"
                 >
                   <span className="min-w-0 truncate">{m.label}</span>
                   {m.key ? (
-                    <span className="shrink-0 text-[#6a6a6a]">{m.key}</span>
+                    <span className="shrink-0 text-term-faint">{m.key}</span>
                   ) : null}
                 </button>
               </li>

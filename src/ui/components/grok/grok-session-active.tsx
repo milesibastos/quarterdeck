@@ -14,10 +14,10 @@ import { GrokPrompt } from "@/ui/components/grok/grok-prompt";
  */
 export function GrokSessionActive() {
   return (
-    <div className="space-y-3 font-mono text-[13px] leading-[1.6] text-[#e8e8e8]">
+    <div className="space-y-3 font-mono text-[13px] leading-[1.6] text-term-fg">
       <GrokStatus
         branch="main"
-        directory="~/dev/acme-app"
+        directory="anchorage/cordage"
         contextUsed="16.6k"
         contextLimit="500K"
         turn={1}

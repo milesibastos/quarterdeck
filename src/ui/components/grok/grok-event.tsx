@@ -7,11 +7,11 @@ import { cn } from "@/ui/lib/utils";
  * Captured examples: `◆ Thought for 0.2s`, `◆ user_prompt_submit  [hooks: 3/1]`,
  * `◆ stop  [hooks: 3/1]`, `◆ List .  [hooks: 3]`.
  */
-const SILVER = "#c0c0c0"; // 38;5;7 — ◆ event diamonds
-const FG = "#e1e1e1";
-const MUTED = "#8b8b90";
-const DIM = "#6c6c6c";
-const GREEN = "#00ff00"; // 38;5;10 — successful hook counts
+const SILVER = "var(--term-dim)"; // 38;5;7 — ◆ event diamonds
+const FG = "var(--term-fg)";
+const MUTED = "var(--term-muted)";
+const DIM = "var(--term-faint)";
+const GREEN = "var(--term-success)"; // 38;5;10 — successful hook counts
 
 export function GrokEvent({
   label,

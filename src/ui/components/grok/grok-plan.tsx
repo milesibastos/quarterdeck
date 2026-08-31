@@ -12,11 +12,11 @@ import { cn } from "@/ui/lib/utils";
  * a yellow `◆ Waiting on plan approval` status (38;5;11 — plan accent only),
  * and the composer in `· plan approval` mode.
  */
-const BORDER = "#808080";
-const FG = "#e1e1e1";
-const MUTED = "#8b8b90";
-const DIM = "#6c6c6c";
-const PLAN = "#ffff00"; // 38;5;11 — plan-mode accent only
+const BORDER = "var(--term-rule)";
+const FG = "var(--term-fg)";
+const MUTED = "var(--term-muted)";
+const DIM = "var(--term-faint)";
+const PLAN = "var(--term-warning)"; // 38;5;11 — plan-mode accent only
 
 const DEFAULT_LINES = [
   "Plan: Touch planned.txt",
@@ -101,7 +101,7 @@ export function GrokPlan({
               <button
                 type="button"
                 onClick={() => onAction?.(a.key)}
-                className="rounded-none px-0.5 outline-none hover:text-white focus-visible:ring-1 focus-visible:ring-white/40"
+                className="rounded-none px-0.5 outline-none hover:text-term-fg-bright focus-visible:ring-1 focus-visible:ring-ring"
               >
                 <span className="font-semibold" style={{ color: FG }}>
                   {a.key}

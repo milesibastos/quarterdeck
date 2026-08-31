@@ -9,10 +9,10 @@ import { cn } from "@/ui/lib/utils";
  *   `❙  ◆ Thought for 0.1s`                      (gutter)
  *   `┃  ◆ Thinking…` + body                      (bordered stream)
  */
-const BORDER = "#808080"; // 38;5;8
-const FG = "#e1e1e1";
-const MUTED = "#c0c0c0"; // 38;5;7
-const SILVER = "#c0c0c0";
+const BORDER = "var(--term-rule)"; // 38;5;8
+const FG = "var(--term-fg)";
+const MUTED = "var(--term-dim)"; // 38;5;7
+const SILVER = "var(--term-dim)";
 
 export function GrokThought({
   elapsed = "0.2s",

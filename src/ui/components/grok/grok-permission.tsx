@@ -9,10 +9,10 @@ import { cn } from "@/ui/lib/utils";
  * Captured grammar (v0.2.93): a `┃` gutter, title + command, then numbered
  * `(●)` / `(○)` radios. Footer hint: `1/3:select │ Ctrl+o:yolo │ Ctrl+c:cancel`.
  */
-const BORDER = "#808080"; // 38;5;8
-const FG = "#e1e1e1";
-const MUTED = "#8b8b90";
-const DIM = "#6c6c6c";
+const BORDER = "var(--term-rule)"; // 38;5;8
+const FG = "var(--term-fg)";
+const MUTED = "var(--term-muted)";
+const DIM = "var(--term-faint)";
 
 const DEFAULT_OPTIONS = [
   "Yes, and don't ask again for anything (always-approve mode)",
@@ -83,7 +83,7 @@ export function GrokPermission({
                   onChoose?.(i);
                 }}
                 className={cn(
-                  "flex cursor-pointer items-baseline gap-2 outline-none focus-visible:ring-1 focus-visible:ring-white/30",
+                  "flex cursor-pointer items-baseline gap-2 outline-none focus-visible:ring-1 focus-visible:ring-ring",
                   active && "font-semibold",
                 )}
                 style={{ color: active ? FG : MUTED }}

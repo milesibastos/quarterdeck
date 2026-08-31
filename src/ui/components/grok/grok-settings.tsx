@@ -9,10 +9,14 @@ import { cn } from "@/ui/lib/utils";
  * Captured grammar (v0.2.93): section headers (`Appearance`, `Mouse`), rows
  * with a `▸` marker, current value on the right (`on` / `off` / theme name ›).
  */
-const BORDER = "#505058";
-const FG = "#e1e1e1";
-const MUTED = "#8b8b90";
-const DIM = "#6c6c6c";
+const BORDER = "var(--term-rule-soft)";
+const FG = "var(--term-fg)";
+const MUTED = "var(--term-muted)";
+const DIM = "var(--term-faint)";
+const SURFACE = "var(--term-bg)"; // an overlay occludes what is behind it
+/* Upstream washed the selected row with 6% white, which only reads as a
+   highlight on a dark ground. A token instead, so a pale ground darkens. */
+const SELECTED = "var(--term-selected)";
 
 export type GrokSettingValue = string | boolean;
 
@@ -120,7 +124,7 @@ export function GrokSettings({
         "overflow-hidden rounded-sm border font-mono text-[13px] leading-[1.5]",
         className,
       )}
-      style={{ borderColor: BORDER, background: "#1a1a1a" }}
+      style={{ borderColor: BORDER, background: SURFACE }}
       role="dialog"
       aria-label="Settings"
     >
@@ -133,7 +137,7 @@ export function GrokSettings({
           type="button"
           aria-label="Close"
           onClick={onClose}
-          className="rounded-none px-1 outline-none hover:text-white focus-visible:ring-1 focus-visible:ring-white/40"
+          className="rounded-none px-1 outline-none hover:text-term-fg-bright focus-visible:ring-1 focus-visible:ring-ring"
           style={{ color: DIM }}
         >
           [✗]
@@ -169,9 +173,9 @@ export function GrokSettings({
                         }
                       }}
                       onFocus={() => activate(item.id)}
-                      className="flex w-full items-baseline justify-between gap-4 px-3 py-0.5 text-left outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-white/30"
+                      className="flex w-full items-baseline justify-between gap-4 px-3 py-0.5 text-left outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
                       style={{
-                        background: isActive ? "rgba(255,255,255,0.06)" : undefined,
+                        background: isActive ? SELECTED : undefined,
                         color: FG,
                       }}
                     >

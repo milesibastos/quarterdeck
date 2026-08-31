@@ -6,7 +6,7 @@ import { cn } from "@/ui/lib/utils";
  *
  * Captured: `Turn completed in 8.0s.`
  */
-const MUTED = "#8b8b90";
+const MUTED = "var(--term-muted)";
 
 export function GrokTurnEnd({
   elapsed = "8.0s",

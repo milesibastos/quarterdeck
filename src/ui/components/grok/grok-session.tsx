@@ -16,10 +16,10 @@ import { GrokPrompt } from "@/ui/components/grok/grok-prompt";
  */
 export function GrokSession() {
   return (
-    <div className="space-y-3 font-mono text-[13px] leading-[1.6] text-[#e8e8e8]">
+    <div className="space-y-3 font-mono text-[13px] leading-[1.6] text-term-fg">
       <GrokStatus
         branch="main"
-        directory="~/dev/acme-app"
+        directory="anchorage/cordage"
         contextUsed="16K"
         contextLimit="500K"
         turn={2}
@@ -28,7 +28,7 @@ export function GrokSession() {
 
       <GrokHeader />
 
-      <div className="text-[#6c6c6c]">
+      <div className="text-term-faint">
         Tip: Use Shift+Tab to cycle between modes, like Plan mode.
       </div>
 

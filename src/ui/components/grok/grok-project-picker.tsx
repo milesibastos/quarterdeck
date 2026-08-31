@@ -9,10 +9,10 @@ import { cn } from "@/ui/lib/utils";
  * Captured from a fresh launch outside a trusted project: left-border card
  * with `(○)` radios for recent dirs plus a free-text `z` option.
  */
-const BORDER = "#808080";
-const FG = "#e1e1e1";
-const MUTED = "#8b8b90";
-const DIM = "#6c6c6c";
+const BORDER = "var(--term-rule)";
+const FG = "var(--term-fg)";
+const MUTED = "var(--term-muted)";
+const DIM = "var(--term-faint)";
 
 export type GrokProject = {
   id: string;
@@ -21,38 +21,21 @@ export type GrokProject = {
   meta?: string;
 };
 
-const DEFAULT_PROJECTS: GrokProject[] = [
-  {
-    id: "current",
-    name: "brainless",
-    path: "~/dev/brainless",
-    meta: "current",
-  },
-  {
-    id: "cloudstate",
-    name: "freestyle-cloudstate",
-    path: "~/Documents/GitHub/freestyle-cloudstate",
-    meta: "5h ago",
-  },
-  {
-    id: "conduit",
-    name: "Conduit",
-    path: "~/Documents/Conduit",
-    meta: "5h ago",
-  },
-];
 
 export function GrokProjectPicker({
   title = "Run Grok Build in a project directory?",
   description = "This gives Grok Build full context of your codebase for better results.",
-  projects = DEFAULT_PROJECTS,
+  projects,
   defaultSelected = 0,
   onChoose,
   className,
 }: {
   title?: string;
   description?: string;
-  projects?: GrokProject[];
+  /** No default: the demo list upstream shipped named real repositories on
+   * a real machine, which invariant 4 and the synthetic-fixtures rule both
+   * forbid, and this panel always has its own fleets to offer. */
+  projects: GrokProject[];
   defaultSelected?: number;
   onChoose?: (index: number | "custom") => void;
   className?: string;
@@ -133,7 +116,7 @@ export function GrokProjectPicker({
                 );
               }}
               className={cn(
-                "flex cursor-pointer items-baseline gap-2 outline-none focus-visible:ring-1 focus-visible:ring-white/30",
+                "flex cursor-pointer items-baseline gap-2 outline-none focus-visible:ring-1 focus-visible:ring-ring",
                 active && "font-semibold",
               )}
               style={{ color: active ? FG : MUTED }}

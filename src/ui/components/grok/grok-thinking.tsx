@@ -11,8 +11,8 @@ import { cn } from "@/ui/lib/utils";
 const FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 const VERBS = ["Thinking", "Reticulating", "Computing", "Pondering", "Percolating"];
 
-const FG = "#ffffff"; // 38;5;15
-const MUTED = "#c0c0c0"; // 38;5;7
+const FG = "var(--term-fg-bright)"; // 38;5;15
+const MUTED = "var(--term-dim)"; // 38;5;7
 
 export function GrokThinking({
   running = true,

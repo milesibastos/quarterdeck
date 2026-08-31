@@ -9,11 +9,12 @@ import { cn } from "@/ui/lib/utils";
  * Nested categories with ◆ rows for expanded sections and › for collapsed
  * ones. Arrow keys / e expand; Esc closes.
  */
-const BORDER = "#808080";
-const FG = "#e1e1e1";
-const MUTED = "#8b8b90";
-const DIM = "#6c6c6c";
-const MARK = "#808080"; // 38;5;8 — ◆ / › markers
+const BORDER = "var(--term-rule)";
+const FG = "var(--term-fg)";
+const MUTED = "var(--term-muted)";
+const DIM = "var(--term-faint)";
+const MARK = "var(--term-rule)"; // 38;5;8 — ◆ / › markers
+const SURFACE = "var(--term-bg)"; // an overlay occludes what is behind it
 
 export type GrokShortcut = { action: string; keys: string };
 export type GrokShortcutGroup = {
@@ -94,7 +95,7 @@ export function GrokShortcuts({
         "overflow-hidden rounded-sm border font-mono text-[13px] leading-[1.5]",
         className,
       )}
-      style={{ borderColor: BORDER, background: "#1a1a1a" }}
+      style={{ borderColor: BORDER, background: SURFACE }}
       role="dialog"
       aria-label="Keyboard Shortcuts"
     >
@@ -107,7 +108,7 @@ export function GrokShortcuts({
           type="button"
           aria-label="Close"
           onClick={onClose}
-          className="rounded-none px-1 outline-none hover:text-white focus-visible:ring-1 focus-visible:ring-white/40"
+          className="rounded-none px-1 outline-none hover:text-term-fg-bright focus-visible:ring-1 focus-visible:ring-ring"
           style={{ color: DIM }}
         >
           [✗]
@@ -130,7 +131,7 @@ export function GrokShortcuts({
                 type="button"
                 aria-expanded={open}
                 onClick={() => setExpanded(open ? null : g.id)}
-                className="flex w-full items-baseline gap-2 px-3 py-0.5 text-left outline-none hover:bg-white/5 focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-white/30"
+                className="flex w-full items-baseline gap-2 px-3 py-0.5 text-left outline-none hover:bg-term-selected focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
                 style={{ color: FG }}
               >
                 <span

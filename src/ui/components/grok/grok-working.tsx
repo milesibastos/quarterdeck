@@ -11,10 +11,10 @@ import { cn } from "@/ui/lib/utils";
  *   `◆ Write permission probe… 1m17s       1m19s ⇣16.0k [↓][stop]`
  */
 const FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-const FG = "#ffffff"; // 38;5;15 — spinner + label
-const MUTED = "#c0c0c0"; // 38;5;7 — elapsed / tokens
-const DIM = "#808080";
-const GREEN = "#00ff00"; // active tool ◆ line
+const FG = "var(--term-fg-bright)"; // 38;5;15 — spinner + label
+const MUTED = "var(--term-dim)"; // 38;5;7 — elapsed / tokens
+const DIM = "var(--term-faint)";
+const GREEN = "var(--term-success)"; // active tool ◆ line
 
 function formatElapsed(secs: number) {
   if (secs < 60) return `${secs.toFixed(secs < 10 ? 1 : 0)}s`;

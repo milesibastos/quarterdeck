@@ -17,12 +17,12 @@ export type GrokMode =
   | "always-approve"
   | "plan-approval";
 
-const BORDER = "#505058";
-const FG = "#e1e1e1";
-const MUTED = "#6c6c6c";
-const SEP = "#585858";
-const PLAN = "#ffff00"; // 38;5;11 — plan caret only
-const SURFACE = "#1a1a1a"; // matches --term-bg so the legend punches the border
+const BORDER = "var(--term-rule-soft)";
+const FG = "var(--term-fg)";
+const MUTED = "var(--term-faint)";
+const SEP = "var(--term-rule-soft)";
+const PLAN = "var(--term-warning)"; // 38;5;11 — plan caret only
+const SURFACE = "var(--term-bg)"; // the legend patch erases into the box's own ground
 
 const MODE_LABEL: Record<GrokMode, string | null> = {
   normal: null,
@@ -86,7 +86,7 @@ export function GrokPrompt({
               ? { value, onChange }
               : { defaultValue, onChange })}
             className={cn(
-              "term-input min-w-0 flex-1 bg-transparent py-0.5 pl-[1ch] outline-none placeholder:text-[#6c6c6c]",
+              "term-input min-w-0 flex-1 bg-transparent py-0.5 pl-[1ch] outline-none placeholder:text-term-faint",
               inputClassName,
             )}
             style={

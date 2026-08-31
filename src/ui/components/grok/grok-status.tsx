@@ -8,14 +8,14 @@ import { cn } from "@/ui/lib/utils";
  * spinner (`⠴ MCP (2/3)`), context usage (`16K / 500K`), and turn progress
  * (`│ 2/3 ✓`) on the right.
  */
-const FG = "#e1e1e1";
-const MUTED = "#8b8b90";
-const DIM = "#808080"; // 38;5;8 — MCP spinner
-const OK = "#00ff00"; // 38;5;10 — turn ✓
+const FG = "var(--term-fg)";
+const MUTED = "var(--term-muted)";
+const DIM = "var(--term-faint)"; // 38;5;8 — MCP spinner
+const OK = "var(--term-success)"; // 38;5;10 — turn ✓
 
 export function GrokStatus({
   branch = "main",
-  directory = "~/dev/brainless",
+  directory,
   contextUsed = "16K",
   contextLimit = "500K",
   turn,
@@ -25,7 +25,8 @@ export function GrokStatus({
   className,
 }: {
   branch?: string;
-  directory?: string;
+  /** No default: a path literal may not live in a component. See invariant 4. */
+  directory: string;
   contextUsed?: string;
   contextLimit?: string;
   /** Completed steps in the current turn, e.g. 2 of 3. */
