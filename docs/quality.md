@@ -87,6 +87,25 @@ live fleet homes rather than against the last pass's notes.
   off the first paint, and the document says `not-looked-up` and names it in
   `omissions` rather than pretending to a green light.
 
+- **Three health signals share one source, so they go dark together.**
+  `attendance`, `overdue` and `drift` all need a listing of the fleet home's
+  `state/` directory - away mode and the lock are marker files in it, and the
+  other two need the set of workers the fleet has out. Whatever hides one hides
+  all three, so a state directory that has moved darkens three signals rather
+  than one, and there is no way to break attendance alone at the source.
+  `supervisor` reads a file inside the same directory and goes with them;
+  `queue` is the one signal of the five that can also fail on its own, and
+  `tests/health.test.ts` breaks it that way.
+
+  Deliberate, and it errs the safe way: three signals saying they could not be
+  read is less confidence than the panel has, never more, which is the opposite
+  of the defect this project keeps catching. But it is worth knowing before
+  reading a dark strip as three independent failures, and worth knowing before
+  writing a test that expects one. The lens itself never amplifies - a document
+  with one dark signal draws exactly one dark block - and
+  `tests/shipshape-lens.test.ts` pins that separately for each new signal. See
+  `docs/plans/done/2026-08-31-the-last-two-health-signals.md`.
+
 - **A held lock is not a live lock.** `attendance.locked` is whether the lock
   file is present. `bin/fm-lock.sh status` distinguishes further - free, held by
   a live harness pid, or stale - by walking a process ancestry against the
