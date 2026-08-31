@@ -22,12 +22,12 @@ export const DOCUMENT_VERSION = 4;
 /**
  * How much a lens's content can be trusted, per lens.
  *
- * There is deliberately no single `degraded` flag on the document. Fleet and
- * deck arrive from one upstream contract that either parses or refuses; health
- * is read from files that carry no compatibility promise and may simply have
- * moved. Two reliability promises meeting in one document is the whole reason
- * the shipshape lens can go dark while the other two keep working, and a
- * document-wide flag would throw that away.
+ * There is deliberately no single `degraded` flag on the document. Fleet,
+ * deck and landed arrive from one upstream contract that either parses or
+ * refuses; health is read from files that carry no compatibility promise and
+ * may simply have moved. Two reliability promises meeting in one document is
+ * the whole reason the shipshape lens can go dark while the other three keep
+ * working, and a document-wide flag would throw that away.
  */
 export type LensStatus =
   /** Read cleanly, and current as of `asOf`. */

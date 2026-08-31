@@ -82,6 +82,19 @@ function stubRunner(answer: (call: Call) => Promise<string>): Runner & {
 
 const silentLogger: Logger = { info: () => {}, warn: () => {}, error: () => {} };
 
+/** A logger that keeps every warning, so a test can assert on what it said. */
+function recordingLogger(): Logger & {
+  readonly warnings: Array<{ message: string; fields?: Record<string, unknown> }>;
+} {
+  const warnings: Array<{ message: string; fields?: Record<string, unknown> }> = [];
+  return {
+    info: () => {},
+    warn: (message, fields) => warnings.push({ message, fields }),
+    error: () => {},
+    warnings,
+  };
+}
+
 /** Waits for something the runtime does off the caller's turn - starting a read. */
 async function settles(predicate: () => boolean): Promise<void> {
   const deadline = Date.now() + 2_000;
@@ -104,6 +117,7 @@ function thrownBy(attempt: () => unknown): unknown {
 function runtimeOn(
   source: { description: string; read(signal: AbortSignal): Promise<string> },
   readTimeoutMs = 5_000,
+  logger: Logger = silentLogger,
 ): FleetRuntime {
   return new FleetRuntime({
     config: {
@@ -125,7 +139,7 @@ function runtimeOn(
     },
     source,
     clock: OPTIONS.clock,
-    logger: silentLogger,
+    logger,
     watchDirs: [join(FIXTURES, "healthy")],
     healthDir: join(FIXTURES, "healthy"),
     // null, not FLEET_HOME: this suite stubs the snapshot source directly, and
@@ -493,6 +507,32 @@ describe("the read discipline the refresh loop runs on", () => {
         degraded.fleet.status.detail.includes("the fleet home went away"),
       "and it says what went wrong, in one line",
     );
+  });
+
+  test("a failed read's warning names every lens the returned document shows as unreadable", async () => {
+    const runner = stubRunner(async () => {
+      throw new Error("the fleet home went away");
+    });
+    const logger = recordingLogger();
+    const runtime = runtimeOn(fleetSource(FLEET_HOME, runner, {}), 5_000, logger);
+
+    const document = await runtime.document();
+
+    const lensNames = ["fleet", "deck", "landed", "health"] as const;
+    const darkened = lensNames.filter((lens) => document[lens].status.state === "unreadable");
+    assert.ok(darkened.length > 0, "the failure must darken at least one lens, or this test proves nothing");
+
+    assert.equal(logger.warnings.length, 1);
+    const [warning] = logger.warnings;
+    for (const lens of darkened) {
+      assert.ok(warning.message.includes(lens), `expected the warning to name the ${lens} lens: ${warning.message}`);
+    }
+    for (const lens of lensNames.filter((lens) => !darkened.includes(lens))) {
+      assert.ok(
+        !warning.message.includes(lens),
+        `expected the warning not to name the ${lens} lens, which stayed current: ${warning.message}`,
+      );
+    }
   });
 
   test("a failed read leaves the panel trying again rather than stuck", async () => {

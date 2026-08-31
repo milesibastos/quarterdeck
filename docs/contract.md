@@ -493,7 +493,7 @@ rather than an assumption.
 | --- | --- | --- |
 | `supervisor` | The liveness beacon in the state directory, touched on every supervision poll. It holds nothing; its modification time is the entire signal, and `alive` is that age against the fleet's own grace window. | No beacon. A file that has moved and a cycle that has stopped look identical from outside, and reporting the wrong one is worse than saying so. |
 | `overdue` | One entry per worker the fleet has out - a `.meta` file - whose one-line busy record says idle, for longer than the fleet's own wedge threshold, with no declared wait on the last line of its status log. | The state directory cannot be listed. A single worker's record that is missing, malformed or carrying a retired incarnation token is *unknown*, never idle: that is upstream's own rule, and inventing "idle" from a record we could not read would report a working fleet as stalled. |
-| `queue` | The delivery queue in the state directory, one queued notification per line. Its depth is the whole signal. | Nothing normal. An absent file is an empty queue, not an unreadable one - the fleet creates it when it first has something to deliver, so "not there yet" and "nothing queued" are the same fact. A file that exists and will not be read is unreadable. |
+| `queue` | The delivery queue in the state directory, one queued notification per line. Its depth is the whole signal. | The state directory cannot be listed. A file that exists and will not be read is unreadable too, but an absent file only reads as an empty queue once the directory it would live in is confirmed listable - ENOENT on the file alone cannot tell "not there yet" from "the directory is gone", and the fleet creates the file when it first has something to deliver, so only the first of those is "nothing queued". |
 | `attendance` | Two markers in the state directory, read in one listing: the away marker, and the per-home session lock. Each holds nothing; its presence is the entire signal. | The state directory cannot be listed. Both facts come from the one listing on purpose - a `stat` that says ENOENT cannot tell "the marker is not there" from "the directory is not there", and answering "away mode is off" for a home the panel cannot see would be inventing a fact about it. `locked` is whether a lock is held and nothing finer: whether its holder is still alive is the fleet's own liveness policy, read from a process table with the fleet's own rules about what counts as a harness, and reimplementing that here is exactly what the quarantine refuses. |
 | `drift` | The work item record and the state directory, compared. A row in flight with no worker behind it; a row still held while its own status log records the decision answered. | Either record cannot be read. Whether a record disagrees with reality is a question about both halves, so one missing takes the signal rather than producing an answer from the half that is left. |
 
@@ -574,8 +574,9 @@ shifted is the exact failure the pin exists to prevent.
 
 This is distinct from `ContractParseError`, which a malformed snapshot throws.
 The recovery differs on purpose: a half-written file will be whole a moment
-later, so the runtime keeps showing last-known-good and marks the fleet and deck
-lenses unreadable. A changed schema will still be changed on the next read.
+later, so the runtime keeps showing last-known-good and marks the fleet, deck
+and landed lenses unreadable. A changed schema will still be changed on the
+next read.
 
 Neither affects health, which is read separately and reports for itself.
 
