@@ -1,5 +1,5 @@
 import type { DeckItem, Lens, Worker } from "@/types/document.ts";
-import type { AnsweringSession } from "@/ui/deck/answer-control";
+import type { AnsweringSession } from "@/ui/lib/answering";
 import { LensFrame } from "@/ui/lens-frame";
 import { ago } from "@/ui/lib/age";
 import { DecisionCard } from "@/ui/needs-you/decision-card";

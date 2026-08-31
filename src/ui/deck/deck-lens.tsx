@@ -2,7 +2,6 @@ import type { DeckItem, Lens, Worker } from "@/types/document.ts";
 import { GrokEvent } from "@/ui/components/grok/grok-event";
 import type { DeckRow } from "@/ui/deck/deck-groups";
 import { DeckItemRow } from "@/ui/deck/deck-row";
-import type { AnsweringSession } from "@/ui/deck/answer-control";
 import { LensFrame } from "@/ui/lens-frame";
 import { ago } from "@/ui/lib/age";
 import { needsYou } from "@/ui/needs-you/needs-you";
@@ -66,14 +65,12 @@ function Section({
   title,
   rows,
   nowMs,
-  session,
 }: {
   /** The pile's handle in the markup, so a test can assert one pile alone. */
   name: string;
   title: string;
   rows: readonly DeckRow[];
   nowMs: number;
-  session: AnsweringSession | null;
 }) {
   if (rows.length === 0) return null;
   return (
@@ -83,7 +80,7 @@ function Section({
           at once rather than three rows of whitespace. */}
       <ul className="card-grid [--qd-card-min:26rem]">
         {rows.map((row) => (
-          <DeckItemRow key={row.item.id} row={row} nowMs={nowMs} session={session} />
+          <DeckItemRow key={row.item.id} row={row} nowMs={nowMs} />
         ))}
       </ul>
     </section>
@@ -142,19 +139,12 @@ export function DeckLens({
   lens,
   fleet,
   nowMs,
-  session = null,
 }: {
   lens: Lens<readonly DeckItem[]>;
   /** The fleet's work items, read only to name and settle the deck's blockers. */
   fleet: readonly Worker[];
   /** Chosen by the composition point, so every age on the page agrees. */
   nowMs: number;
-  /**
-   * How an answer reaches the server. Handed down from the composition point
-   * because `src/ui/` may not read the runtime, and `null` when the panel has
-   * nowhere to record one.
-   */
-  session?: AnsweringSession | null;
 }) {
   const { rest } = needsYou(lens.content, fleet);
   const shown =
@@ -187,28 +177,24 @@ export function DeckLens({
             title="Waiting on something else"
             rows={rest.held}
             nowMs={nowMs}
-            session={session}
           />
           <Section
             name="blocked"
             title="Blocked"
             rows={rest.blocked}
             nowMs={nowMs}
-            session={session}
           />
           <Section
             name="queued"
             title="Queued"
             rows={rest.queued}
             nowMs={nowMs}
-            session={session}
           />
           <Section
             name="in-flight"
             title="In flight"
             rows={rest.inFlight}
             nowMs={nowMs}
-            session={session}
           />
         </div>
       )}

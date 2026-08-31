@@ -1,6 +1,6 @@
 import type { DeckItem } from "@/types/document.ts";
 import type { Blocker, DeckRow } from "@/ui/deck/deck-groups";
-import type { AnsweringSession } from "@/ui/deck/answer-control";
+import type { AnsweringSession } from "@/ui/lib/answering";
 import { AnswerControl } from "@/ui/needs-you/answer-control";
 import { agoAtPrecision } from "@/ui/lib/age";
 import { cn } from "@/ui/lib/utils";

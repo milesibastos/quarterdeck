@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import { GrokProjectPicker } from "@/ui/components/grok/grok-project-picker";
-import type { AnsweringSession } from "@/ui/deck/answer-control";
+import type { AnsweringSession } from "@/ui/lib/answering";
 
 /**
  * The control that answers a held decision, in the terminal grammar.
@@ -22,12 +22,13 @@ import type { AnsweringSession } from "@/ui/deck/answer-control";
  * item is queued or in flight would be this panel guessing at fleet semantics
  * from a distance, which is the failure the contract names.
  *
- * ## Why this lives beside the band rather than in the deck
+ * ## Why this is the only answer control
  *
- * The deck draws no answerable item - the band above it takes every one of them
- * - so this control only ever appears here. It is the same request in the same
- * shape as `src/ui/deck/answer-control.tsx`, whose `AnsweringSession` it still
- * takes, because the composition point hands one address to both bands.
+ * The deck draws no answerable item - `needsYou` hands the deck `rest.held`,
+ * which is every hold the band did not take, and the band takes every one that
+ * `isAnswerable`. The deck kept a second copy of this control for a while
+ * anyway; it was unreachable, and it is gone. See
+ * `docs/decisions/2026-08-31-what-the-parallel-lens-build-duplicated.md`.
  *
  * ## Why the closes are a radiogroup and the answer is not a composer
  *

@@ -9,7 +9,7 @@ import { ContractRefusal } from "@/ui/contract-refusal";
 import { FleetPicker } from "@/ui/fleet-picker";
 import { Shell } from "@/ui/shell";
 import { LiveRefresh } from "@/ui/live-refresh";
-import type { AnsweringSession } from "@/ui/deck/answer-control";
+import type { AnsweringSession } from "@/ui/lib/answering";
 import type { MergeSession } from "@/ui/needs-you/merge-card";
 import type { TerminalReader } from "@/ui/fleet/worker-terminal";
 import type { Rebuild } from "@/ui/snapshot-badge";
