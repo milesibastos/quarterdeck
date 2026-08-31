@@ -9,14 +9,17 @@ decision held for a person. Below it, the fleet lens draws a worker card and
 lifecycle rail per piece of work under way - a card also opens that worker's
 terminal on demand, read only and never on the first paint, see
 `docs/decisions/2026-08-31-the-worker-terminal.md` - the deck lens draws what
-the fleet is handling by itself, and the shipshape lens draws the five health
-signals and its own dark state. All of them read from a configured fleet home,
-or from a synthetic fixture fleet when none is configured - see
-`fixtures/README.md` for `QUARTERDECK_FLEET_HOME`. An operator with more than
-one configured fleet
-picks which they are looking at, and their browser remembers it. The panel
-still executes nothing: answering a decision writes a durable record for the
-fleet to pick up, never a command the page runs itself - see
+the fleet is handling by itself, the landed band draws what finished and which
+home finished it, and the shipshape lens draws the five health signals and its
+own dark state. A disclosure bar closes the page, naming every absence the
+document declares and which of three reasons it has - see
+`docs/decisions/2026-08-31-landed-work-and-the-disclosure-bar.md`. All of them
+read from a configured fleet home, or from a synthetic fixture fleet when none
+is configured - see `fixtures/README.md` for `QUARTERDECK_FLEET_HOME`. An
+operator with more than one configured fleet picks which they are looking at,
+and their browser remembers it. The panel still executes nothing: answering a
+decision writes a durable record for the fleet to pick up, never a command the
+page runs itself - see
 `docs/decisions/2026-08-30-answering-a-held-decision.md`.
 
 ## Run it
