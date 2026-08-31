@@ -85,6 +85,7 @@ function formatValue(v: GrokSettingValue) {
 export function GrokSettings({
   sections = DEFAULT_SECTIONS,
   defaultActive = "timestamps",
+  legend = "↑/↓ nav · Space toggle",
   onClose,
   onToggle,
   onExpand,
@@ -92,9 +93,16 @@ export function GrokSettings({
 }: {
   sections?: GrokSettingSection[];
   defaultActive?: string;
+  /**
+   * The footer legend. A prop because it is a claim about which keys work:
+   * the component itself closes only by click and expands nothing on its
+   * own, so a host that has wired F2/Esc or a nested picker to `onExpand`
+   * should say so rather than inherit a claim it does not honour.
+   */
+  legend?: React.ReactNode;
   onClose?: () => void;
   onToggle?: (id: string) => void;
-  /** Fired when → is pressed on an `expandable` row. */
+  /** Fired when → is pressed on an `expandable` row; host-driven, no local effect. */
   onExpand?: (id: string) => void;
   className?: string;
 }) {
@@ -242,7 +250,7 @@ export function GrokSettings({
         className="border-t px-3 py-1.5 text-[11px]"
         style={{ borderColor: BORDER, color: DIM }}
       >
-        ↑/↓ nav · Space toggle · → expand · F2/Esc close
+        {legend}
       </div>
     </div>
   );
