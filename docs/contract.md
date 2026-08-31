@@ -178,7 +178,8 @@ DeckItem {
   kind: "build" | "research" | null // null when the row did not say
   state: "queued" | "in-flight"
   priority: "now" | "next" | "later"
-  since: string | null             // ISO-8601; null when no start date was recorded
+  since: string | null             // a day, YYYY-MM-DD, or a full ISO-8601 instant;
+                                   // null when no start date was recorded
   blocked: { ids: string[], reason: string | null } | null
   hold: { waitingOn: string, reason: string | null, deferredTo: string | null } | null
   actionable: boolean              // waiting on a person right now
@@ -199,6 +200,14 @@ and the lens says so; dating it from the moment upstream happened to look made
 every such row read as having just arrived. It is also part of the answer
 record's identity, where the absence travels as the empty string - a stable name
 where the read's own moment was not.
+
+`since` also carries **two forms, and which one is a fact about the record**: a
+calendar day, `YYYY-MM-DD`, when the operator wrote a day, and a full ISO-8601
+instant when the record held one. A backlog line usually says `(since
+2026-08-31)` and carries no time at all. The day is not widened to midnight, and
+a reader must phrase an age at the precision it finds - see
+`docs/decisions/2026-08-31-the-precision-a-date-carries.md`. `hold.deferredTo`
+and `LandedItem.landedOn` carry a day in the same slot for the same reason.
 
 Blocked and held are overlays rather than states: an item can be queued and
 held, or in flight and blocked. Upstream keeps them orthogonal and so does this.

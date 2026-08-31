@@ -154,20 +154,26 @@ function priorityOf(priority: string | null): Priority {
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
- * A record's start, as an instant, or `null` when there is no start to give.
+ * A record's start, at the precision the record carries, or `null` when there
+ * is no start to give.
  *
  * Upstream reports it as the operator wrote it: usually a calendar date, which
- * widens to midnight UTC, occasionally a full instant, and often nothing at
- * all. A row that did not say, or said something that is not a date, gets
- * `null` - not the moment upstream looked. The two are different facts, and
- * dating a row from the read makes an item that has been queued for a month
- * read as having just arrived.
+ * stays a calendar date, occasionally a full instant, and often nothing at all.
+ * The day is deliberately not widened to midnight. A backlog line reads
+ * `(since 2026-08-31)` and carries no time, so a midnight it never stated is a
+ * fact invented here, and a reader downstream counts hours from it and prints
+ * an age that looks measured and is not - a row filed that morning read "14h
+ * ago" in the evening, which was the distance from midnight rather than the age
+ * of the work. `deferredTo` and `landedOn` below carry a day the same way.
+ *
+ * A row that did not say, or said something that is neither a day nor an
+ * instant, gets `null` - not the moment upstream looked. The two are different
+ * facts, and dating a row from the read makes an item that has been queued for
+ * a month read as having just arrived.
  */
 function sinceOf(since: string | null): string | null {
   if (since === null) return null;
-  if (ISO_DATE.test(since) && !Number.isNaN(Date.parse(since))) {
-    return `${since}T00:00:00.000Z`;
-  }
+  if (ISO_DATE.test(since) && !Number.isNaN(Date.parse(since))) return since;
   return isIsoInstant(since) ? since : null;
 }
 

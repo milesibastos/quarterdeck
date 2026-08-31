@@ -54,6 +54,13 @@ the panel's second and last write path -
 adding anything else that acts, because it settles what a panel that borrows
 authority may and may not check for itself.
 
+One defect fix worth reading before touching anything that prints an age: the
+deck used to widen a day-precision start date to midnight and count hours from
+it - `docs/decisions/2026-08-31-the-precision-a-date-carries.md`. It settles
+that `DeckItem.since` carries two declared forms, that a renderer must phrase an
+age at the precision it finds, and it lists every other age on the page with
+where its timestamp actually comes from.
+
 One thing the layout still keeps a place for and has deliberately not built: the
 thin shipshape strip the wireframe draws in the masthead, named in
 `docs/decisions/2026-08-31-what-needs-you-owns-the-first-screen.md`.

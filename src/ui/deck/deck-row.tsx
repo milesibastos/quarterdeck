@@ -1,6 +1,6 @@
 import type { DeckItem, Priority } from "@/types/document.ts";
 import { Badge } from "@/ui/components/badge";
-import { ago } from "@/ui/lib/age";
+import { agoAtPrecision } from "@/ui/lib/age";
 import { cn } from "@/ui/lib/utils";
 import type { Blocker, DeckRow as Row } from "@/ui/deck/deck-groups";
 import { isAnswerable } from "@/ui/deck/deck-groups";
@@ -148,11 +148,13 @@ export function DeckItemRow({
         piece of work by. Project and kind are shown only when the row said -
         a hand-written backlog line often names neither, and a guessed project
         is worse than an absent one. The date is the same: a row with no start
-        says so rather than being stamped with the moment upstream looked.
+        says so rather than being stamped with the moment upstream looked, and a
+        row whose start is a day reads as a day rather than as an hour count
+        measured from a midnight the record never stated.
       */}
       <p className="mt-0.5 font-mono text-[0.6875rem] wrap-anywhere text-muted-foreground">
         <span className={item.since === null ? undefined : "text-foreground"}>
-          {item.since === null ? "no start date" : ago(item.since, nowMs)}
+          {item.since === null ? "no start date" : agoAtPrecision(item.since, nowMs)}
         </span>
         {` · ${STATE_WORDS[item.state]}`}
         {item.project !== null && (
