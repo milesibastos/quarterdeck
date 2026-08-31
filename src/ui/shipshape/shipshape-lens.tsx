@@ -49,7 +49,7 @@ import {
  */
 function Dark() {
   return (
-    <p className="rounded-lg border border-dashed border-muted-foreground/40 px-3 py-2 text-xs text-muted-foreground">
+    <p className="border border-dashed border-term-faint px-3 py-2 font-mono text-[13px] leading-[1.55] text-term-muted">
       Dark by design, not broken. Health is read from files that carry no
       compatibility promise, so this lens can fail on its own. Fleet and deck
       are read from a different source and carry their own status; what is gone
@@ -98,7 +98,7 @@ function Supervisor({ signal, nowMs }: { signal: SupervisorSignal; nowMs: number
         label="Stopped"
         tone="bad"
       >
-        <p className="text-xs text-foreground">
+        <p>
           {`Last seen ${seen}. The cycle is not running, so nothing is refreshing the picture the rest of the panel draws.`}
         </p>
       </SignalBlock>
@@ -114,7 +114,7 @@ function Supervisor({ signal, nowMs }: { signal: SupervisorSignal; nowMs: number
         label="Alive but silent"
         tone="watch"
       >
-        <p className="text-xs text-foreground">
+        <p>
           {`Last seen ${seen}. The cycle reports itself alive, but it has been quiet for longer than ${SUPERVISION_SILENT_AFTER_LABEL}, which is long enough to read the rest of the panel as a picture that may not have been refreshed since.`}
         </p>
       </SignalBlock>
@@ -129,7 +129,7 @@ function Supervisor({ signal, nowMs }: { signal: SupervisorSignal; nowMs: number
       label="Alive"
       tone="good"
     >
-      <p className="text-xs text-foreground">
+      <p>
         {`Last seen ${seen}, inside the ${SUPERVISION_SILENT_AFTER_LABEL} this panel allows between sightings.`}
       </p>
     </SignalBlock>
@@ -179,7 +179,7 @@ function Queue({ signal }: { signal: QueueSignal }) {
         label="Nothing queued"
         tone="good"
       >
-        <p className="text-xs text-foreground">
+        <p>
           {`The queue was read and found holding nothing, so everything the fleet has raised has already been delivered.`}
         </p>
       </SignalBlock>
@@ -197,7 +197,7 @@ function Queue({ signal }: { signal: QueueSignal }) {
         label={`${queued} queued`}
         tone="good"
       >
-        <p className="text-xs text-foreground">
+        <p>
           {`${holding} waiting, under the ${QUEUE_BACKED_UP_AT_LABEL} this panel reads as a queue that has stopped draining. A queue with work passing through it is the queue working.`}
         </p>
       </SignalBlock>
@@ -212,7 +212,7 @@ function Queue({ signal }: { signal: QueueSignal }) {
       label={`${queued} queued`}
       tone="watch"
     >
-      <p className="text-xs text-foreground">
+      <p>
         {`${holding} waiting, ${QUEUE_BACKED_UP_AT_LABEL} or more, which reads as events arriving faster than they are handled rather than as work passing through.`}
       </p>
     </SignalBlock>
@@ -269,21 +269,28 @@ function Attendance({ signal }: { signal: AttendanceSignal }) {
       label={locked ? `${attendance} · home held` : attendance}
       tone={away ? "watch" : "good"}
     >
+      {/*
+        The two values keep `text-foreground` rather than taking the grammar's
+        `--term-fg`: `tests/shipshape-lens.test.ts` pins the whole class string
+        beside `data-fact`, and the two tokens are the same stop in dark and one
+        rank apart in light, where the brighter one reads as emphasis on the
+        value. Not worth editing an accepted test for.
+      */}
       <dl className="flex flex-col gap-1">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-xs">
-          <dt className="min-w-0 text-muted-foreground">away mode</dt>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+          <dt className="min-w-0 text-term-muted">away mode</dt>
           <dd data-fact="away" className="font-mono text-foreground">
             {away ? "on" : "off"}
           </dd>
         </div>
-        <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-xs">
-          <dt className="min-w-0 text-muted-foreground">home</dt>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+          <dt className="min-w-0 text-term-muted">home</dt>
           <dd data-fact="locked" className="font-mono text-foreground">
             {locked ? "held by a session" : "not held"}
           </dd>
         </div>
       </dl>
-      <p className="text-xs text-foreground">
+      <p>
         {away
           ? `Away mode is on, so what the fleet raises reaches the operator by another route than this page.`
           : `Away mode is off, so the fleet reaches the operator the usual way.`}
@@ -330,7 +337,7 @@ function OverdueWork({ signal, nowMs }: { signal: OverdueSignal; nowMs: number }
         label="Nothing overdue"
         tone="good"
       >
-        <p className="text-xs text-foreground">
+        <p>
           The check read cleanly and found nothing waiting longer than it should.
         </p>
       </SignalBlock>
@@ -350,10 +357,10 @@ function OverdueWork({ signal, nowMs }: { signal: OverdueSignal; nowMs: number }
         {signal.overdue.map((item) => (
           <li
             key={item.id}
-            className="flex flex-wrap items-baseline justify-between gap-x-3 text-xs"
+            className="flex flex-wrap items-baseline justify-between gap-x-3"
           >
-            <span className="min-w-0 wrap-anywhere font-mono text-foreground">{item.id}</span>
-            <span className="font-mono text-muted-foreground">
+            <span className="min-w-0 wrap-anywhere">{item.id}</span>
+            <span className="text-term-muted">
               {`waiting since ${ago(item.waitingSince, nowMs)}`}
             </span>
           </li>
@@ -397,7 +404,7 @@ function Drift({ signal }: { signal: DriftSignal }) {
         label="No disagreement"
         tone="good"
       >
-        <p className="text-xs text-foreground">
+        <p>
           The records were compared and every one of them agrees with what the fleet is doing.
         </p>
       </SignalBlock>
@@ -415,9 +422,9 @@ function Drift({ signal }: { signal: DriftSignal }) {
     >
       <ul className="flex flex-col gap-1.5">
         {signal.disagreements.map((disagreement) => (
-          <li key={disagreement.record} className="flex flex-col text-xs">
-            <span className="wrap-anywhere font-mono text-foreground">{disagreement.record}</span>
-            <span className="wrap-anywhere text-muted-foreground">{disagreement.detail}</span>
+          <li key={disagreement.record} className="flex flex-col">
+            <span className="wrap-anywhere">{disagreement.record}</span>
+            <span className="wrap-anywhere text-term-muted">{disagreement.detail}</span>
           </li>
         ))}
       </ul>
@@ -443,13 +450,13 @@ export function ShipshapeLens({
         it gets the note below instead.
       */}
       {status.state === "stale" && (
-        <p className="text-xs text-muted-foreground">
+        <p className="font-mono text-[13px] leading-[1.55] text-term-faint">
           {`Last good reading, taken ${ago(status.asOf, nowMs)}.`}
         </p>
       )}
       {status.state === "unreadable" && <Dark />}
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-3">
         <Supervisor signal={content.supervisor} nowMs={nowMs} />
         <Queue signal={content.queue} />
         <Attendance signal={content.attendance} />
