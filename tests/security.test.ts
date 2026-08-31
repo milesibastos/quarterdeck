@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 import { SESSION_HEADER } from "../src/runtime/session.ts";
-import { rawRequest, startPanel, testPort, type Panel } from "./lib/server.ts";
+import { portsFor } from "./lib/ports.ts";
+import { rawRequest, startPanel, type Panel } from "./lib/server.ts";
 
 /**
  * The security baseline, exercised against the built server.
@@ -11,9 +12,11 @@ import { rawRequest, startPanel, testPort, type Panel } from "./lib/server.ts";
  * guard means shipping a build where an acting endpoint exists and the guard
  * does not.
  */
+
+const nextPort = portsFor(import.meta.filename);
 describe("the server's front door", () => {
   let panel: Panel;
-  const port = testPort(8);
+  const port = nextPort();
   before(async () => {
     panel = await startPanel({ port, fixtureSet: "healthy" });
   });
@@ -95,7 +98,7 @@ describe("the server's front door", () => {
 describe("the acting guard", () => {
   let panel: Panel;
   before(async () => {
-    panel = await startPanel({ port: testPort(9), fixtureSet: "healthy" });
+    panel = await startPanel({ port: nextPort(), fixtureSet: "healthy" });
   });
   after(() => panel.stop());
 

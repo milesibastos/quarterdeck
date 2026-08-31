@@ -3,13 +3,8 @@ import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:f
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
-import {
-  REPO_ROOT,
-  startPanel,
-  testPort,
-  until,
-  type Panel,
-} from "./lib/server.ts";
+import { portsFor } from "./lib/ports.ts";
+import { REPO_ROOT, startPanel, until, type Panel } from "./lib/server.ts";
 
 /**
  * The panel pointed at a fleet home, end to end through the built server.
@@ -24,6 +19,8 @@ import {
  * shape upstream's contract describes, and nothing else. No fleet is needed,
  * and none is looked for.
  */
+
+const nextPort = portsFor(import.meta.filename);
 
 /** The rendered page, with React's text-node markers removed. */
 async function body(panel: Panel): Promise<string> {
@@ -87,7 +84,7 @@ describe("the panel pointed at a fleet home", () => {
   before(async () => {
     home = await fakeFleetHome("upstream-shape");
     panel = await startPanel({
-      port: testPort(12),
+      port: nextPort(),
       now: "2099-01-01T09:15:30.000Z",
       env: { QUARTERDECK_FLEET_HOME: home },
     });
@@ -158,7 +155,7 @@ describe("a fleet home whose backlog changes", () => {
   before(async () => {
     home = await fakeFleetHome("upstream-shape");
     panel = await startPanel({
-      port: testPort(13),
+      port: nextPort(),
       now: "2099-01-01T09:15:30.000Z",
       env: { QUARTERDECK_FLEET_HOME: home },
     });

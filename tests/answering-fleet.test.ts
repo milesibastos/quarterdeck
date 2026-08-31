@@ -6,7 +6,8 @@ import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
 import { SESSION_HEADER } from "../src/runtime/session.ts";
 import { FLEET_COOKIE } from "../src/types/selection.ts";
-import { startPanel, testPort, type Panel } from "./lib/server.ts";
+import { portsFor } from "./lib/ports.ts";
+import { startPanel, type Panel } from "./lib/server.ts";
 
 /**
  * The answer control follows the selected fleet's own spool, driven against
@@ -21,11 +22,9 @@ import { startPanel, testPort, type Panel } from "./lib/server.ts";
  * fleet with no spool configured refuses to record rather than guessing, and
  * that a single fleet's existing behaviour (`tests/answering.test.ts`) is
  * unchanged.
- *
- * The ports are taken from the free 50s range: `tests/answering.test.ts` holds
- * the 30s, `tests/shipshape-lens.test.ts` the low 30s, and `tests/fleet-switch.test.ts`
- * the 40s.
  */
+
+const nextPort = portsFor(import.meta.filename);
 
 const ANSWERABLE = { id: "wi-tidewater-126", since: "2099-01-01T07:20:05.000Z" };
 
@@ -117,7 +116,7 @@ async function answerAs(
 }
 
 describe("two fleets, each with their own spool", () => {
-  const port = testPort(50);
+  const port = nextPort();
   let panel: Panel;
   let dirA: string;
   let dirB: string;
@@ -175,7 +174,7 @@ describe("two fleets, each with their own spool", () => {
 });
 
 describe("a fleet with no spool configured, alongside one that has", () => {
-  const port = testPort(51);
+  const port = nextPort();
   let panel: Panel;
   let dirA: string;
 

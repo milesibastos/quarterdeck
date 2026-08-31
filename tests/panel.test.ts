@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
-import { copyFixtures, startPanel, testPort, until, type Panel } from "./lib/server.ts";
+import { portsFor } from "./lib/ports.ts";
+import { copyFixtures, startPanel, until, type Panel } from "./lib/server.ts";
 
 /**
  * What the panel renders, driven end to end through the built server.
@@ -15,6 +16,8 @@ import { copyFixtures, startPanel, testPort, until, type Panel } from "./lib/ser
  * `describe("the deck lens", ...)` below asserts what it draws. The document
  * behind them is asserted in `document.test.ts`.
  */
+
+const nextPort = portsFor(import.meta.filename);
 
 /**
  * The rendered page, with React's text-node markers removed.
@@ -43,7 +46,7 @@ function lensStatus(html: string, name: string): string | null {
 describe("the healthy fleet", () => {
   let panel: Panel;
   before(async () => {
-    panel = await startPanel({ port: testPort(1), fixtureSet: "healthy" });
+    panel = await startPanel({ port: nextPort(), fixtureSet: "healthy" });
   });
   after(() => panel.stop());
 
@@ -71,7 +74,7 @@ describe("the healthy fleet", () => {
 describe("the empty fleet", () => {
   let panel: Panel;
   before(async () => {
-    panel = await startPanel({ port: testPort(2), fixtureSet: "empty" });
+    panel = await startPanel({ port: nextPort(), fixtureSet: "empty" });
   });
   after(() => panel.stop());
 
@@ -87,7 +90,7 @@ describe("the empty fleet", () => {
 describe("the stale fleet", () => {
   test("renders its lenses and says each one is stale", async () => {
     const panel = await startPanel({
-      port: testPort(3),
+      port: nextPort(),
       fixtureSet: "stale",
       // Long after the snapshot was generated, pinned so this never races.
       now: "2019-03-05T11:00:00.000Z",
@@ -105,7 +108,7 @@ describe("the stale fleet", () => {
 
   test("does not call it stale inside the freshness window", async () => {
     const panel = await startPanel({
-      port: testPort(4),
+      port: nextPort(),
       fixtureSet: "stale",
       // Thirty seconds after it was generated, inside the sixty-second window.
       now: "2019-03-04T11:00:30.000Z",
@@ -121,7 +124,7 @@ describe("the stale fleet", () => {
 describe("a snapshot this build does not understand", () => {
   let panel: Panel;
   before(async () => {
-    panel = await startPanel({ port: testPort(5), fixtureSet: "mismatched" });
+    panel = await startPanel({ port: nextPort(), fixtureSet: "mismatched" });
   });
   after(() => panel.stop());
 
@@ -145,7 +148,7 @@ describe("per-lens degradation", () => {
   test("shipshape goes dark while fleet and deck render normally", async () => {
     // The health-dark set has no health file at all: the quarantined module
     // degrades rather than throwing, and only its own lens notices.
-    const panel = await startPanel({ port: testPort(10), fixtureSet: "health-dark" });
+    const panel = await startPanel({ port: nextPort(), fixtureSet: "health-dark" });
     try {
       const html = await body(panel);
       assert.equal(lensStatus(html, "shipshape"), "unreadable");
@@ -159,7 +162,7 @@ describe("per-lens degradation", () => {
   });
 
   test("the deck goes dark on its own when upstream could not read the backlog", async () => {
-    const panel = await startPanel({ port: testPort(11), fixtureSet: "deck-dark" });
+    const panel = await startPanel({ port: nextPort(), fixtureSet: "deck-dark" });
     try {
       const html = await body(panel);
       assert.equal(lensStatus(html, "deck"), "unreadable");
@@ -175,7 +178,7 @@ describe("a snapshot that stops parsing", () => {
   test("keeps showing the last fleet and deck that read cleanly", async () => {
     const fixtureRoot = await copyFixtures();
     const panel = await startPanel({
-      port: testPort(6),
+      port: nextPort(),
       fixtureSet: "healthy",
       fixtureRoot,
     });
@@ -208,7 +211,7 @@ describe("a snapshot that stops parsing", () => {
 describe("the deck lens", () => {
   let panel: Panel;
   before(async () => {
-    panel = await startPanel({ port: testPort(12), fixtureSet: "healthy" });
+    panel = await startPanel({ port: nextPort(), fixtureSet: "healthy" });
   });
   after(() => panel.stop());
 
@@ -251,7 +254,7 @@ describe("the deck lens", () => {
   test("a blocker it cannot settle still blocks, named by its identity", async () => {
     // The same deck with no fleet beside it: nothing can say the blocker
     // finished, so the honest answer is that the item is still blocked.
-    const alone = await startPanel({ port: testPort(13), fixtureSet: "deck-only" });
+    const alone = await startPanel({ port: nextPort(), fixtureSet: "deck-only" });
     try {
       const html = await body(alone);
       assert.deepEqual(pile(html, "blocked"), ["wi-cordage-412"]);
@@ -264,7 +267,7 @@ describe("the deck lens", () => {
   });
 
   test("says a deck it could not read is unknown, not empty", async () => {
-    const dark = await startPanel({ port: testPort(14), fixtureSet: "deck-dark" });
+    const dark = await startPanel({ port: nextPort(), fixtureSet: "deck-dark" });
     try {
       const html = await body(dark);
       assert.ok(html.includes("the deck could not be read"));

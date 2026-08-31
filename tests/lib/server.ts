@@ -4,7 +4,6 @@ import { existsSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { derivePort, PORT_RANGE_START } from "../../src/config/port.ts";
 
 /**
  * Starting the built panel, for tests that drive it over HTTP.
@@ -37,16 +36,6 @@ export async function copyFixtures(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), "quarterdeck-fixtures-"));
   await cp(join(REPO_ROOT, "fixtures"), dir, { recursive: true });
   return dir;
-}
-
-/**
- * A port for this test file.
- *
- * Derived from the worktree like the panel's own, then offset per test file so
- * two suites - or a suite and a panel the author left running - never collide.
- */
-export function testPort(offset: number): number {
-  return ((derivePort(REPO_ROOT) - PORT_RANGE_START + offset + 100) % 900) + PORT_RANGE_START + 50;
 }
 
 export interface Panel {
@@ -88,18 +77,78 @@ export async function startPanel(options: StartOptions): Promise<Panel> {
   });
 
   const stop = async () => {
-    child.kill("SIGTERM");
-    await new Promise((resolve) => child.once("exit", resolve));
-    if (!options.fixtureRoot) await rm(fixtureRoot, { recursive: true, force: true });
+    try {
+      await stopChild(child, url);
+    } finally {
+      if (!options.fixtureRoot) await rm(fixtureRoot, { recursive: true, force: true });
+    }
   };
 
   try {
     await waitForReady(url, child);
   } catch (error) {
-    await stop();
+    // The startup failure is the finding; a stop that also times out is
+    // downstream of it, and the child is killed either way.
+    await stop().catch(() => {});
     throw error;
   }
   return { url, fixtureRoot, stop };
+}
+
+/**
+ * How long a stop may wait for the child.
+ *
+ * A healthy stop is under three and a half seconds: Next's production shutdown
+ * finishes pending requests and then waits for idle keep-alive sockets, which
+ * the client lets go of after about three. Ten seconds is threefold headroom
+ * over that, and short enough that a child which will not exit fails its test
+ * instead of wedging the run - which is what an unbounded wait did, once, for
+ * fifty minutes.
+ */
+const STOP_TIMEOUT_MS = 10_000;
+
+/** How long to wait for the corpse after SIGKILL, which nothing can catch. */
+const KILL_TIMEOUT_MS = 2_000;
+
+/**
+ * Ends a panel child, or says so.
+ *
+ * SIGTERM, then a bounded wait, then SIGKILL and a thrown error. The error is
+ * the point: a child that ignores SIGTERM is a bug in the panel's stop path,
+ * and killing it quietly would hide it for as long as the suite stayed green.
+ */
+export async function stopChild(
+  child: ChildProcess,
+  url: string,
+  timeoutMs: number = STOP_TIMEOUT_MS,
+): Promise<void> {
+  if (child.exitCode !== null || child.signalCode !== null) return;
+
+  child.kill("SIGTERM");
+  if (await exits(child, timeoutMs)) return;
+
+  child.kill("SIGKILL");
+  await exits(child, KILL_TIMEOUT_MS);
+  throw new Error(
+    `the panel at ${url} (pid ${child.pid}) did not exit within ${timeoutMs}ms of ` +
+      `SIGTERM, and was killed. Its shutdown is hanging: the server did not stop ` +
+      `accepting connections, or is waiting on one that never closed.`,
+  );
+}
+
+/** Whether the child exited before the deadline. Leaves nothing running. */
+function exits(child: ChildProcess, timeoutMs: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => {
+      child.off("exit", onExit);
+      resolve(false);
+    }, timeoutMs);
+    function onExit() {
+      clearTimeout(timer);
+      resolve(true);
+    }
+    child.once("exit", onExit);
+  });
 }
 
 async function waitForReady(url: string, child: ChildProcess): Promise<void> {

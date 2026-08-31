@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
-import { copyFixtures, startPanel, testPort, until, type Panel } from "./lib/server.ts";
+import { portsFor } from "./lib/ports.ts";
+import { copyFixtures, startPanel, until, type Panel } from "./lib/server.ts";
 
 /**
  * The refresh loop, over the wire.
@@ -13,6 +14,8 @@ import { copyFixtures, startPanel, testPort, until, type Panel } from "./lib/ser
  * cards - is React's contract, demonstrated in a browser rather than asserted
  * here; see docs/plans/done/.
  */
+
+const nextPort = portsFor(import.meta.filename);
 
 /** Reads SSE frames until `wanted` arrives, or the deadline passes. */
 async function nextEvent(
@@ -53,7 +56,7 @@ describe("the refresh loop", () => {
 
   before(async () => {
     const fixtureRoot = await copyFixtures();
-    panel = await startPanel({ port: testPort(7), fixtureSet: "healthy", fixtureRoot });
+    panel = await startPanel({ port: nextPort(), fixtureSet: "healthy", fixtureRoot });
     snapshot = join(fixtureRoot, "healthy", "snapshot.json");
   });
   after(() => panel.stop());
