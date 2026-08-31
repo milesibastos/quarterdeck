@@ -86,9 +86,15 @@ touch a filesystem, a process, or a clock.
 The one that matters most, and it is checked two ways. First, exactly one file
 carries the `quarterdeck:permitted-writer` marker and it must be
 `src/adapters/intent.ts` - a second file claiming it fails the build. Second,
-every mutating API is banned outside that file: `writeFile` and its family,
-`child_process`, `worker_threads`, `process.chdir`. Reads are untouched, so
-`readFile` and `watch` stay legal everywhere adapters may use them.
+every mutating API is banned outside that file: `writeFile` and its family.
+Reads are untouched, so `readFile` and `watch` stay legal everywhere adapters
+may use them.
+
+The writer's exemption stops at the filesystem. `child_process`,
+`worker_threads` and `process.chdir` are banned everywhere in `src/`,
+including inside the permitted writer itself - the one file that may write a
+file is still a file that may not start a process, and that is checked, not
+assumed.
 
 Starting a process is the one capability held by a second file. A real fleet
 publishes its snapshot through a command rather than a file, so the panel has to
@@ -206,9 +212,10 @@ nothing. It records a durable intent through `src/adapters/intent.ts` - one file
 one line, the shape the fleet's keyed-answer intake reads - and the fleet picks
 that up on its next check and re-verifies the decision is still open before
 acting on it. A web request is never the thing that spawns a fleet command, and
-invariant 3 is what makes that structural rather than careful: no file in `src/`
-outside the permitted writer may reach `child_process` at all, and the permitted
-writer does not import it.
+invariant 3 is what makes that structural rather than careful: no file in
+`src/` may reach `child_process` at all except the dedicated spawn door, and
+that ban holds inside the permitted writer too - it may write a file and
+nothing more.
 
 That is also why nothing here filters a stale answer out. The panel's reading is
 always older than the fleet's, so whether a decision is still open is not a

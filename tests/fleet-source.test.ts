@@ -110,6 +110,7 @@ function runtimeOn(
       fleetHome: null,
       fixtureSet: "healthy",
       fixtureRoot: FIXTURES,
+      intentDir: null,
       host: "127.0.0.1",
       port: 0,
       staleAfterMs: OPTIONS.staleAfterMs,

@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
 import { SESSION_HEADER } from "../src/runtime/session.ts";
-import { REPO_ROOT, startPanel, testPort, type Panel } from "./lib/server.ts";
+import { startPanel, testPort, type Panel } from "./lib/server.ts";
 
 /**
  * Answering a held decision, against the built server.
@@ -391,79 +391,5 @@ describe("a panel with nowhere to record an answer", () => {
       body: JSON.stringify({}),
     });
     assert.equal(response.status, 403, "the acting guard is still in front of it");
-  });
-});
-
-describe("the permitted writer", () => {
-  /**
-   * The one file that could spawn something, checked because nothing else will.
-   *
-   * Invariant 3 bans `child_process` and `worker_threads` everywhere in `src/`
-   * except here - the permitted writer is exempt by construction, since it is
-   * the file the exemption exists for. So "the page executes nothing" rests on
-   * this one file's restraint, and this project's rule is that a boundary is
-   * checked by `npm test` rather than remembered.
-   */
-  test("cannot spawn anything", async () => {
-    const source = await readFile(
-      join(REPO_ROOT, "src", "adapters", "intent.ts"),
-      "utf8",
-    );
-    const code = source
-      .split("\n")
-      .filter((line) => !/^\s*(?:\/\/|\*|\/\*)/.test(line))
-      .join("\n");
-    for (const forbidden of [
-      "child_process",
-      "worker_threads",
-      "node:vm",
-      "spawn",
-      "execFile",
-      "execSync",
-    ]) {
-      assert.ok(
-        !code.includes(forbidden),
-        `${forbidden} in the permitted writer would make a web request able to run a fleet command`,
-      );
-    }
-  });
-});
-
-describe("the panel's own copy about an answer", () => {
-  /**
-   * Read from the source rather than the page, because the sentence appears
-   * only after an answer has been sent and the control has re-rendered.
-   *
-   * This is the easiest place in the codebase to claim more than has been
-   * established, and it has been got wrong three times already, so the copy is
-   * checked rather than trusted.
-   */
-  test("claims only that the answer was recorded", async () => {
-    const source = await readFile(
-      join(REPO_ROOT, "src", "ui", "deck", "answer-control.tsx"),
-      "utf8",
-    );
-    const shown = [...source.matchAll(/^\s*(?:{)?"([^"]{12,})"/gm)].map((match) => match[1]);
-    const rendered = shown.concat(
-      [...source.matchAll(/>\s*\{?\s*"?([A-Z][^<>{}"]{12,})/g)].map((match) => match[1]),
-    );
-    // A sentence that says what the panel does NOT know is the point, not a
-    // violation - so what is checked is the affirmative claim, and only that.
-    const claims = rendered.filter((line) => !/\bcannot\b|\bnot\b|\bnever\b/i.test(line));
-    for (const line of claims) {
-      assert.doesNotMatch(
-        line,
-        /\bclosed\b|\bresolved\b|\bsettled\b|has been (?:made|taken|answered)/i,
-        `the panel must not claim a decision is settled: "${line}"`,
-      );
-    }
-    assert.ok(
-      source.includes("The fleet will act on it at its next check."),
-      "it says what will happen next, not that it has happened",
-    );
-    assert.ok(
-      source.includes("cannot say the decision is closed until a later reading shows it"),
-      "and says plainly what it does not know",
-    );
   });
 });

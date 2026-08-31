@@ -341,7 +341,11 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
   }
 
   for (const file of files) {
-    if (`src/${file.path}` === PERMITTED_WRITER) continue;
+    // The writer's exemption is narrow: it may mutate the filesystem, and
+    // that is all. child_process, worker_threads and process.chdir stay
+    // banned inside it exactly as they are everywhere else, so the file that
+    // can write is still a file that cannot spawn.
+    const writerPermitted = `src/${file.path}` === PERMITTED_WRITER;
     // The spawn door holds one capability, not both: it may start a process,
     // and every write API below is still banned in it.
     const spawnPermitted = `src/${file.path}` === PERMITTED_SPAWNER;
@@ -370,16 +374,18 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
         if (spawnPermitted && SPAWN_MODULES.includes(ref.specifier)) continue;
         found.push(ref.specifier);
       }
-      for (const name of imported) {
-        if (WRITE_APIS.includes(name) && new RegExp(`\\b${name}\\b`).test(text)) {
-          found.push(name);
+      if (!writerPermitted) {
+        for (const name of imported) {
+          if (WRITE_APIS.includes(name) && new RegExp(`\\b${name}\\b`).test(text)) {
+            found.push(name);
+          }
         }
+        const member = MEMBER_WRITE.exec(text);
+        if (member) found.push(member[1]);
+        const bracket = MEMBER_WRITE_BRACKET.exec(text);
+        if (bracket) found.push(bracket[1]);
+        if (/\bprocess\.chdir\s*\(/.test(text)) found.push("process.chdir");
       }
-      const member = MEMBER_WRITE.exec(text);
-      if (member) found.push(member[1]);
-      const bracket = MEMBER_WRITE_BRACKET.exec(text);
-      if (bracket) found.push(bracket[1]);
-      if (/\bprocess\.chdir\s*\(/.test(text)) found.push("process.chdir");
 
       for (const api of new Set(found)) {
         if (reported.has(api)) continue;
@@ -388,7 +394,9 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
           slug: "single-writer",
           file: `src/${file.path}`,
           line,
-          what: `${api} used outside ${PERMITTED_WRITER}. Exactly one file may write anything, and only ${PERMITTED_SPAWNER} may start a process.`,
+          what: writerPermitted
+            ? `${api} imported in ${PERMITTED_WRITER}. That file may write a file and nothing more - only ${PERMITTED_SPAWNER} may start a process.`
+            : `${api} used outside ${PERMITTED_WRITER}. Exactly one file may write anything, and only ${PERMITTED_SPAWNER} may start a process.`,
           why: `Everything but those files is read-only by construction. A write here means the question "what can this panel change?" can no longer be answered by reading a single file.`,
           fix: SPAWN_MODULES.includes(api)
             ? `Take a Runner from ${PERMITTED_SPAWNER} and pass it in, the way src/adapters/contract.ts does for the fleet snapshot command.`
