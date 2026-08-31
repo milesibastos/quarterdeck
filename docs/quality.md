@@ -32,6 +32,12 @@ Last reviewed: 2026-08-31, at the end of the document version 3 bump.
   nothing happen. The record format in
   `docs/decisions/2026-08-30-answering-a-held-decision.md` is the contract that
   adapter gets built against.
+- **The since-as-empty-string request id is undriven by a test.** No fixture has
+  an actionable, captain-held item with no start date, so the path where an
+  absent `since` travels as the empty string in the answer record's digest -
+  see `docs/decisions/2026-08-31-what-the-document-may-not-say.md` - is
+  documented but not exercised. Closing it means adding such a row to a fixture
+  that several suites already assert counts against.
 - **The fleet home is read on every pass, without caching.** Each read lists one
   directory and opens a handful of small files per worker, which is cheap at
   fleet scale and bounded by the same read timeout as the snapshot. A fleet
