@@ -195,6 +195,19 @@ describe("which fleets to read is configuration", () => {
     );
   });
 
+  test("a name that collides with an already-suffixed id still gets its own", () => {
+    const config = loadConfig(
+      REPO_ROOT,
+      env({ QUARTERDECK_FIXTURE_SET: "foo:foo-3:foo" }),
+    );
+    const ids = config.fleets.map((fleet) => fleet.id);
+    assert.equal(
+      new Set(ids).size,
+      ids.length,
+      "a cookie naming one of them must not be able to mean another",
+    );
+  });
+
   test("several fixture sets are several fleets", () => {
     const config = loadConfig(
       REPO_ROOT,

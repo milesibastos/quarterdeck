@@ -181,9 +181,11 @@ function slug(label: string): string {
  * there was one of each: the fixtures are the stand-in for having no fleet to
  * read, so a panel that has one never falls back to them.
  *
- * Two homes can share a last segment, so an id that collides is suffixed with
- * its position. Order comes from the environment and does not change between
- * restarts, which is what makes a remembered id still name the same fleet.
+ * Two homes can share a last segment, so an id that collides is suffixed until
+ * it is actually unused - not merely bumped by one, since a bumped suffix can
+ * itself collide with another entry's own name. Order comes from the
+ * environment and does not change between restarts, which is what makes a
+ * remembered id still name the same fleet.
  */
 function fleetsFromEnv(env: NodeJS.ProcessEnv): readonly FleetRef[] {
   const homes = fleetHomesFromEnv(env);
@@ -193,10 +195,13 @@ function fleetsFromEnv(env: NodeJS.ProcessEnv): readonly FleetRef[] {
       : fixtureSetsFromEnv(env).map((set) => ({ kind: "fixture", set }));
 
   const taken = new Set<string>();
-  return sources.map((source, index) => {
+  return sources.map((source) => {
     const label = source.kind === "home" ? homeLabel(source.home) : source.set;
     const base = slug(label);
-    const id = taken.has(base) ? `${base}-${index + 1}` : base;
+    let id = base;
+    for (let suffix = 2; taken.has(id); suffix++) {
+      id = `${base}-${suffix}`;
+    }
     taken.add(id);
     return { id, label, source };
   });
