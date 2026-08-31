@@ -1,8 +1,8 @@
 import type { DeckItem, Lens, Worker } from "@/types/document.ts";
 import type { AnsweringSession } from "@/ui/deck/answer-control";
-import { DeckItemRow } from "@/ui/deck/deck-row";
 import { LensFrame } from "@/ui/lens-frame";
 import { ago } from "@/ui/lib/age";
+import { DecisionCard } from "@/ui/needs-you/decision-card";
 import { MergeCard, type MergeSession } from "@/ui/needs-you/merge-card";
 import { needsYou } from "@/ui/needs-you/needs-you";
 
@@ -88,12 +88,12 @@ function NothingNeedsYou({
     return (
       <div
         data-needs-you-empty="unknown"
-        className="rounded-lg border border-dashed border-danger/50 px-4 py-10 text-center"
+        className="border-l-2 border-term-danger py-6 pl-3 font-mono text-[13px] leading-[1.55]"
       >
-        <p className="font-display text-xl tracking-wide text-foreground">
+        <p className="font-display text-xl tracking-wide text-term-fg-bright">
           Unknown, not nothing
         </p>
-        <p className="mx-auto mt-2 max-w-prose text-sm wrap-anywhere text-muted-foreground">
+        <p className="mt-2 max-w-prose wrap-anywhere text-term-muted">
           {`The deck could not be read ${ago(status.observedAt, nowMs)}, so how much is waiting on you is not zero - it is unknown. Nothing on this page counted it.`}
         </p>
       </div>
@@ -103,13 +103,13 @@ function NothingNeedsYou({
   return (
     <div
       data-needs-you-empty="none"
-      className="rounded-lg border border-dashed border-border px-4 py-10 text-center"
+      className="border-l-2 border-term-rule py-6 pl-3 font-mono text-[13px] leading-[1.55]"
     >
-      <p className="font-display text-xl tracking-wide text-foreground">Nothing needs you</p>
+      <p className="font-display text-xl tracking-wide text-term-fg-bright">Nothing needs you</p>
       {/* Says where the zero came from, and claims nothing about how fresh
           the deck was while doing it - the trust word in the header above is
           the only thing on this page entitled to make that claim. */}
-      <p className="mx-auto mt-2 max-w-prose text-sm text-muted-foreground">
+      <p className="mt-2 max-w-prose text-term-muted">
         {deckSize === 0
           ? "The deck carried nothing at all, so nothing in it is held for a person."
           : `The deck carried ${deckSize} ${deckSize === 1 ? "item" : "items"} and none of them is held for a person.`}
@@ -117,7 +117,7 @@ function NothingNeedsYou({
       {/* Said separately because it is a different read: the decisions come
           from the deck and the merges from the fleet, and one sentence covering
           both would attribute a fleet's silence to the deck. */}
-      <p className="mx-auto mt-1 max-w-prose text-sm text-muted-foreground">
+      <p className="mt-1 max-w-prose text-term-muted">
         No pull request in the fleet is ready to merge.
       </p>
     </div>
@@ -164,14 +164,14 @@ export function NeedsYouBand({
           stale deck is still a count, and it is still worth showing; what it is
           not is current, and that has to be on screen beside it. */}
       {lens.status.state === "stale" && (
-        <p className="font-mono text-[0.6875rem] text-muted-foreground">
+        <p className="font-mono text-[12px] text-term-faint">
           {`Counted from a deck current as of ${ago(lens.status.asOf, nowMs)}; anything raised since is not here.`}
         </p>
       )}
       {lens.status.state === "unreadable" && decisions.length > 0 && (
         <p
           data-needs-you-caveat="unreadable"
-          className="rounded-lg border border-dashed border-danger/50 px-4 py-3 text-sm wrap-anywhere text-foreground"
+          className="border-l-2 border-term-danger py-1 pl-3 font-mono text-[13px] leading-[1.55] wrap-anywhere text-term-fg"
         >
           {`The read failed ${ago(lens.status.observedAt, nowMs)}. What follows is the last deck that read cleanly, and the count above may be short.`}
         </p>
@@ -184,12 +184,11 @@ export function NeedsYouBand({
           {decisions.length > 0 && (
             <ul data-needs-group="decisions" className="card-grid [--qd-card-min:24rem]">
               {decisions.map((row) => (
-                <DeckItemRow
+                <DecisionCard
                   key={row.item.id}
                   row={row}
                   nowMs={nowMs}
-                  session={session}
-                  tone="card"
+                  session={session ?? null}
                 />
               ))}
             </ul>
