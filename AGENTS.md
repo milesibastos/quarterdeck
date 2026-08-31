@@ -16,6 +16,11 @@ sit over a pinned document shape, filled from a configured fleet home or from
 synthetic fixtures when there is none. The operator picks which of the
 configured fleets they are looking at, and their browser remembers it.
 
+The panel is drawn in a terminal grammar - the grok family from the brainless
+registry, vendored under `src/ui/components/grok/` and re-tokenised onto
+quarterdeck's palette. No component may carry a colour value; `npm test`
+enforces it. See `docs/decisions/2026-08-31-the-terminal-grammar.md`.
+
 The panel reads. The two things it writes are an answer record and a merge
 order, both through one file, and the page executes nothing - the fleet's own
 guarded commands do the acting. See

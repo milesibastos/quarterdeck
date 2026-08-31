@@ -80,9 +80,12 @@ foundation everything else rests on, so they are themselves known-good.
 | 6 | `src/ui/` imports only `src/types/` and providers | Keeps the panel replaceable; stops fleet reading creeping into rendering |
 | 7 | No network egress from the browser at runtime | A local tool that degrades without internet fails its own honesty rules |
 
-Plus one beyond the seven, `provider-bypass`, which is the reason
-`src/providers/` exists: nothing outside it reaches for the wall clock or the
-console. `Date.parse` is pure and stays.
+Plus two beyond the seven, each guarding a decision rather than a layer
+boundary: `provider-bypass`, which is the reason `src/providers/` exists -
+nothing outside it reaches for the wall clock or the console, and `Date.parse`
+is pure and stays - and `raw-colour`, which keeps every colour value in the
+palette layer of `src/app/globals.css` rather than in a component. See
+`docs/decisions/2026-08-31-the-terminal-grammar.md`.
 
 ### invariant 1
 

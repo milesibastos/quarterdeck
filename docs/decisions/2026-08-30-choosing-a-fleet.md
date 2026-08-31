@@ -48,11 +48,14 @@ fleet is marked as showing comes from the server prop the content was rendered
 from, so it cannot move ahead of the content; while the operator's click and
 that prop disagree, the panel names both fleets in words and dims what is below.
 
-This is why the control is a row of chips and not a `<select>`. A select moves
-its own value the instant it is clicked, before the server has read anything -
-the new fleet's name sitting above the old fleet's numbers. Three bugs in this
-project have been the panel asserting something it had not established, and a
-control that lies for a round trip would have been the fourth.
+This is why the control is not a `<select>`. A select moves its own value the
+instant it is clicked, before the server has read anything - the new fleet's
+name sitting above the old fleet's numbers. Three bugs in this project have
+been the panel asserting something it had not established, and a control that
+lies for a round trip would have been the fourth. It was a row of chips at
+first; the terminal grammar redrew it as a disclosure holding a real
+radiogroup, for layout reasons unrelated to this one - see
+`docs/decisions/2026-08-31-the-terminal-grammar.md`.
 
 **One runtime per fleet.** Each carries a cache and a last-known-good, so a
 single shared runtime would answer a request for one fleet out of another's last

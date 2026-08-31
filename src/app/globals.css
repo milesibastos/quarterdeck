@@ -39,6 +39,7 @@
   --qd-navy-500: oklch(0.338 0.0589 267.59); /* #2a3656 */
   --qd-navy-300: oklch(0.5718 0.0498 269.55); /* #6c7796 */
   --qd-navy-100: oklch(0.9003 0.0172 267.78); /* #d9deea */
+  --qd-gold-700: oklch(0.5127 0.1016 72.44); /* #8a5c14 */
   --qd-gold-600: oklch(0.6237 0.1247 71.91); /* #b5791c */
   --qd-gold-500: oklch(0.7588 0.1436 79.97); /* #e0a52e */
   --qd-gold-300: oklch(0.8754 0.0952 88.16); /* #f0d38c */
@@ -58,7 +59,9 @@
   --qd-cream-line: oklch(0.8395 0.0627 85.4); /* #ddc89c */
   --qd-ink-900: oklch(0.2334 0.0193 66.65); /* #241c14 */
   --qd-ink-700: oklch(0.3273 0.0299 68.56); /* #3f3224 */
+  --qd-ink-600: oklch(0.4092 0.037 71.31); /* #574734 */
   --qd-ink-500: oklch(0.492 0.0422 76.04); /* #6f5e46 */
+  --qd-ink-400: oklch(0.5189 0.0421 72.02); /* #78654e */
   --qd-ink-300: oklch(0.6417 0.0477 80.34); /* #9c8a6c */
   --qd-white: oklch(0.9939 0.0082 91.48); /* #fffdf7 */
 
@@ -110,6 +113,77 @@
   --sidebar-accent-foreground: var(--qd-ink-700);
   --sidebar-border: var(--qd-cream-line);
   --sidebar-ring: var(--qd-gold-300);
+
+  /*
+   * The terminal grammar.
+   *
+   * A second semantic set beside the product one above, in the same spirit as
+   * `--sidebar-*`: the panel's chrome is drawn in an agent-CLI grammar - box
+   * rules, ◆ markers, monospace, five ranks of grey - and that grammar names
+   * roles the product set has no word for. A rule is not a `--border`; a
+   * timestamp is not `--muted-foreground`; a box's ground is not `--card` in
+   * every place a card is.
+   *
+   * They come from the vendored grok family in `src/ui/components/grok/`,
+   * which shipped 22 hardcoded values and no theme layer. Each one was read at
+   * its usage site and mapped to the role it was playing, not to the grey it
+   * happened to be: grok is dark-native, so its `#e1e1e1` means "ordinary text
+   * on the terminal ground" and has to invert, not stay pale.
+   *
+   * Every rank below is measured against its own ground rather than eyeballed.
+   * The five text ranks all clear 4.5:1 in both themes - which is already a
+   * departure, because grok's own faintest grey does not - and the rules clear
+   * 3:1 where they bound something. See
+   * `docs/decisions/2026-08-31-the-terminal-grammar.md`.
+   */
+
+  /*
+   * The ground. `--background`, so a terminal box and the page it sits on are
+   * the same colour and there is exactly one ground every rank below is
+   * measured against - grok's own note says the same thing about `#1a1a1a`.
+   * A box still occludes what is behind it, because occlusion is opacity and
+   * not contrast, and its border is what separates it from the page.
+   *
+   * The alternative was `--card`, which in the dark theme is two stops lighter
+   * than the page and split every rank into two numbers: `--term-faint`
+   * measured 5.0:1 on the page and 3.7:1 on the card. One ground, one number.
+   */
+  --term-bg: var(--background);
+
+  --term-fg-bright: var(--qd-ink-900); /* 14.3:1 - spinner, active label */
+  --term-fg: var(--qd-ink-700); /* 10.6:1 - ordinary terminal text */
+  --term-dim: var(--qd-ink-600); /* 7.6:1 - elapsed, counts, silver */
+  --term-muted: var(--qd-ink-500); /* 5.3:1 - labels, subheads */
+  --term-faint: var(--qd-ink-400); /* 4.7:1 - timestamps, key hints */
+  /* 2.9:1. Under the 3:1 a bounding line wants, and still twice `--border`,
+     which is what the rest of the panel draws its cards with. A box here is
+     legible without its rule; the rule is grammar, not the message. */
+  --term-rule: var(--qd-ink-300);
+  --term-rule-soft: var(--qd-cream-line); /* a resting box, not a shouting one */
+  --term-selected: var(--qd-paper-300); /* the wash under a hovered row */
+
+  /*
+   * The five that carry meaning rather than depth. grok draws them as the pure
+   * terminal colours - #00ff00, #ffff00, #ff0000 - which are 1.4:1, 1.1:1 and
+   * 3.9:1 on a light ground: invisible, invisible, and short. Each is given a
+   * real light value at the same rank instead of being reused.
+   *
+   * They point one stop darker than the product's chip tokens because these are
+   * words on a ground rather than a fill behind a word: `--warn` is gold-600,
+   * which measures 3.2:1 as text here and is why gold-700 exists.
+   */
+  --term-success: var(--qd-sea-500); /* 5.4:1 <- #00ff00 */
+  --term-warning: var(--qd-gold-700); /* 4.9:1 <- #ffff00 */
+  --term-danger: var(--qd-rust-600); /* 5.4:1 <- #ff0000 */
+  --term-info: var(--qd-ocean-600); /* 5.3:1 <- #8db0ff */
+  /*
+   * grok's brand amber, wearing the product's identity colour. The same stop as
+   * `--term-danger`, which is the palette's own doing rather than this file's:
+   * quarterdeck's identity and its destructive colour are both rust, and
+   * rust-500 - `--primary`, the obvious choice - measures 4.3:1 as text here.
+   * Two tokens, so a palette that later separates them only has to say so once.
+   */
+  --term-accent: var(--qd-rust-600); /* 5.4:1 <- #e0af68 */
 }
 
 /*
@@ -178,6 +252,27 @@
     --sidebar-accent-foreground: var(--qd-paper-200);
     --sidebar-border: var(--qd-navy-600);
     --sidebar-ring: var(--qd-gold-500);
+
+    /* The terminal grammar, inverted. See the light block for the argument.
+       `--term-bg` is not repeated: it reads `--background`, which is already
+       themed, so there is one ground here too and it moved on its own. */
+    --term-fg-bright: var(--qd-white); /* 16.5:1 */
+    --term-fg: var(--qd-paper-100); /* 14.3:1 */
+    --term-dim: var(--qd-paper-300); /* 11.7:1 */
+    --term-muted: var(--qd-cream-line); /* 10.2:1 */
+    --term-faint: var(--qd-ink-300); /* 5.0:1 */
+    /* The same stop as `--term-faint`: below it the ink ramp reaches 2.7:1,
+       which is under the 3:1 a rule that bounds something needs. grok has the
+       two adjacent too - its #808080 is both a border and a marker. */
+    --term-rule: var(--qd-ink-300); /* 5.0:1 */
+    --term-rule-soft: var(--qd-ink-500);
+    --term-selected: var(--qd-ink-700);
+
+    --term-success: var(--qd-sea-200); /* 10.6:1 */
+    --term-warning: var(--qd-gold-300); /* 11.5:1 */
+    --term-danger: var(--qd-rust-300); /* 6.1:1 */
+    --term-info: var(--qd-ocean-200); /* 10.8:1 */
+    --term-accent: var(--qd-rust-300); /* 6.1:1 */
   }
 }
 
@@ -211,6 +306,22 @@
   --color-danger-foreground: var(--danger-foreground);
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
+
+
+  --color-term-bg: var(--term-bg);
+  --color-term-fg-bright: var(--term-fg-bright);
+  --color-term-fg: var(--term-fg);
+  --color-term-dim: var(--term-dim);
+  --color-term-muted: var(--term-muted);
+  --color-term-faint: var(--term-faint);
+  --color-term-rule: var(--term-rule);
+  --color-term-rule-soft: var(--term-rule-soft);
+  --color-term-selected: var(--term-selected);
+  --color-term-success: var(--term-success);
+  --color-term-warning: var(--term-warning);
+  --color-term-danger: var(--term-danger);
+  --color-term-info: var(--term-info);
+  --color-term-accent: var(--term-accent);
 
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);

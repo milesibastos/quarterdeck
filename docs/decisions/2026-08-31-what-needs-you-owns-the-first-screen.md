@@ -95,9 +95,14 @@ Measured in a browser against the built panel, with the `crowded` set:
 
 At 1440x900 the needs-you band runs from 150 to 708 - 558 of the 900 pixels
 above the fold, or 62% - holding four decision cards in three columns of 442
-pixels. Underway's header sits at 724, leaving 176 pixels of it on the first
+pixels. Underway's header sat at 724, leaving 176 pixels of it on the first
 screen: enough that there is obviously more page, not enough to compete for it.
 The page's `scrollWidth` equals its `clientWidth`.
+
+**Re-measured after the terminal-grammar rebuild.** The grok masthead is
+taller: underway's header now sits at 778 on a 900-pixel viewport, still above
+the fold. See `docs/decisions/2026-08-31-the-terminal-grammar.md`, which
+re-confirmed the fold line at that height.
 
 Width buys cards and not stretch. The needs-you band draws 2 columns at 1024, 3
 at 1440, 4 at 1920 and 6 at 2560; underway, whose cards are narrower, draws 2,
