@@ -66,3 +66,8 @@ still that doing so is a deliberate act rather than an accident.
 the reason `src/providers/` exists but does not list it as an invariant; making
 it mechanical cost fifteen lines and removes the only way to quietly undo the
 providers layer.
+
+**A second joined it on 2026-08-31.** `raw-colour` bans a colour value in a
+component for the same reason: it guards a decision - here, the theme - rather
+than a layer boundary. See
+`docs/decisions/2026-08-31-the-terminal-grammar.md`.
