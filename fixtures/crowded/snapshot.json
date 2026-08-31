@@ -76,8 +76,8 @@
         }
       },
       "current_state": {
-        "state": "validating",
-        "detail": "validating (running)",
+        "state": "working",
+        "detail": "investigating the upstream contract",
         "observed_at": "2099-01-01T09:13:26.000Z"
       },
       "pr": {
@@ -514,8 +514,8 @@
         }
       },
       "current_state": {
-        "state": "validating",
-        "detail": "validating: ci",
+        "state": "working",
+        "detail": "reading the health module",
         "observed_at": "2099-01-01T09:04:11.000Z"
       },
       "pr": {
@@ -750,7 +750,7 @@
         "url": null,
         "source": "absent"
       },
-      "mode": "direct-PR",
+      "mode": "no-mistakes",
       "harness": "claude",
       "branch": "crew/brackish-275",
       "model": "opus",
@@ -783,7 +783,7 @@
     {
       "id": "wi-halyard-289",
       "project": "halyard",
-      "kind": "scout",
+      "kind": "ship",
       "paths": {
         "meta": {
           "path": "/anchorage/briefs/wi-halyard-289.md",

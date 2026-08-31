@@ -125,7 +125,7 @@
     {
       "id": "wi-saltmarsh-305",
       "project": "saltmarsh",
-      "kind": "scout",
+      "kind": "ship",
       "paths": {
         "meta": {
           "path": "/anchorage/briefs/wi-saltmarsh-305.md",

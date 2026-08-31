@@ -23,9 +23,11 @@ import { ago } from "@/ui/lib/age";
  *
  * One gap worth naming rather than papering over: `Lifecycle` carries the stage
  * a worker is in but not the stage it was in before it stopped. A halted worker
- * that names a pipeline step was validating - the steps only run there - but a
- * worker blocked or waiting names none, and the rail leaves its position blank
- * rather than guessing. A `lastActiveStage` on `Lifecycle` would close it.
+ * that names a pipeline step is anchored to its rail's validating stage - the
+ * steps only run there - but one that names none, and one on a rail that has no
+ * validating stage at all, have nothing to anchor to, and the rail says its
+ * position is not known rather than guessing one. A `lastActiveStage` on
+ * `Lifecycle` would close it; that is `qd-halted-stage-r1`.
  */
 
 /** Nothing running. `stale` means that is only what the last good read found. */

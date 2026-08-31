@@ -79,7 +79,7 @@ describe("the lifecycle rail", () => {
   test("names the pipeline step a validating worker is on", () => {
     assert.equal(attribute(card(html, "wi-lamplight-211") ?? "", "data-step"), "test");
     assert.ok(
-      html.includes("Validating · tests, step 4 of 9"),
+      html.includes("Validating · stage 3, of how many is not known · tests, step 4 of 9"),
       "the step, and how far into the run it is",
     );
   });
@@ -93,7 +93,9 @@ describe("the lifecycle rail", () => {
     assert.equal(attribute(tag ?? "", "data-stage"), "held");
     // The stage it left the track in, inferred from the step it named, and
     // upstream's own words for why it stopped.
-    assert.ok(html.includes("Held in validation · code review, step 3 of 9"));
+    assert.ok(
+      html.includes("Held in validation · stage 3, of how many is not known · code review, step 3 of 9"),
+    );
     assert.ok(html.includes("parked at review: 1 finding(s) (ask-user: authority decision)"));
   });
 
@@ -142,6 +144,200 @@ describe("the lifecycle rail", () => {
     // publishes today. Saying nobody asked is the honest rendering of that.
     assert.ok(html.includes("checks not looked up"));
     assert.ok(html.includes("comments not looked up"));
+  });
+});
+
+/**
+ * Four kinds of work, four rails.
+ *
+ * The rail is drawn from what was recorded when the worker was dispatched - its
+ * kind and its delivery contract - so an investigation is never drawn with a
+ * pull request stage ahead of it and work that lands locally is never drawn
+ * with a review. The `rails` set carries every shape in its working, stopped
+ * and finished states, plus the two rails whose length nobody knows.
+ *
+ * The claims are made against the words rather than the pips throughout. The
+ * pips are decoration and are hidden from assistive technology; everything the
+ * shape says has to be in the sentence underneath, and asserting on the
+ * sentence is what keeps that true.
+ */
+describe("the rail a worker's own work has", () => {
+  let panel: Panel;
+  let html: string;
+  before(async () => {
+    panel = await startPanel({ port: nextPort(), fixtureSet: "rails" });
+    html = await body(panel);
+  });
+  after(() => panel.stop());
+
+  /** One card's rail: its shape, what was drawn, and the words underneath. */
+  function rail(id: string) {
+    const start = html.indexOf(`data-worker="${id}"`);
+    assert.notEqual(start, -1, `${id} should be on screen`);
+    const next = html.indexOf('data-worker="', start + 1);
+    const card = html.slice(start, next === -1 ? undefined : next);
+    // From the rail's own element to the card's next paragraph, which is
+    // upstream's raw detail and sits outside the rail.
+    const from = card.indexOf("data-rail=");
+    const block = card.slice(from, card.indexOf("wrap-anywhere", from));
+    const words = [...block.matchAll(/<p class="text-xs[^"]*">([^<]*)<\/p>/g)].map((m) => m[1]);
+    return {
+      shape: /data-rail="([^"]*)"/.exec(block)?.[1] ?? null,
+      stages: /data-stages="([^"]*)"/.exec(block)?.[1] ?? null,
+      /** Every segment on the track, including the open end when there is one. */
+      segments: (block.match(/flex-1 rounded-full/g) ?? []).length,
+      openEnd: block.includes("border-dashed"),
+      hidden: block.includes('aria-hidden="true"'),
+      line: words[0] ?? "",
+      note: words[1] ?? null,
+    };
+  }
+
+  test("draws the shape the worker's own kind and contract describe", () => {
+    assert.deepEqual(
+      ["wi-tidewater-601", "wi-lamplight-604", "wi-saltmarsh-607", "wi-cordage-610"].map((id) => {
+        const { shape, stages } = rail(id);
+        return `${shape}/${stages}`;
+      }),
+      ["validated/6", "direct-pr/5", "local/4", "research/3"],
+      "four kinds of work, four lengths",
+    );
+  });
+
+  test("never draws a stage the work cannot reach", () => {
+    // The whole point. A worker delivering straight to a pull request has no
+    // validation stage, one that stays local has neither pull request stage,
+    // and an investigation has none of the three - so each rail is exactly as
+    // long as its own stages and no segment stands for one it will never see.
+    for (const id of [
+      "wi-tidewater-601",
+      "wi-tidewater-602",
+      "wi-tidewater-603",
+      "wi-lamplight-604",
+      "wi-lamplight-605",
+      "wi-lamplight-606",
+      "wi-saltmarsh-607",
+      "wi-saltmarsh-608",
+      "wi-saltmarsh-609",
+      "wi-cordage-610",
+      "wi-cordage-611",
+      "wi-cordage-612",
+    ]) {
+      const { stages, segments, openEnd } = rail(id);
+      assert.equal(segments, Number(stages), `${id} draws one segment per stage it has`);
+      assert.ok(!openEnd, `${id} knows where its rail ends`);
+    }
+  });
+
+  test("finished work on a short rail reads as finished", () => {
+    // Three of three is done. The same three lit segments under a six-stage
+    // rail would be a worker halfway through, and an operator reading the
+    // column has to be able to tell those apart without opening anything.
+    assert.equal(rail("wi-cordage-612").line, "Landed · stage 3 of 3, the last of this rail");
+    assert.equal(rail("wi-saltmarsh-609").line, "Landed · stage 4 of 4, the last of this rail");
+    assert.equal(rail("wi-lamplight-606").line, "Landed · stage 5 of 5, the last of this rail");
+    assert.equal(rail("wi-tidewater-603").line, "Landed · stage 6 of 6, the last of this rail");
+    assert.ok(!rail("wi-cordage-612").line.includes("of 6"), "not three sixths of the way");
+  });
+
+  test("a stop lands on a named step of the rail the worker is actually on", () => {
+    // The same stop, at the same step of the same pipeline, on two rails of
+    // different lengths. Its position is read against its own rail, so the
+    // marker stays pinned to the step rather than to an index of a fixed track.
+    assert.equal(
+      rail("wi-tidewater-602").line,
+      "Held in validation · stage 3 of 6 · code review, step 3 of 9",
+    );
+    assert.equal(
+      rail("wi-saltmarsh-608").line,
+      "Held in validation · stage 3 of 4 · code review, step 3 of 9",
+    );
+  });
+
+  test("draws no shape at all rather than assuming the longest rail", () => {
+    // Nothing recorded means nothing known about how much is left. Drawing the
+    // six-stage rail would tell an operator this work has three stages still to
+    // come, which nobody established.
+    const working = rail("wi-windlass-613");
+    assert.equal(working.shape, "unknown");
+    assert.equal(working.stages, "unknown");
+    assert.ok(working.openEnd, "an open end rather than stages nobody promised");
+    assert.equal(working.segments, 3, "how far it got, and the open end - nothing ahead");
+    assert.equal(working.line, "Working · stage 2, of how many is not known");
+    assert.equal(
+      working.note,
+      "No delivery contract was recorded, so how many stages this work has is not known.",
+    );
+    // The deduction that places a stop still works here: the track it is drawn
+    // along is the longest one, which has a validating stage to land on.
+    assert.ok(rail("wi-windlass-614").line.includes("code review, step 3 of 9"));
+  });
+
+  test("says which record does not fit when the stage is off the recorded rail", () => {
+    // An investigation standing on a pull request. Upstream's reconciled stage
+    // is the stronger witness, so the recorded shape is dropped - and the
+    // sentence names the shape that was recorded rather than leaving the
+    // operator to guess which of the two facts disagreed.
+    const { shape, note } = rail("wi-halyard-616");
+    assert.equal(shape, "unknown");
+    assert.equal(
+      note,
+      "Recorded as an investigation, but that rail has no room for the stage observed, so how many stages this work has is not known.",
+    );
+  });
+
+  test("does not frame a step as a pipeline the contract says was skipped", () => {
+    // A word read out of prose must not overrule a contract that was written
+    // down: the rail stays the one that was recorded, and the panel declines to
+    // call the stop "in validation" or to number the step out of nine - both of
+    // those frame the nine-step pipeline that rail's contract says was skipped.
+    const { shape, line } = rail("wi-halyard-617");
+    assert.equal(shape, "direct-pr", "the recorded rail survives a prose step");
+    assert.ok(!line.includes("in validation"));
+    assert.ok(!line.includes("step 3 of 9"));
+    // Upstream's own words are on that card regardless, so nothing is lost.
+    // Scoped to the card: several workers in this set stopped with the same
+    // detail, and the whole page would say yes whichever one dropped it.
+    const start = html.indexOf('data-worker="wi-halyard-617"');
+    const card = html.slice(start, html.indexOf('data-worker="', start + 1));
+    assert.ok(card.includes("parked at review: 1 finding(s) (ask-user: authority decision)"));
+  });
+
+  test("says so rather than guessing when a rail has no stage to anchor a stop to", () => {
+    // The step word says the pipeline was running, and on a rail whose contract
+    // skips the pipeline it evidences nothing about which stage the worker
+    // stopped in. Falling back to that rail's working stage would be a guess
+    // dressed as a deduction, so the panel says the position is not known.
+    assert.equal(rail("wi-halyard-617").line, "Held · position not known", "direct-pr");
+    assert.equal(rail("wi-halyard-618").line, "Held · position not known", "research");
+
+    // A pull request is not the missing evidence either: it proves the worker
+    // REACHED that stage, where the marker claims it STOPPED there. This worker
+    // has one and is still unplaced rather than pinned to it.
+    assert.equal(rail("wi-halyard-619").line, "Held · position not known", "a pull request is not a stop");
+    assert.equal(rail("wi-halyard-619").shape, "direct-pr", "and the rail itself is still right");
+  });
+
+  test("says a stopped worker's position is not known rather than showing none", () => {
+    // Nothing the pipeline produced, and no step named at all: there is no
+    // evidence to anchor a position to, and drawing nothing would read as a
+    // claim that it has none rather than the truth that the panel cannot tell.
+    assert.equal(rail("wi-cordage-611").line, "Waiting · position not known");
+    assert.equal(rail("wi-lamplight-605").line, "Blocked · position not known");
+  });
+
+  test("keeps the rail's meaning in words rather than only in shape and colour", () => {
+    // The track is hidden from assistive technology on purpose. Everything it
+    // says - which rail, how far along, and whether that is the end of it - has
+    // to be in the sentence, on every shape.
+    for (const id of ["wi-tidewater-601", "wi-lamplight-604", "wi-saltmarsh-607", "wi-cordage-610"]) {
+      const { hidden, line } = rail(id);
+      assert.ok(hidden, `${id} draws its track as decoration`);
+      assert.match(line, /stage \d+ of \d+/, `${id} says where it is in words`);
+    }
+    for (const id of ["wi-windlass-613", "wi-halyard-616"]) {
+      assert.ok(rail(id).note?.includes("is not known"), `${id} says the shape is unknown`);
+    }
   });
 });
 
