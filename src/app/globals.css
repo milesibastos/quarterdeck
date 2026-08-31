@@ -2,7 +2,13 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (&:is(.dark *));
+/*
+ * Dark is the operator's system setting and nothing else - there is no class on
+ * the root element to key off, so the variant asks the same question the token
+ * block below does. A `dark:` utility and a dark token therefore cannot
+ * disagree about which theme is on.
+ */
+@custom-variant dark (@media (prefers-color-scheme: dark));
 
 /*
  * Quarterdeck theme.
@@ -10,7 +16,8 @@
  * Three layers, in this order, and components only ever touch the third:
  *   1. `--qd-*`      the product palette. Raw colour, no meaning. Never used
  *                    directly in a component; light and dark both read from it.
- *   2. `:root` / `.dark`  the semantic tokens, pointing at palette entries.
+ *   2. `:root`, and `:root` again under `prefers-color-scheme: dark` - the
+ *                    semantic tokens, pointing at palette entries.
  *   3. `@theme inline`    exposes the semantic tokens to Tailwind, so a
  *                    component writes `bg-primary text-primary-foreground`.
  *
@@ -109,53 +116,69 @@
  * Dark: ink surfaces carrying paper text, from the same palette. Accents step
  * one stop lighter (rust-500 -> rust-400) because the surface they sit on got
  * darker, not because dark mode has its own hues.
+ *
+ * Keyed on the operator's system setting rather than a class. There is exactly
+ * one copy of the dark mapping - the class this used to be is gone, not
+ * duplicated here - so the two cannot drift, and because it is plain CSS the
+ * right theme is painted on the first frame with no script to run first. See
+ * docs/decisions/2026-08-31-the-theme-follows-the-system.md.
  */
-.dark {
-  color-scheme: dark;
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
 
-  --background: var(--qd-ink-900);
-  --foreground: var(--qd-paper-100);
-  --card: var(--qd-ink-700);
-  --card-foreground: var(--qd-paper-100);
-  --popover: var(--qd-ink-700);
-  --popover-foreground: var(--qd-paper-100);
-  --primary: var(--qd-rust-400);
-  --primary-foreground: var(--qd-ink-900);
-  --secondary: var(--qd-navy-300);
-  --secondary-foreground: var(--qd-ink-900);
-  --muted: var(--qd-ink-700);
-  --muted-foreground: var(--qd-ink-300);
-  --accent: var(--qd-ink-700);
-  --accent-foreground: var(--qd-paper-200);
-  --destructive: var(--qd-rust-400);
-  --destructive-foreground: var(--qd-ink-900);
-  --border: var(--qd-ink-500);
-  --input: var(--qd-ink-500);
-  --ring: var(--qd-gold-500);
+    --background: var(--qd-ink-900);
+    --foreground: var(--qd-paper-100);
+    --card: var(--qd-ink-700);
+    --card-foreground: var(--qd-paper-100);
+    --popover: var(--qd-ink-700);
+    --popover-foreground: var(--qd-paper-100);
+    --primary: var(--qd-rust-400);
+    --primary-foreground: var(--qd-ink-900);
+    /* navy-100 rather than navy-300, which put ink-900 chip text at 3.77:1.
+       A pale chip carrying dark text is what `online` and `info` already do
+       in the dark theme; navy-300 was the odd one out. */
+    --secondary: var(--qd-navy-100);
+    --secondary-foreground: var(--qd-ink-900);
+    --muted: var(--qd-ink-700);
+    /* paper-300, not ink-300: ink-300 on the ink-700 card measures 3.7:1,
+       and this token carries most of the panel's secondary prose. See
+       docs/quality.md - the measured ratios. */
+    --muted-foreground: var(--qd-paper-300);
+    --accent: var(--qd-ink-700);
+    --accent-foreground: var(--qd-paper-200);
+    /* The same stop as `--danger`: they say the same thing, and rust-400 as
+       text on the ink-700 card measured 3.24:1. */
+    --destructive: var(--qd-rust-300);
+    --destructive-foreground: var(--qd-ink-900);
+    --border: var(--qd-ink-500);
+    --input: var(--qd-ink-500);
+    --ring: var(--qd-gold-500);
 
-  --online: var(--qd-sea-200);
-  --online-foreground: var(--qd-ink-900);
-  --warn: var(--qd-gold-300);
-  --warn-foreground: var(--qd-ink-900);
-  --danger: var(--qd-rust-300);
-  --danger-foreground: var(--qd-ink-900);
-  --info: var(--qd-ocean-200);
-  --info-foreground: var(--qd-ink-900);
+    --online: var(--qd-sea-200);
+    --online-foreground: var(--qd-ink-900);
+    --warn: var(--qd-gold-300);
+    --warn-foreground: var(--qd-ink-900);
+    --danger: var(--qd-rust-300);
+    --danger-foreground: var(--qd-ink-900);
+    --info: var(--qd-ocean-200);
+    --info-foreground: var(--qd-ink-900);
 
-  --chart-1: var(--qd-rust-300);
-  --chart-2: var(--qd-ocean-200);
-  --chart-3: var(--qd-sea-200);
-  --chart-4: var(--qd-gold-300);
-  --chart-5: var(--qd-navy-300);
+    --chart-1: var(--qd-rust-300);
+    --chart-2: var(--qd-ocean-200);
+    --chart-3: var(--qd-sea-200);
+    --chart-4: var(--qd-gold-300);
+    --chart-5: var(--qd-navy-300);
 
-  --sidebar: var(--qd-navy-700);
-  --sidebar-foreground: var(--qd-paper-100);
-  --sidebar-primary: var(--qd-rust-400);
-  --sidebar-primary-foreground: var(--qd-ink-900);
-  --sidebar-accent: var(--qd-navy-600);
-  --sidebar-accent-foreground: var(--qd-paper-200);
-  --sidebar-border: var(--qd-navy-600);
-  --sidebar-ring: var(--qd-gold-500);
+    --sidebar: var(--qd-navy-700);
+    --sidebar-foreground: var(--qd-paper-100);
+    --sidebar-primary: var(--qd-rust-400);
+    --sidebar-primary-foreground: var(--qd-ink-900);
+    --sidebar-accent: var(--qd-navy-600);
+    --sidebar-accent-foreground: var(--qd-paper-200);
+    --sidebar-border: var(--qd-navy-600);
+    --sidebar-ring: var(--qd-gold-500);
+  }
 }
 
 /* 3. exposed to Tailwind */
