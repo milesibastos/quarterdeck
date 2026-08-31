@@ -121,6 +121,9 @@ DeckItem {
 }
 ```
 
+See `docs/decisions/2026-08-31-what-the-document-may-not-say.md` for why all
+three of version 3's fields are nullable and what that cost.
+
 `project` and `kind` are enough identity to recognise a piece of work by, which
 is what a queue is read for. Both are nullable where a worker's are not: a
 worker is dispatched with a kind and works somewhere, while a backlog row is
