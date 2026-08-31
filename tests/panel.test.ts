@@ -50,7 +50,7 @@ describe("the healthy fleet", () => {
     const html = await body(panel);
     assert.ok(html.includes('data-lens="fleet"'));
     assert.ok(html.includes("Waiting on a person"), "the deck lens drew its own piles");
-    assert.ok(html.includes("The shipshape lens is not built yet"));
+    assert.ok(html.includes('data-signal="supervisor"'));
   });
 
   test("hands each lens the part of the document it reads", async () => {
