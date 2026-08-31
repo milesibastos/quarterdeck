@@ -2,6 +2,7 @@ import type { PanelDocument } from "@/types/document.ts";
 import type { AnsweringSession } from "@/ui/deck/answer-control";
 import { DeckLens } from "@/ui/deck/deck-lens";
 import { FleetLens } from "@/ui/fleet/fleet-lens";
+import type { TerminalReader } from "@/ui/fleet/worker-terminal";
 import { ago } from "@/ui/lib/age";
 import { ShipshapeLens } from "@/ui/shipshape/shipshape-lens";
 
@@ -34,11 +35,22 @@ import { ShipshapeLens } from "@/ui/shipshape/shipshape-lens";
 export function Shell({
   document,
   nowMs,
+  terminal,
   session = null,
 }: {
   document: PanelDocument;
   /** Chosen by the composition point, so the ages agree with the projection. */
   nowMs: number;
+  /**
+   * How a worker card reads its session when the operator expands it.
+   *
+   * The second thing on this page that is not the document, and it is here for
+   * the same reason `session` is: `src/ui/` cannot read a fleet, so an on-demand
+   * read has to arrive as an address built where the fleets are named. It is not
+   * on the document deliberately - a tail that travelled with the document would
+   * be read for every card on every pass.
+   */
+  terminal: TerminalReader;
   /**
    * How an answer reaches the server, for the deck's answerable items.
    *
@@ -61,7 +73,7 @@ export function Shell({
       </header>
 
       <div className="grid gap-4 md:min-h-0 md:flex-1 md:grid-cols-3">
-        <FleetLens lens={document.fleet} nowMs={nowMs} />
+        <FleetLens lens={document.fleet} nowMs={nowMs} terminal={terminal} />
         {/* The deck is handed the fleet's work items as a directory: a blocker
             arrives as a bare identity, and the work it names has usually
             already started. */}

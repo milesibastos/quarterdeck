@@ -13,21 +13,23 @@ looking at, and their browser remembers it.
 The panel reads. The one thing it writes is an answer record, and the page
 executes nothing - see
 `docs/decisions/2026-08-30-answering-a-held-decision.md` before touching that
-path.
+path. A worker card also opens that worker's terminal on demand, read only and
+never on the first paint; see `docs/decisions/2026-08-31-the-worker-terminal.md`
+before touching that one.
 
 ## Map
 
 | Where | What is there |
 | --- | --- |
-| `src/types/` | The document the UI reads, and the fleet-selection cookie's name. Imports nothing. |
+| `src/types/` | The document the UI reads, the terminal tail beside it, and the fleet-selection cookie's name. Imports nothing. |
 | `src/config/` | Environment and defaults. The port derivation lives here. |
-| `src/adapters/` | The only I/O. Exactly three files. |
+| `src/adapters/` | The only I/O. Exactly four files, one per reliability promise. |
 | `src/domain/` | The projection: snapshot to document. Pure. |
 | `src/runtime/` | Watch, coalesce, cache, publish the change signal. |
-| `src/ui/` | Server-rendered components. Reads the document, nothing else. One directory per lens. |
+| `src/ui/` | Server-rendered components. Reads the document, plus the terminal a card opens on demand. One directory per lens. |
 | `src/providers/` | The clock, the logger and the one spawn door, as dependencies. |
 | `src/app/`, `src/proxy.ts` | Next's routes and middleware: the composition point. |
-| `fixtures/` | Synthetic fleets, two files per set. Zero real data, by rule. |
+| `fixtures/` | Synthetic fleets, up to three files per set. Zero real data, by rule. |
 | `tests/` | Behavioural tests against the built server, the invariant checks, and a pure-projection walk of every fixture. |
 
 ## Run it

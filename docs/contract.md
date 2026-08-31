@@ -1,9 +1,9 @@
 # Contracts
 
-Three shapes the panel reads, the boundaries between them, and the one shape it
-writes. Upstream owns the fleet snapshot, the panel owns the document, and the
-health file sits in between - the panel's own shape, read from a location
-upstream can move without telling anyone.
+Four shapes the panel reads, the boundaries between them, and the one shape it
+writes. Upstream owns the fleet snapshot, the panel owns the document and the
+terminal tail, and the health file sits in between - the panel's own shape, read
+from a location upstream can move without telling anyone.
 
 `src/domain/` is the only thing that knows more than one of them.
 
@@ -508,6 +508,42 @@ two ways of saying an idle worker is idle on purpose, and reporting either as a
 stall would teach an operator to ignore the signal. `blocked:` and
 `needs-decision:` are not declared waits: a worker stopped for those is waiting
 on the machinery this lens watches.
+
+## The terminal tail (the one shape read on demand)
+
+`src/types/terminal.ts`. The panel's own shape, and the only one that is not
+part of the document - deliberately, because everything on the document is read
+on every pass for every worker, and this is read only when an operator expands a
+card.
+
+```ts
+{
+  worker: string                   // the work item, as the fleet published it
+  asOf: string                     // ISO-8601, when this read was taken
+  reading:
+    | { read: "ok", lines: string[] }        // never empty; see "silent"
+    | { read: "silent" }                     // asked, and it had nothing to say
+    | { read: "no-session", detail: string } // nowhere to look
+    | { read: "unreadable", detail: string } // looked, and the read failed
+}
+```
+
+The last three are three different facts about a worker and are never merged.
+`ok` cannot carry an empty list: a capture is normalised - trailing blank rows
+dropped - before the arm is chosen, so a pane that is all blanks is `silent`.
+
+Two sources, one normaliser:
+
+| Source | Where the bytes come from | What makes it unreadable |
+| --- | --- | --- |
+| A fleet home | `bin/fm-peek.sh <worker> 15`, run through the one spawn door with `FM_HOME` set. Read-only by upstream's own contract: it resolves the worker's recorded session target and prints the tail. | The command failed. Its standard error is the detail, verbatim. A failure whose words name a missing session - "no metadata for", "no backend target recorded", "no window named" - is `no-session`; anything else is `unreadable`, which is honest rather than guessed. |
+| A fixture set | `terminal.json` beside the set's other files, one entry per work item id, in the shape above. `ok` entries carry raw captured text so a fixture normalises exactly as a fleet does. | The file exists and will not parse. An absent file, and an id the file does not name, are both `no-session`: a synthetic fleet that records no sessions is not a fleet whose machinery is broken. |
+
+The read is bounded before it starts. The worker has to be one the current
+document lists and has to match `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`, because
+upstream's peek resolves any selector containing a colon as a raw session
+target. Neither check is optional and neither happens after the spawn. See
+`docs/decisions/2026-08-31-the-worker-terminal.md`.
 
 ## The intent record (the one thing the panel writes)
 

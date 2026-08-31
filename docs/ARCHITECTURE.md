@@ -20,15 +20,19 @@ Seven positions, one direction. Dependencies point right, and only right.
   reads it off the request, and this is the one layer both may see.
 - `src/config/` - which fleets, which port, which policy. Environment and
   defaults only; parsing the environment is one of the three boundaries.
-- `src/adapters/` - the only I/O. Exactly three files: `contract.ts` (the
-  upstream boundary and the fixture source), `health.ts` (quarantined),
-  `intent.ts` (the one permitted writer). Two of them read, and they fail
-  independently - which is why the document carries a status per lens.
+- `src/adapters/` - the only I/O. Exactly four files, one per promise:
+  `contract.ts` (the upstream boundary and the fixture source), `health.ts`
+  (quarantined), `intent.ts` (the one permitted writer), and `terminal.ts` (the
+  on-demand read). Three of them read, and they fail independently - which is
+  why the document carries a status per lens. `terminal.ts` is the odd one and
+  deliberately so: it is not on the document at all, is asked only when an
+  operator expands a card, and degrades per worker rather than per lens. See
+  `docs/decisions/2026-08-31-the-worker-terminal.md`.
 - `src/domain/` - the projection from snapshot and health reading to document.
   Pure.
 - `src/runtime/` - watch, debounce, coalesce, cache, publish the change signal.
-- `src/ui/` - server-rendered components. Reads the document, nothing else. One
-  directory per lens - `fleet/`, `deck/`, `shipshape/` - so the worker building
+- `src/ui/` - server-rendered components. Reads the document and the terminal
+  shape beside it, nothing else. One directory per lens - `fleet/`, `deck/`, `shipshape/` - so the worker building
   a lens edits no file another worker is also editing. `shell.tsx` lays the
   three out, `lens-frame.tsx` is the chrome they share, and `fleet-picker.tsx`
   wraps the lot with which fleet is being looked at. The fold line is
@@ -67,7 +71,7 @@ foundation everything else rests on, so they are themselves known-good.
 | 3 | Exactly one file may write anything (`src/adapters/intent.ts`), and exactly one may start a process (`src/providers/process.ts`) | The whole safety argument for acting reduces to two reviewable files |
 | 4 | Only `src/adapters/health.ts` may name fleet-internal paths | Confines the one unstable dependency |
 | 5 | The contract version is pinned and parsed at the boundary | A changed contract refuses loudly rather than rendering something plausible and wrong |
-| 6 | `src/ui/` imports only the document type and providers | Keeps the panel replaceable; stops fleet reading creeping into rendering |
+| 6 | `src/ui/` imports only `src/types/` and providers | Keeps the panel replaceable; stops fleet reading creeping into rendering |
 | 7 | No network egress from the browser at runtime | A local tool that degrades without internet fails its own honesty rules |
 
 Plus one beyond the seven, `provider-bypass`, which is the reason
@@ -104,9 +108,14 @@ file is still a file that may not start a process, and that is checked, not
 assumed.
 
 Starting a process is the one capability held by a second file. A real fleet
-publishes its snapshot through a command rather than a file, so the panel has to
-be able to run one - but "reads a fleet" and "can run anything" are different
-claims and only the first is true. The spawn door is confined the same way:
+publishes its snapshot through a command rather than a file, and a worker's
+terminal is a live pane rather than a file at all, so the panel has to be able
+to run one - but "reads a fleet" and "can run anything" are different claims and
+only the first is true. Two commands are run today, both published by the fleet
+home the panel is configured with and both read-only by upstream's own contract:
+`bin/fm-fleet-snapshot.sh` on every pass, and `bin/fm-peek.sh` when an operator
+expands a card. Which arguments the second may be given is not left to the
+caller; see the terminal section below. The spawn door is confined the same way:
 `src/providers/process.ts` carries the `quarterdeck:permitted-spawner` marker,
 it is the only file that may import `child_process`, every write API above is
 still banned inside it, and it exposes one method that returns a command's
@@ -151,6 +160,14 @@ Checked as invariant 1's table with a stricter row: `src/ui/` may import
 `src/types/` and `src/providers/`, its own files, and npm packages. Nothing
 else. A component that needs a new value gets it added to the document type,
 filled in by the projection, and passed down as a prop.
+
+`src/types/` holds two shapes for this reason rather than one. `document.ts` is
+what the first paint is built from; `terminal.ts` is what a card reads when it
+is expanded, and it is a separate file precisely so that it cannot be filled by
+the projection and travel with the document. A component that wants an
+on-demand read is handed an address to ask, never a reader - which is what stops
+the "just fetch this one extra field" shortcut from reappearing in a client
+island. See the terminal section below.
 
 ### invariant 7
 
@@ -255,6 +272,39 @@ always older than the fleet's, so whether a decision is still open is not a
 question it can answer, and it does not pretend to. See
 `docs/decisions/2026-08-30-answering-a-held-decision.md`.
 
+## The terminal, on demand
+
+One worker's last fifteen lines, read only, expanded in the card. The feature
+the wireframe names as the one no earlier attempt gave the operator, and the one
+with the strictest cost rule in the project: **nothing about it may touch the
+first paint.**
+
+- It is not on the document. `src/types/terminal.ts` is a second shape, and the
+  reason it is a second shape is that everything on `document.ts` is read on
+  every pass for every worker. A collapsed card costs one `<details>` element
+  and no read at all.
+- It is asked for by `GET /api/terminal?fleet=&worker=`, from a client island in
+  `src/ui/fleet/worker-terminal.tsx`, on the first expansion and never on its
+  own after that.
+- It reads, and structurally: the route is `GET` only, there is no body to send,
+  and the read runs `bin/fm-peek.sh` through the one spawn door - no shell, no
+  stdin. No marker moved to add it.
+- The worker it will read a session for has to be one the current document
+  lists, and has to match a narrow identifier pattern before any command starts.
+  Upstream's peek treats a selector containing a colon as a raw session target,
+  so those two checks are what stop the panel reading any window on the machine.
+- Four readings, and the three absences stay three facts: lines, `silent`, a
+  session that is gone, and a read that failed. Never a blank box.
+- A refresh does not bring newer lines, deliberately. The disclosure is native
+  and `open` is never set from React, and the lines live in the island's state,
+  so an update landing leaves the terminal open, its content unchanged and its
+  scroll exactly where the reader left it.
+
+`tests/terminal.test.ts` drives all of it through the built server against a
+fleet home whose peek command records every call, which is how "collapsed cards
+read nothing" is asserted rather than asserted about. See
+`docs/decisions/2026-08-31-the-worker-terminal.md`.
+
 ## Tests
 
 `npm test` lints, runs the invariant checks, and drives `.next/standalone` -
@@ -281,11 +331,13 @@ parallel, so each file claims a block of ports by naming itself to
 is bounded: a child that ignores SIGTERM fails its test instead of hanging the
 run.
 
-Three claims are demonstrated in a browser rather than asserted here, each
+Five claims are demonstrated in a browser rather than asserted here, each
 because a string of markup cannot carry it: scroll preservation, which is
 React's reconciliation contract; that nothing overflows the page sideways at a
-narrow width; and that the theme follows the operator's system setting in both
-directions. What markup *can* carry - the pinned headers, the live regions, the
+narrow width; that the theme follows the operator's system setting in both
+directions; that an expanded terminal is still expanded, with both its scroll
+offsets unchanged, after an update lands under it; and that a line far wider
+than its column scrolls inside its own box rather than pushing the page. What markup *can* carry - the pinned headers, the live regions, the
 focusable scroll bodies, the served stylesheet's two blocks - is in
 `tests/shell.test.ts`. See `docs/plans/done/` and the two dated decisions of
 2026-08-31.

@@ -31,5 +31,12 @@ panel rather than three components sharing a page:
   theme that went with it,
   `docs/decisions/2026-08-31-the-theme-follows-the-system.md`.
 
+The first feature built on top of that document has now landed too, and it is
+the one that does not use it: the worker's terminal, read on demand and kept off
+the first paint on purpose -
+`docs/decisions/2026-08-31-the-worker-terminal.md`. It is worth reading before
+adding anything else a card opens, because it settles where an on-demand read
+lives and why it is not a field.
+
 What remains is in `docs/quality.md` under known gaps, and the fleet lens's own
 lanes and filters, which nobody has asked for yet.
