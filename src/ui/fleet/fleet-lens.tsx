@@ -7,6 +7,14 @@ import { ago } from "@/ui/lib/age";
 /**
  * The fleet lens: what is running.
  *
+ * Drawn under the operator's word for it, `Underway`, while keeping `fleet` as
+ * its handle in the markup and in the document. The band sits directly under
+ * the one that owns the first screen and is meant to peek rather than compete:
+ * its header and the top of its first row of cards are above the fold, which is
+ * how an operator knows there is more page without any of it being spent on
+ * work the fleet is handling by itself. The proportions are in
+ * `src/ui/shell.tsx`.
+ *
  * Three shapes, and the document already distinguishes them, so this invents no
  * global notion of "broken": content with a clean read is the fleet; content
  * with a stale or unreadable read is the last good picture, labelled with how
@@ -101,7 +109,7 @@ export function FleetLens({
   const { status } = lens;
 
   return (
-    <LensFrame lens={lens} name="fleet" title="Fleet" summary={sizeOf(workers.length)}>
+    <LensFrame lens={lens} name="fleet" title="Underway" summary={sizeOf(workers.length)}>
       {(status.state === "stale" || (workers.length > 0 && status.state === "unreadable")) && (
         <LastGoodPicture status={status} nowMs={nowMs} />
       )}
@@ -113,9 +121,9 @@ export function FleetLens({
           <EmptyFleet stale={status.state === "stale"} />
         )
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="card-grid [--qd-card-min:22rem]">
           {workers.map((worker) => (
-            <li key={worker.id}>
+            <li key={worker.id} className="min-w-0">
               <WorkerCard worker={worker} nowMs={nowMs} terminal={terminal} />
             </li>
           ))}

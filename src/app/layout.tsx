@@ -13,18 +13,19 @@ export const metadata: Metadata = {
  * first frame and there is no script whose absence would flash the wrong one.
  * See `docs/decisions/2026-08-31-the-theme-follows-the-system.md`.
  *
- * `h-full` down to the body is what lets the shell be exactly one viewport tall
- * at `md` and up, with each lens scrolling inside itself instead of the page
- * scrolling as a whole. Below `md` the body grows and the page scrolls
- * normally; see `src/ui/shell.tsx`.
+ * The page scrolls as a page at every width. It briefly did not - the shell was
+ * one viewport tall at `md` and up, with each lens scrolling inside itself - and
+ * the `h-full` chain that made that work started here. What replaced it, and
+ * why, is in
+ * `docs/decisions/2026-08-31-what-needs-you-owns-the-first-screen.md`.
  */
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${sans.variable} ${mono.variable} ${display.variable} h-full antialiased`}
+      className={`${sans.variable} ${mono.variable} ${display.variable} antialiased`}
     >
-      <body className="min-h-full md:h-full md:overflow-hidden">{children}</body>
+      <body className="min-h-svh">{children}</body>
     </html>
   );
 }

@@ -241,6 +241,33 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
+/*
+ * Width buys cards, never wider cards.
+ *
+ * Every zone on this page that draws a repeated object draws it through this,
+ * so there is one answer to "what happens on a bigger monitor" rather than one
+ * per band. `auto-fill` with a fixed minimum is that answer: the card keeps the
+ * size it was designed at and a wider viewport fits more of them, which is the
+ * behaviour the wireframe asks for and the opposite of a fixed column count
+ * stretching three cards across a monitor.
+ *
+ * `min(100%, ...)` is what keeps it honest at the narrow end: without it a
+ * 24rem minimum overflows a 360px phone sideways, because a grid track's
+ * minimum is a floor the container is not allowed to shrink below.
+ *
+ * The minimum is a variable rather than a number so a band can say how wide its
+ * own cards want to be - a decision card and a worker card are not the same
+ * object - while the rule that turns width into columns stays in one place.
+ * There is no maximum: a card that has stopped growing has nothing to gain from
+ * one, and a cap here would be the centred column this layout exists to remove.
+ */
+@utility card-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--qd-card-min, 22rem)), 1fr));
+  align-items: start;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

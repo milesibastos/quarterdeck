@@ -4,15 +4,17 @@ import { portsFor } from "./lib/ports.ts";
 import { startPanel, type Panel } from "./lib/server.ts";
 
 /**
- * The shell: what the fold puts on screen, what the markup offers a reader who
- * is not looking at it, and which theme the stylesheet answers to.
+ * The shell: which bands the page draws and in what order, what the markup
+ * offers a reader who is not looking at it, and which theme the stylesheet
+ * answers to.
  *
- * Everything here is asserted through the built server, in markup. Two claims
- * this file deliberately does not make, because a string cannot carry them:
- * that nothing overflows the page sideways, and that the theme flips with the
- * operator's setting. Both were measured in a browser instead - at 360 and at
- * 1440 CSS pixels, and under an emulated `prefers-color-scheme` in both
- * directions. See `docs/decisions/2026-08-31-the-fold-line.md` and
+ * Everything here is asserted through the built server, in markup. What the
+ * bands are for, and how much of the first screen each gets, is
+ * `tests/needs-you.test.ts` and `tests/width.test.ts`. Two claims this file
+ * deliberately does not make, because a string cannot carry them: that nothing
+ * overflows the page sideways, and that the theme flips with the operator's
+ * setting. Both were measured in a browser instead - see
+ * `docs/decisions/2026-08-31-what-needs-you-owns-the-first-screen.md` and
  * `docs/decisions/2026-08-31-the-theme-follows-the-system.md`.
  */
 
@@ -28,57 +30,71 @@ function headings(html: string): number[] {
   return [...html.matchAll(/<h([1-6])[\s>]/g)].map((match) => Number(match[1]));
 }
 
+/** The bands the page drew, in the order it drew them. */
+function bands(html: string): string[] {
+  return [...html.matchAll(/data-lens="([a-z-]+)" data-lens-status=/g)].map(
+    (match) => match[1],
+  );
+}
+
 /**
- * One lens's markup: from its `<section>` to the next lens's, or to the end.
+ * One band's markup: from its `<section>` to the next band's, or to the end.
  *
  * Not a `</section>` match - the deck draws its piles as sections of their own,
  * and a lazy close tag would stop at the first of them.
  */
 function lens(html: string, name: string): string {
   const from = html.indexOf(`data-lens="${name}"`);
-  assert.ok(from >= 0, `the page drew no ${name} lens`);
+  assert.ok(from >= 0, `the page drew no ${name} band`);
   const rest = html.slice(from + 1);
-  const next = rest.search(/data-lens="[a-z]+" data-lens-status=/);
+  const next = rest.search(/data-lens="[a-z-]+" data-lens-status=/);
   return next < 0 ? rest : rest.slice(0, next);
 }
 
-describe("the fold, at the large end of the range", () => {
+describe("the order of the bands, at the large end of the range", () => {
   let panel: Panel;
   before(async () => {
     panel = await startPanel({ port: nextPort(), fixtureSet: "crowded" });
   });
   after(() => panel.stop());
 
-  test("every lens says how much it is holding, above its own content", async () => {
+  test("what needs the operator comes first, and underway is next", async () => {
+    // The reading order is the layout's whole argument, and it is the same
+    // order at every width because there is only one of it: the bands stack.
+    // A page that reorders itself between breakpoints teaches two panels.
+    assert.deepEqual(bands(await body(panel)), [
+      "needs-you",
+      "fleet",
+      "deck",
+      "shipshape",
+    ]);
+  });
+
+  test("only the first band is drawn as the dominant one", async () => {
     const html = await body(panel);
-    // The pinned header is what a fleet of thirty and a fleet of two have in
-    // common: the count is how an operator knows which of the two they have
-    // without scrolling to the bottom of a column to find out.
+    const primary = [...html.matchAll(/data-lens="([a-z-]+)"[^>]*data-prominence="primary"/g)];
+    assert.deepEqual(
+      primary.map((match) => match[1]),
+      ["needs-you"],
+      "two dominant bands is no dominant band",
+    );
+  });
+
+  test("every band says how much it is holding, above its own content", async () => {
+    const html = await body(panel);
+    // The header count is how an operator knows whether what is on screen is
+    // all of it, without scrolling to the bottom of a band to find out.
+    assert.match(lens(html, "needs-you"), /Current<\/span>[\s\S]{0,80}4 decisions/);
     assert.match(lens(html, "fleet"), /Current<\/span>[\s\S]{0,80}30 workers/);
-    assert.match(lens(html, "deck"), /Current<\/span>[\s\S]{0,80}15 items/);
+    assert.match(lens(html, "deck"), /Current<\/span>[\s\S]{0,80}11 items/);
   });
 
-  test("each lens pins a header over a scrolling body", async () => {
+  test("nothing clips its own content any more", async () => {
     const html = await body(panel);
-    for (const name of ["fleet", "deck", "shipshape"]) {
-      const section = lens(html, name);
-      assert.ok(section.includes("data-lens-headline"), `${name} has a pinned header`);
-      assert.ok(section.includes("data-lens-body"), `${name} has a body of its own`);
-      assert.ok(
-        /data-lens-body[^>]*md:overflow-y-auto/.test(section),
-        `${name}'s body is what scrolls, not the page`,
-      );
-    }
-  });
-
-  test("what the operator has to answer is reachable without scrolling a pile", async () => {
-    const html = await body(panel);
-    const deck = lens(html, "deck");
-    // The held pile is drawn first, and the count of what can be answered
-    // right now sits on its heading - so the question "is anything waiting on
-    // me" is answered by the top of the column at any fleet size.
-    assert.ok(deck.indexOf("Waiting on a person") < deck.indexOf("Queued"));
-    assert.ok(deck.includes("3 to answer"));
+    // The page scrolls as a page. A band that scrolled inside itself would
+    // hide rows behind an overlay scrollbar macOS draws only while it is used,
+    // which is a silence this layout cannot afford.
+    assert.ok(!/data-lens-body[^>]*overflow-y-auto/.test(html));
   });
 });
 
@@ -92,7 +108,7 @@ describe("the accessibility of a page that changes under the reader", () => {
   test("the headings form an outline with no level skipped", async () => {
     const levels = headings(await body(panel));
     assert.equal(levels.filter((level) => level === 1).length, 1, "one page, one h1");
-    assert.equal(levels.filter((level) => level === 2).length, 3, "one h2 per lens");
+    assert.equal(levels.filter((level) => level === 2).length, 4, "one h2 per band");
     assert.equal(levels[0], 1, "and the page's own heading comes first");
     for (const [index, level] of levels.entries()) {
       const previous = levels[index - 1] ?? 1;
@@ -104,9 +120,9 @@ describe("the accessibility of a page that changes under the reader", () => {
     }
   });
 
-  test("each lens header is a live region, so a lens going stale is announced", async () => {
+  test("each band header is a live region, so a band going stale is announced", async () => {
     const html = await body(panel);
-    for (const name of ["fleet", "deck", "shipshape"]) {
+    for (const name of ["needs-you", "fleet", "deck", "shipshape"]) {
       assert.match(
         lens(html, name),
         /<header role="status" data-lens-headline="true"/,
@@ -115,18 +131,20 @@ describe("the accessibility of a page that changes under the reader", () => {
     }
   });
 
-  test("a scrolling lens body can be reached and is named", async () => {
+  test("each band body is named by its own heading", async () => {
     const html = await body(panel);
-    for (const name of ["fleet", "deck", "shipshape"]) {
+    for (const name of ["needs-you", "fleet", "deck", "shipshape"]) {
       const section = lens(html, name);
-      const body = /<div data-lens-body[^>]*>/.exec(section)?.[0] ?? "";
-      assert.ok(body.includes('tabindex="0"'), `${name}'s body takes keyboard focus`);
-      const labelled = /aria-labelledby="([^"]+)"/.exec(body)?.[1];
+      const region = /<div data-lens-body[^>]*>/.exec(section)?.[0] ?? "";
+      const labelled = /aria-labelledby="([^"]+)"/.exec(region)?.[1];
       assert.ok(labelled, `${name}'s body is named`);
       assert.ok(
         section.includes(`id="${labelled}"`),
         `${name}'s body is named by its own heading, which is on the same section`,
       );
+      // The focus stop went with the scroll area it existed for. A region that
+      // does not scroll and takes focus anyway is a stop on the way to nothing.
+      assert.ok(!region.includes('tabindex="0"'), `${name}'s body is not a focus stop`);
     }
   });
 
@@ -149,7 +167,7 @@ describe("a status line the panel did not write", () => {
     const detail = /<p data-lens-detail="true" class="([^"]*)">([^<]*)</.exec(
       lens(html, "fleet"),
     );
-    assert.ok(detail, "the fleet lens drew its status detail");
+    assert.ok(detail, "the fleet band drew its status detail");
     // The recorded bug: upstream's refusal quotes what it refused, the fixture
     // makes that a 180-character run with no space, hyphen or slash in it, and
     // `break-words` leaves such a run wider than the column it sits in.

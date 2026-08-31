@@ -70,10 +70,43 @@ function BlockerLine({ blocker }: { blocker: Blocker }) {
   );
 }
 
+/**
+ * The two surfaces this row is drawn on.
+ *
+ * `row` is a line in a pile: an accent down the left edge and nothing else, so
+ * a deck of fifteen reads as a list rather than as fifteen competing objects.
+ * `card` is the same content on a card of its own, which is what the needs-you
+ * band draws its decisions as - a thing that is waiting on a person is not a
+ * line item, and the band's grid needs cells with edges. Same component either
+ * way, because a decision an operator answers in the band and the same decision
+ * seen in the deck must not read as two different pieces of work.
+ */
+export type DeckRowTone = "row" | "card";
+
+const TONE: Readonly<Record<DeckRowTone, string>> = {
+  row: "py-1.5 pl-3",
+  card: "rounded-xl bg-card p-3 ring-1 ring-foreground/10",
+};
+
+/**
+ * The heading level each surface sits at, so the page's outline never skips.
+ *
+ * A pile in the deck has its own `h3` above it and its rows are `h4`. A card in
+ * the needs-you band sits straight under the band's `h2` with no pile heading
+ * in between, so it is an `h3`. The level is a fact about where the row was
+ * drawn, which is exactly what `tone` already says - a second prop for it would
+ * be a second chance to disagree.
+ */
+const HEADING: Readonly<Record<DeckRowTone, "h3" | "h4">> = {
+  row: "h4",
+  card: "h3",
+};
+
 export function DeckItemRow({
   row,
   nowMs,
   session,
+  tone = "row",
 }: {
   row: Row;
   nowMs: number;
@@ -82,15 +115,18 @@ export function DeckItemRow({
    * `null` when nothing is configured to carry one.
    */
   session?: AnsweringSession | null;
+  /** Which surface it is drawn on. See `DeckRowTone`. */
+  tone?: DeckRowTone;
 }) {
   const { item, blocking, cleared } = row;
   const hold = item.hold;
+  const Heading = HEADING[tone];
 
   return (
     <li
       data-deck-item={item.id}
       data-actionable={item.actionable}
-      className={cn("border-l-2 py-1.5 pl-3", accentOf(row))}
+      className={cn("min-w-0 border-l-2", TONE[tone], accentOf(row))}
     >
       {/*
         Title and priority sit on one row with the priority pushed to the end.
@@ -99,9 +135,9 @@ export function DeckItemRow({
         today rather than a heading with a badge after it.
       */}
       <div className="flex items-start justify-between gap-2">
-        <h4 className="font-heading text-sm leading-snug font-medium wrap-anywhere text-foreground">
+        <Heading className="font-heading text-sm leading-snug font-medium wrap-anywhere text-foreground">
           {item.title}
-        </h4>
+        </Heading>
         <Badge variant={PRIORITY_VARIANT[item.priority]} className="shrink-0">
           {item.priority}
         </Badge>
