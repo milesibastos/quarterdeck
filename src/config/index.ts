@@ -39,6 +39,20 @@ export interface FleetRef {
   readonly id: string;
   readonly label: string;
   readonly source: FleetSource;
+  /**
+   * Where this fleet's answered decisions are spooled, or `null` when it has
+   * nowhere to write and so cannot accept an answer at all.
+   *
+   * Declared per fleet, not once for the panel: once more than one fleet is
+   * selectable in one process, a single global spool would send an answer to
+   * whichever fleet's registered process-event source happens to be watching
+   * that directory, regardless of which fleet the operator was looking at. The
+   * panel still holds no knowledge of the operator's arrangement - it arrives
+   * from the environment, positionally aligned with the configured fleet list,
+   * rather than being composed from a fleet's own home. See
+   * `docs/decisions/2026-08-30-answering-a-held-decision.md`.
+   */
+  readonly intentDir: string | null;
 }
 
 export interface Config {
@@ -54,20 +68,6 @@ export interface Config {
   readonly fleets: readonly FleetRef[];
   /** Absolute path of the fixtures root. */
   readonly fixtureRoot: string;
-  /**
-   * Where answered decisions are spooled, or `null` when the panel has nowhere
-   * to write and so cannot accept an answer at all.
-   *
-   * The panel never acts on the fleet: it records an intent here and a
-   * registered process-event source picks it up, re-verifies the decision is
-   * still open, and feeds the fleet's one keyed-answer intake. Which directory
-   * that source watches is the operator's arrangement, not knowledge this
-   * panel is allowed to hold - so it arrives from the environment rather than
-   * being composed from `fleetHome`, and unset means the write path is closed
-   * rather than guessed at. See
-   * `docs/decisions/2026-08-30-answering-a-held-decision.md`.
-   */
-  readonly intentDir: string | null;
   /** Loopback only. Never an address reachable from the network. */
   readonly host: string;
   readonly port: number;
@@ -129,6 +129,20 @@ function entriesOf(raw: string | undefined): string[] {
 }
 
 /**
+ * The colon-separated entries of a setting that names one fleet each, kept
+ * positional rather than filtered.
+ *
+ * `QUARTERDECK_INTENT_DIR` lines up against the configured fleet list by
+ * index, so an empty slot between two real ones has to stay a slot - dropping
+ * it the way `entriesOf` does would shift every entry after it onto the wrong
+ * fleet.
+ */
+function positionalEntriesOf(raw: string | undefined): string[] {
+  if (raw === undefined || raw === "") return [];
+  return raw.split(FLEET_SEPARATOR).map((entry) => entry.trim());
+}
+
+/**
  * The configured fleet homes, each checked to be absolute.
  *
  * A relative home would resolve against whatever directory the panel happened
@@ -186,6 +200,11 @@ function slug(label: string): string {
  * itself collide with another entry's own name. Order comes from the
  * environment and does not change between restarts, which is what makes a
  * remembered id still name the same fleet.
+ *
+ * `QUARTERDECK_INTENT_DIR` lines up with this same order, one slot per fleet:
+ * a single value with several fleets configured names only the first one's
+ * spool, never all of them, because broadcasting one directory across every
+ * fleet is exactly what would let an answer meant for one land in another's.
  */
 function fleetsFromEnv(env: NodeJS.ProcessEnv): readonly FleetRef[] {
   const homes = fleetHomesFromEnv(env);
@@ -193,9 +212,10 @@ function fleetsFromEnv(env: NodeJS.ProcessEnv): readonly FleetRef[] {
     homes.length > 0
       ? homes.map((home) => ({ kind: "home", home }))
       : fixtureSetsFromEnv(env).map((set) => ({ kind: "fixture", set }));
+  const intentDirs = positionalEntriesOf(env.QUARTERDECK_INTENT_DIR);
 
   const taken = new Set<string>();
-  return sources.map((source) => {
+  return sources.map((source, index) => {
     const label = source.kind === "home" ? homeLabel(source.home) : source.set;
     const base = slug(label);
     let id = base;
@@ -203,7 +223,7 @@ function fleetsFromEnv(env: NodeJS.ProcessEnv): readonly FleetRef[] {
       id = `${base}-${suffix}`;
     }
     taken.add(id);
-    return { id, label, source };
+    return { id, label, source, intentDir: intentDirs[index] || null };
   });
 }
 
@@ -231,7 +251,6 @@ export function loadConfig(
   return {
     fleets: fleetsFromEnv(env),
     fixtureRoot: env.QUARTERDECK_FIXTURE_ROOT || `${rootDir}/fixtures`,
-    intentDir: env.QUARTERDECK_INTENT_DIR || null,
     host: HOST,
     port,
     staleAfterMs: intFromEnv(env, "QUARTERDECK_STALE_AFTER_MS", 60_000),

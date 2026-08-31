@@ -107,9 +107,15 @@ function runtimeOn(
 ): FleetRuntime {
   return new FleetRuntime({
     config: {
-      fleets: [{ id: "healthy", label: "healthy", source: { kind: "fixture", set: "healthy" } }],
+      fleets: [
+        {
+          id: "healthy",
+          label: "healthy",
+          source: { kind: "fixture", set: "healthy" },
+          intentDir: null,
+        },
+      ],
       fixtureRoot: FIXTURES,
-      intentDir: null,
       host: "127.0.0.1",
       port: 0,
       staleAfterMs: OPTIONS.staleAfterMs,
@@ -142,14 +148,19 @@ describe("which fleets to read is configuration", () => {
   test("no fleet home means the fixture set, exactly as before", () => {
     const config = loadConfig(REPO_ROOT, env());
     assert.deepEqual(config.fleets, [
-      { id: "healthy", label: "healthy", source: { kind: "fixture", set: "healthy" } },
+      {
+        id: "healthy",
+        label: "healthy",
+        source: { kind: "fixture", set: "healthy" },
+        intentDir: null,
+      },
     ]);
   });
 
   test("a fleet home is taken from the environment, never from the code", () => {
     const config = loadConfig(REPO_ROOT, env({ QUARTERDECK_FLEET_HOME: FLEET_HOME }));
     assert.deepEqual(config.fleets, [
-      { id: "fleet", label: "fleet", source: { kind: "home", home: FLEET_HOME } },
+      { id: "fleet", label: "fleet", source: { kind: "home", home: FLEET_HOME }, intentDir: null },
     ]);
   });
 
@@ -233,6 +244,47 @@ describe("which fleets to read is configuration", () => {
     assert.throws(
       () => loadConfig(REPO_ROOT, env({ QUARTERDECK_FIXTURE_SET: "healthy:../escape" })),
       /QUARTERDECK_FIXTURE_SET must be a lowercase fixture directory name/,
+    );
+  });
+
+  test("no intent dir configured leaves every fleet's spool closed", () => {
+    const config = loadConfig(
+      REPO_ROOT,
+      env({ QUARTERDECK_FIXTURE_SET: "healthy:fleet-only" }),
+    );
+    assert.deepEqual(
+      config.fleets.map((fleet) => fleet.intentDir),
+      [null, null],
+    );
+  });
+
+  test("a single intent dir names only the first fleet's spool, never every fleet's", () => {
+    const config = loadConfig(
+      REPO_ROOT,
+      env({
+        QUARTERDECK_FIXTURE_SET: "healthy:fleet-only",
+        QUARTERDECK_INTENT_DIR: "/spool/one",
+      }),
+    );
+    assert.deepEqual(
+      config.fleets.map((fleet) => fleet.intentDir),
+      ["/spool/one", null],
+      "broadcasting one directory across every fleet would let an answer meant for one land in another's",
+    );
+  });
+
+  test("intent dirs line up positionally with the configured fleet list", () => {
+    const config = loadConfig(
+      REPO_ROOT,
+      env({
+        QUARTERDECK_FIXTURE_SET: "healthy:fleet-only:stale",
+        QUARTERDECK_INTENT_DIR: ":/spool/two:/spool/three",
+      }),
+    );
+    assert.deepEqual(
+      config.fleets.map((fleet) => fleet.intentDir),
+      [null, "/spool/two", "/spool/three"],
+      "an empty slot leaves that one fleet's spool closed rather than shifting the rest",
     );
   });
 });

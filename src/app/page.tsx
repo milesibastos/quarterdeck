@@ -72,9 +72,13 @@ async function read(config: Config, fleet: FleetRef): Promise<Outcome> {
  * `null` when nothing is configured to carry an answer to the fleet. The panel
  * then says so on the card rather than offering a control that cannot work, and
  * the secret is not handed out at all.
+ *
+ * Gated on the selected fleet's own spool, not a panel-wide one: which fleet is
+ * on screen is what the answer would be about, so whether the control can work
+ * at all has to follow the same selection.
  */
-function answering(config: Config): AnsweringSession | null {
-  if (config.intentDir === null) return null;
+function answering(fleet: FleetRef): AnsweringSession | null {
+  if (fleet.intentDir === null) return null;
   return {
     header: SESSION_HEADER,
     secret: sessionSecret(),
@@ -119,7 +123,7 @@ export default async function Page() {
         <Shell
           document={outcome.document}
           nowMs={clockFor(config).nowMs()}
-          session={answering(config)}
+          session={answering(fleet)}
         />
       )}
     </FleetPicker>
