@@ -1,213 +1,295 @@
-# qlty measures duplication and complexity, and nothing else
+# qlty formats the tree, runs five checks, and gates on all of them
 
 Date: 2026-08-31
-Status: accepted
+Status: accepted, superseding the version of this file dated earlier the same
+day
 
-## Context
+## What this file used to say, and what changed
 
-This project already has a linter and a test suite. `npm run lint` runs eslint,
-`pretest` chains it, and `npm test` drives 463 tests plus the invariant checks
-against the built server. What none of that measures is duplication or
-complexity - the two debts that accumulate quietly because nothing ever fails on
-them.
+The first version of this record configured qlty to do exactly one job - report
+duplication and complexity - and argued, at length, for declining everything
+else: no plugins, no formatter, no CI job. That argument is reversed here, on
+the captain's ruling that it goes all the way, and the reversal is written into
+this file rather than left as a record contradicting its own repository.
 
-The timing decides the shape of this change. The panel has just taken on
-nineteen vendored components under `src/ui/components/grok/` and had five of its
-lenses rewritten in parallel over one afternoon. That is the situation
-duplication creeps into, and a baseline is worth more before the next rewrite
-than after it.
+Two things from that version survive intact, and one of them is the reason the
+reversal is not total:
 
-## Decision
+**eslint stays with npm.** qlty's eslint plugin installs its own eslint into its
+own sandbox and resolves `eslint-config-next` there. This project's eslint comes
+from `package.json` and reads `eslint.config.mjs`. Two installs and two
+resolution paths answering one question is how a project ends up with
+contradictory advice and no way to say which run is authoritative. `npm run
+lint` remains the only thing that runs eslint, `pretest` keeps chaining it, and
+qlty has no opinion about lint. Nothing below changes that.
 
-qlty (CLI 0.644.0, local, no account) is configured in `.qlty/qlty.toml` to do
-exactly one job: report duplication and complexity. Two commands:
+**The trap in the generated excludes.** `qlty init` produces twenty-five entries
+of boilerplate and one of them is `**/config/**`, which in this repository
+silently swallows `src/config/` - real quarterdeck source. Anything added to
+that list must still be checked against `src/` first.
 
-```sh
-qlty smells --all      # duplication and complexity findings
-qlty metrics --all -d  # per-directory size and complexity totals
-```
+What is now false in the old version, and should be read as history: "no plugins
+are enabled", "no formatter", "no CI job", the recommendation that a gate is not
+worth building yet, and the baseline tables, which were taken before the
+exclusions were narrowed and before the tree was formatted. The live numbers are
+`qlty smells --all` and `bin/qlty-smells-gate`.
 
-**No plugins are enabled.** `qlty init` offers six by default; every one of them
-was declined, and the reason for each is below. Duplication and complexity are
-computed by the CLI itself, so the enabled-plugin list being empty is the
-configuration working, not a step left undone. The visible consequence is that
-`qlty check` reports "No issues" on this repository by construction - that is
-expected, and `qlty smells` is the command that has something to say.
+## The formatter, and where prettier comes from
 
-**No formatter.** prettier, biome and oxc formatting all stay off. `qlty fmt`
-is inert here and rewrites nothing; that was verified, not assumed.
+prettier comes from qlty and from nowhere else. There is no prettier in
+`package.json`, deliberately, and the version is pinned in `.qlty/qlty.toml`.
 
-**Every threshold is written out** in `.qlty/qlty.toml` rather than left
-implicit. They are qlty's own defaults and none has been loosened, but a
-contributor reading the file can see what is measured and at what number it
-fires without having to run `qlty config show`.
+The eslint argument above does not carry over, and it is worth saying why rather
+than inheriting the conclusion. That argument is about an **incumbent**: eslint
+was already here, with its own config and its own resolution, and adding a
+second one would have created two answers where there was one. prettier has no
+incumbent. Installing it twice - once for an `npm run format` and once for the
+gate - is how we would manufacture that problem, not avoid it. One install, one
+version, and the binary that formats the tree is the binary that fails the
+build.
 
-## eslint stays with npm, and qlty does not touch it
+The cost, stated plainly: a contributor's editor has no local prettier to point
+format-on-save at, and `npm test` does not check formatting. `qlty fmt` is the
+command and CI is the backstop, and neither is discoverable from
+`package.json` - which is why both are in `AGENTS.md`.
 
-qlty's eslint plugin installs its own eslint - the generated config pinned
-9.39.5 - into its own sandbox, and resolves `eslint-config-next` there. This
-project's eslint comes from `package.json` and reads `eslint.config.mjs`. Two
-installs and two resolution paths answering one question is how a project ends
-up with contradictory advice and no way to say which run is authoritative.
+The first pass rewrote 119 files. It is its own commit, with no behavioural
+change in it, so the mechanical diff and the reviewable diff are never mixed.
 
-So: `npm run lint` remains the only thing that runs eslint, `pretest` keeps
-chaining it, and qlty has no opinion about lint at all. There is no second
-eslint configuration anywhere in the tree.
+## `exclude_patterns` had to shrink before any of this worked
 
-The alternative - qlty owning the run and `npm run lint` delegating to it - was
-considered and rejected. It would put a downloaded toolchain in front of the
-check that gates every test run, for no gain, since the eslint we have already
-works.
+This is the change with the widest blast radius, and it is not obvious from the
+outside.
 
-## The other five plugins, and why each was declined
+`exclude_patterns` is global: a path named there is invisible to the formatter,
+to every plugin and to `qlty smells` alike. Six paths were listed, and four of
+them were there to silence a complexity or duplication finding, from when smells
+was the only consumer - `src/adapters/health.ts`, `src/ui/keyboard-help.tsx`,
+`src/ui/fleet-picker.tsx` and the vendored `src/ui/components/grok/`. Enabling a
+formatter and a secret scanner against that list would have left roughly two
+thousand lines of real source unformatted in a formatted tree, and unscanned in
+a public repository. Verified rather than assumed: with those entries in place,
+prettier reported 69 files to format; without them, 137.
 
-- **actionlint** and **zizmor** lint GitHub Actions. There is one workflow in
-  this repository and it is twenty lines. Neither measures duplication or
-  complexity. Worth revisiting if the workflow grows teeth.
-- **trufflehog** scans for secrets. `npm test` already greps every tracked file,
-  plus every uncommitted file that is not gitignored, for machine paths and task
-  identifiers - see the "Nothing real in the repository" principle in
-  `docs/principles.md`. A second scanner with different rules would give a second
-  verdict on a question this project has already answered its own way.
-- **osv-scanner** reports vulnerable dependencies. This is the one real gap
-  among the six, and it is still declined here: it reaches the network on every
-  run, which makes a local `qlty smells` fail or stall offline, and it asks a
-  supply-chain question rather than a code-health one. Recommended separately -
-  as Dependabot or a scheduled job, not wired into a developer's local run.
-- **ripgrep** enforces custom grep rules. There are no custom rules to enforce.
+So the list is cut to two entries - `**/*.d.ts`, which is generated and carries
+no logic, and `tests/violations/**`, which is discussed on its own below. The
+four reasons the others carried are not discarded; they move to
+`bin/qlty-smells-gate`, where the finding is judged rather than the file hidden.
 
-## What the excludes say, and the trap in the generated ones
+There was no gentler mechanism. Three were tried against smells and all three
+failed:
 
-qlty's generated `exclude_patterns` list is twenty-five entries of boilerplate,
-and one of them is `**/config/**`. In this repository that silently swallows
-`src/config/` - real quarterdeck source, the layer that derives the port. It was
-missing from the first metrics run and its absence is easy not to notice.
+| Mechanism                               | Result                                 |
+| --------------------------------------- | -------------------------------------- |
+| Inline `qlty-ignore` comment            | Linter pipeline only. Tried in #29.    |
+| `[[exclude]]` with `plugins = ["qlty"]` | No effect; `health.ts` still reported. |
+| `[[triage]]` with `set.ignored = true`  | No effect; same.                       |
 
-The committed list is therefore short enough to read in full, and holds only
-what is genuinely not ours to measure: `**/*.d.ts` (generated, no logic) and
-`tests/violations/**` (deliberately broken source read as text by the invariant
-checks, which `eslint.config.mjs` ignores for the same reason). qlty already
-skips whatever `.gitignore` skips, so `node_modules`, `.next/` and `dist/` need
-no entry.
+All three are machinery `qlty smells` never consults. Per-plugin `[[exclude]]`
+blocks do work for plugins, and are used for the three places one tool needs to
+be told to look away.
 
-**Anything added to that list must be checked against `src/` first.** A
-generated exclude pattern that matches a real directory is a measurement that
-quietly stops happening.
+## What is excluded, and at what scope
 
-## The baseline, taken 2026-08-31
+Everything qlty is told to overlook now names the narrowest thing that works.
 
-80 files, 8,059 lines of code, 18 findings.
+**Global, from all of qlty:** `**/*.d.ts`, and `tests/violations/**`.
 
-(Take the total from `qlty metrics --all` without `-d`. The per-directory
-`TOTAL` row sums the rows it displayed, so a nested directory is counted inside
-its parent and again on its own line - `-d --max-depth 3` reports 20,534 for the
-same 8,059 lines.)
+That second entry is load-bearing, and it is the one hazard in this whole
+change. Those files are deliberately broken source read as **text** by the
+invariant checks, and `tests/invariants.test.ts` asserts the exact line each
+planted fault sits on. A formatter reaching them would move those lines. eslint
+and `tsconfig.json` ignore the directory for the same reason; a prettier run
+wired through npm would have inherited neither.
 
-**Duplication: two clusters, and only one of them crosses a file.**
+Two things were measured about it, and both are better news than expected:
 
-| Where                                                                 | What                                                                                                                                                              |
-| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `src/ui/components/grok/grok-write.tsx` 51 and 66                     | 16 similar lines, mass 83. The `before` and `after` line maps, written twice.                                                                                     |
-| `src/ui/disclosure-bar.tsx` 138 / `src/ui/landed/landed-lens.tsx` 178 | 22 similar lines, mass 86. `NothingOmitted` and `NothingLanded`: the same empty state, distinguishing "unreadable" from "genuinely empty", with different labels. |
+- prettier wants to rewrite **none** of the twenty planted trees as they stand.
+  `prettier --check` passes on all of them. The exclusion guards what someone
+  writes next rather than a bullet this pass dodged.
+- If it ever did reach them, most breakage would be **loud**. The suite pins
+  exact line numbers for `path-quarantine` and `no-egress`, and its per-check
+  loop asserts every tree still trips its check at all. The quiet shape left is
+  a tree whose fault a formatter relocates within a check that does not pin the
+  line - which is why the exclusion stays.
 
-Two clusters across five lenses rewritten in parallel is a good result, and the
-second one is the interesting one: it is not careless copy-paste, it is the same
-idea drawn twice, which is the shape that becomes a shared component later.
+The mechanism was demonstrated rather than argued: a fault planted across three
+lines in the `path-quarantine` tree failed the suite at 13 pass / 1 fail;
+prettier joined the lines; the suite went green again on a file its author had
+not written.
 
-**Complexity: four functions and one file over threshold.**
+Separately, the checks were shown to be alive after the format pass. A raw hex
+colour planted in `src/ui/snapshot-badge.tsx` and a remote URL planted in
+`src/domain/project.ts` each failed the invariant suite naming the rule and the
+exact line.
 
-| Where                                              | Count | Threshold |
-| -------------------------------------------------- | ----- | --------- |
-| `GrokProjectPicker` (`grok-project-picker.tsx` 33) | 34    | 18        |
-| `KeyboardHelp` (`keyboard-help.tsx` 78)            | 33    | 18        |
-| `GrokSettings` (`grok-settings.tsx` 85)            | 24    | 18        |
-| `FleetPicker` (`fleet-picker.tsx` 83)              | 19    | 18        |
-| `src/adapters/health.ts` (whole file)              | 86    | 50        |
+**Per plugin:**
 
-Plus nine "many returns" findings at counts of 6 and 7 against a threshold of 6 -
-`idleSinceMs`, `keyedAnswerLine`, `submitIntent`, `terminal read`, `recheck`,
-`GrokThinking`, `GrokWorking`, `KeyboardHelp`, and `ago`. Most of those are
-guard-clause parsers at a boundary, which is the shape `docs/principles.md`
-asks for; they are noted, not indicted.
+| Path                                                                  | Kept from                        | Why                                                                                                                                                             |
+| --------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `fixtures/all-dark/snapshot.json`, `fixtures/malformed/snapshot.json` | prettier                         | Truncated mid-token on purpose. prettier exits 2 for the whole run rather than skip them.                                                                       |
+| `.agents/**`                                                          | prettier, markdownlint, yamllint | Installed by the shadcn CLI, integrity pinned in `skills-lock.json`. The first format pass rewrote eighteen of these before the entry existed; it was reverted. |
+| `fixtures/**`, `CLAUDE.md`                                            | markdownlint                     | A fleet home's `backlog.md` is data the panel reads, not prose. `CLAUDE.md` is a three-line import stub with nowhere to put a heading.                          |
 
-Nothing here was acted on. This change installs the measurement; acting on it is
-a separate decision.
+## The five checks, and what each settled
 
-## Recommendation: do not exclude the vendored grok directory
+Each answers a question nothing else in this project answers. Configs live at
+the repository root: `.qlty/configs/` was tried first and this CLI does not read
+it, which fails **silently** - the run reports exactly what it would with no
+config at all.
 
-The question was whether `src/ui/components/grok/` - code we own but did not
-write - dominates the numbers badly enough to deserve a permanent exclusion.
-Measured, it does not:
+**markdownlint.** 69 tracked `.md` files and nothing had ever read them. 212
+findings, 201 of them MD013 against table cells and code blocks. `docs/quality.md`
+is one row per area with a sentence-heavy cell, the longest over 3,000
+characters, and markdown gives a cell no way to wrap; code blocks quote commands
+verbatim. Both are exempt and the 80-column limit stays for prose, which left 14
+real over-long lines - rewrapped, not excused - plus two indented code blocks
+fenced, two fences given a language, and one heading's trailing full stop
+removed.
 
-|                  | grok  | all of `src/` | grok's share |
-| ---------------- | ----- | ------------- | ------------ |
-| Lines of code    | 1,929 | 7,932         | 24%          |
-| Total complexity | 195   | 837           | 23%          |
-| Findings         | 6     | 18            | 33%          |
+markdownlint's own formatter runs beside prettier and the two converge: three
+consecutive `qlty fmt --all` runs give a byte-identical tree. It wraps three
+bare URLs in a font copyright notice in angle brackets, which leaves the
+_rendered_ notice verbatim, so MD034 stays on rather than being switched off to
+protect the source text.
 
-Its complexity per line is very slightly _better_ than the project average. It
-carries a third of the findings on a quarter of the lines, which is a mild
-over-representation, not a distortion - the number that would justify excluding
-it is not there.
+**actionlint.** Clean on the first run, and now guarding the file that gates
+every pull request.
 
-Two further reasons to keep it in. It is not carried untouched: it was
-re-tokenised onto quarterdeck's palette, and `npm test` enforces that no
-component carries a colour value, so it is edited here. And its duplication
-finding is internal to `grok-write.tsx` - exactly what a future re-tokenising
-pass would want to see rather than have hidden.
+**yamllint.** Reads the workflow as YAML where actionlint reads it as a
+workflow; they overlap nowhere. Six findings. `document-start` is off - `---`
+opens a document in a stream and every YAML file here is a single document.
+`truthy` is narrowed to values with `check-keys: false`, because a workflow's
+`on:` key is required and YAML 1.1 reads it as a boolean. The three long lines
+were a comment that had grown, and were rewrapped.
 
-If the captain decides differently, the right mechanism is a scoped
-`exclude_patterns` entry with a dated note saying why, not a blanket vendor
-exclusion that the next vendored directory inherits by accident.
+**gitleaks.** This repository is public. The leak guard in `npm test` knows this
+project's own leak shapes - machine paths, task identifiers - and nothing about
+an AWS key or a GitHub token. Different question, and gitleaks is the only thing
+here that asks it. Clean.
 
-## Recommendation: no CI job yet, and here is what one would cost
+The old record declined **trufflehog** on the grounds that the leak guard
+already answers this. That reasoning was wrong about which question is being
+asked, and gitleaks is enabled in its place.
 
-No qlty job was added to `ci.yml`. Three reasons, the first of them mechanical:
+**knip.** Dead exports and unused dependencies. Nothing else looks: eslint sees
+one file at a time and cannot know an export has no importer. 77 findings, and
+most were the tool not knowing the project's shape. Naming the Next entry
+points, the test files, the vendored component directories and - the one that
+mattered - `src/app/globals.css` took it to one. That CSS entry is what
+resolved `shadcn`, `tw-animate-css` and `tailwindcss`, whose only use is an
+`@import`: three dependencies kept because they are used, rather than
+suppressed. `postcss` is the single ignored entry, because no source file
+imports it.
 
-**A gate is not a one-line job.** `qlty smells` exits 0 whether it finds
-eighteen problems or none - verified. Smells do not participate in `qlty check`
-either, even with `[smells] mode = "block"` - also verified, on this
-configuration. So gating on duplication or complexity means emitting SARIF and
-parsing it, or hand-rolling a threshold. That is real work, and it should be
-done for a reason.
+What survived was real, and was fixed: 51 symbols exported from a module nothing
+else imports, one constant referenced nowhere at all, and `lucide-react`.
+`docs/principles.md` already asked for this under "do not build for a future
+that has not arrived".
 
-**There is no reason yet.** A gate today would gate a baseline of eighteen
-untriaged findings. Either it fails every PR until someone bulk-suppresses it,
-or it is set to a threshold above the current state, which makes it a ratchet
-nobody chose. That is the check nobody acts on, which is worse than no check.
+## osv-scanner runs in CI, and outside qlty
 
-**The cost is not zero.** CI here goes green in 42-64 seconds. Adding a job that
-downloads the qlty CLI on every pull request is a visible tax on a fast pipeline.
+It is the one plugin deliberately absent from `.qlty/qlty.toml`, and the reason
+is unchanged from the old record: it reaches the network on every run, and a
+local `qlty check` that stalls offline is a tool people stop running.
 
-The shape to revisit, once someone has acted on the baseline, is diff-scoped and
-informational: `qlty smells --upstream origin/main`, reporting only on what the
-pull request changed, not gating, until the team has watched it across a few
-pull requests and knows what it says. Gating comes after that, if at all.
+`[[plugin]] triggers = ["build"]` looked like the answer. It is not, and this
+was measured: with it set, the plugin is unreachable from `qlty check`
+_everywhere_ - locally, under `CI=true`, under `GITHUB_ACTIONS=true`, under
+`QLTY_TRIGGER=build`, filtered or unfiltered. `qlty check` has no `--trigger`
+flag at all; only `qlty fmt` does. `triggers` is a Qlty Cloud concept, and
+setting it here would disable the scanner rather than schedule it.
 
-## Recommendation: a formatter is a separate decision
+So it runs as its own CI job, pinned by digest rather than tag, since it is the
+one step in the pipeline that runs somebody else's container. The lockfile scans
+clean today.
 
-This project has no formatter, and adding one is defensible - it would end a
-class of review comment. It is deliberately not in this change. A
-whole-repository reformat is a diff nobody can review, and it would collide with
-a lens still being validated. If the captain wants prettier, it should land as
-its own branch, on a quiet tree, with the reformat as a single commit that
-touches nothing else.
+## The gate
+
+Two commands, both failing the build.
+
+`qlty check --all` covers the formatter and the five checks. It exits non-zero
+on any issue by default; `--no-fail` is the flag that would make it advisory
+again, and it is not used.
+
+`bin/qlty-smells-gate` covers duplication and complexity, because nothing in
+qlty will. `qlty smells` exits 0 whether it finds twelve problems or none, and
+smells reach none of the suppression machinery. The old record called this out
+as real work that should be done for a reason; the reason is now the ruling, and
+the work is a 300-line script with no dependencies.
+
+It is **default-deny**. Every finding must match an entry in its `KEPT` list or
+the gate fails, so a smell nobody has configured for - boolean logic, nesting,
+parameter counts - fails without anyone having to remember it first.
+
+The keys are chosen to survive the code moving underneath them:
+
+- **Duplication** is keyed on qlty's `structural_hash`, derived from the syntax
+  tree, so it survives reformatting and edits above it. Change what the
+  duplicated code _does_ and the hash changes - which is the point, because the
+  pair was kept on an argument about that code.
+- A hash alone is **not enough**, and this changed the design rather than being
+  reasoned about in advance. Pasting a third copy of a kept pair makes qlty
+  report the same hash "in 3 locations", and the first version of the gate waved
+  it through. Each entry now records how many copies were agreed to.
+- **Complexity** carries no hash, so it is keyed on rule, file and the symbol
+  qlty names, plus the count it was accepted at. Growth past that count fails.
+  Equality would fail every innocent refactor; no bound at all would let
+  `health.ts` go from 87 to 300 in silence, which is exactly the criticism the
+  old blanket exclusion deserved.
+
+Failures print in the shape `docs/principles.md` requires - what broke, why the
+rule exists, the concrete edit - so the gate speaks the same language as the
+invariant checks.
+
+Nine findings are kept, each with its argument in the script: three duplications
+(two lens pairs recorded in
+`docs/decisions/2026-08-31-what-the-parallel-lens-build-duplicated.md`, one
+inside a vendored component) and six complexity findings (`health.ts` at 87,
+`KeyboardHelp` twice, `FleetPicker`, and two vendored grok components).
+
+Both directions were demonstrated, not asserted: the gate exits 1 on a new
+duplication, on a third copy of a kept one, on a kept finding grown past its
+number, on a smell nobody had seen, and on an unformatted file; and 0 on the
+tree as landed.
+
+## What the numbers did
+
+The old baseline is superseded. Taken on this branch, after formatting and after
+the exclusions narrowed:
+
+|                                         | Before this branch      | After                        |
+| --------------------------------------- | ----------------------- | ---------------------------- |
+| Paths hidden from all of qlty           | 6                       | 2                            |
+| Findings `qlty smells` can see          | 4                       | 12                           |
+| Findings judged and recorded            | 2, in `.qlty/qlty.toml` | 9, in `bin/qlty-smells-gate` |
+| Duplication in `src/adapters/health.ts` | hidden                  | fixed                        |
+
+The jump from 4 to 12 is not a regression. Eight of those findings existed the
+whole time and were excluded from view; they are now visible and each carries a
+written argument. One of them - a mass-106 duplication between `parseOverdue`
+and `parseDrift`, the largest in the repository - turned out to be real and was
+fixed the moment it could be seen.
 
 ## Trade-offs
 
-**qlty is a second toolchain a contributor may not have.** Nothing in
-`npm test`, `npm run build` or `npm start` depends on it, and nothing added here
-fails when it is missing - qlty is a tool you reach for, not a gate you pass.
-That is the point, and it is also the risk: a measurement nobody runs measures
-nothing. The commands are named in `AGENTS.md` and at the top of
-`.qlty/qlty.toml` so they are findable, but there is no mechanism keeping them
-in anyone's habit. That is what the CI recommendation above would eventually fix.
+**A second toolchain is now required, not optional.** The old record's
+consolation was that nothing broke when qlty was missing. That is no longer
+true: a contributor without qlty cannot format the tree and will fail CI. This
+is the cost of the ruling, and it is a real one. `AGENTS.md` names the three
+commands.
 
-**The baseline in this file goes stale.** It is dated for that reason. It is a
-snapshot to compare against, not a live number; re-run the two commands rather
-than trusting the tables here.
+**`qlty smells --all` is noisier than it was.** Twelve findings rather than
+four, because the exclusions stopped hiding eight of them. The command to run is
+`bin/qlty-smells-gate`, which prints the verdict and names what is kept;
+`qlty smells` is the raw report behind it.
 
-**Zero plugins means `qlty check` looks broken.** It reports "No issues" on any
-input, forever, because it has nothing enabled to check with. Anyone evaluating
-whether qlty is working here should run `qlty smells --all` instead. This is
-called out at the top of `.qlty/qlty.toml` too.
+**A kept finding with a number is a ratchet.** `health.ts` at 87 means a genuine
+improvement that happens to add a branch fails the gate until someone edits the
+number. That is the intended polarity - the alternative is the blanket exclusion
+this change removed - but it will annoy somebody, and the fix is one line with a
+sentence beside it.
+
+**The CI cost is no longer zero.** Two jobs beside the test job. They run in
+parallel, so wall-clock is bounded by the slowest rather than the sum, and the
+qlty toolchain cache is keyed on `.qlty/qlty.toml`.
