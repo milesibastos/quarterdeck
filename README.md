@@ -4,10 +4,11 @@ A local command panel for a firstmate fleet: what is running now, what is queued
 or held for a decision, and whether the machinery supervising it all is healthy.
 
 Today the fleet lens draws a worker card and lifecycle rail per piece of work
-under way; the deck lens is still a placeholder. The shipshape lens can read a
-real fleet's own files - see `fixtures/README.md` for `QUARTERDECK_FLEET_HOME` -
-but the fleet and deck still come from a synthetic fixture fleet, and nothing
-here can change anything.
+under way, and the deck lens draws its four piles - held, blocked, queued, in
+flight; the shipshape lens is still a placeholder. It can read a real fleet's
+own files - see `fixtures/README.md` for `QUARTERDECK_FLEET_HOME` - but the
+fleet and deck still come from a synthetic fixture fleet, and nothing here can
+change anything.
 
 ## Run it
 
