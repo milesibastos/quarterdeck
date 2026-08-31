@@ -5,7 +5,7 @@ fleet: what is running (fleet), what is queued or held for a decision (deck),
 and whether the machinery is healthy (shipshape). The fleet lens draws a worker
 card and lifecycle rail, the deck lens draws its four piles and offers an
 answer control on work held for a person, and the shipshape lens draws the
-three health signals and the designed dark state. All three sit over a pinned
+five health signals and the designed dark state. All three sit over a pinned
 document shape, filled from a configured fleet home or from synthetic fixtures
 when there is none. The operator picks which of the configured fleets they are
 looking at, and their browser remembers it.
