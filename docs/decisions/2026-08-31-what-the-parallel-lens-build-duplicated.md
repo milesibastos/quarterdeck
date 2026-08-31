@@ -56,7 +56,7 @@ What follows is the disposition of each finding, on its merits.
 
 ## Fixed
 
-### The two answer controls were not duplicated. One of them was dead.
+### The two answer controls were not duplicated. One of them was dead
 
 The largest finding in the repository - 26 lines identical, mass 139 - is
 resolved by deleting one side rather than extracting a shared helper, because

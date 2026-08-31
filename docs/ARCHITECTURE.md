@@ -352,8 +352,9 @@ each from a copied fixture rather than committing a directory per cell.
 
 `tests/document.test.ts` is the exception to driving the built server, and
 deliberately: it walks every fixture set and asserts the document each produces,
-against the pure projection rather than the server. The document is the seam several workers build against
-at once, so a change to its shape has to break a test there rather than surface
+against the pure projection rather than the server. The document is the seam
+several workers build against at once, so a change to its shape has to break a
+test there rather than surface
 later as a lens quietly rendering nothing.
 
 Behavioural tests copy `fixtures/` to a temporary directory before changing

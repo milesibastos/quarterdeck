@@ -212,8 +212,9 @@ field by field against two live fleet homes.
   given.
 - **A panel with no answer spool repeats itself.** Every held row that waits on
   a person and has nowhere to send an answer draws the same sentence saying so,
-  which on the `crowded` set is four copies of it across the needs-you band. The sentence
-  is right on any one row; four of them is the lens saying a configuration fact
+  which on the `crowded` set is four copies of it across the needs-you band.
+  The sentence is right on any one row; four of them is the lens saying a
+  configuration fact
   once per item.
 - **Nothing checks contrast on every change.** The ratios above were measured
   once, in a browser, against the built panel. A token re-pointed tomorrow would

@@ -1,7 +1,15 @@
 # qlty configuration for quarterdeck.
 #
-# qlty formats this tree, and measures the duplication and complexity that
-# neither eslint nor the test suite measures.
+# qlty does four jobs here:
+#
+#   1. It formats the tree. prettier is qlty's, not npm's - see below.
+#   2. It runs the checks this project has no other answer for: markdownlint,
+#      actionlint, yamllint, gitleaks, knip.
+#   3. It measures duplication and complexity, which neither eslint nor the
+#      test suite measures.
+#   4. It gates. `bin/qlty-smells-gate` turns (3) into a pass or a fail, and
+#      `.github/workflows/ci.yml` runs it and `qlty check` on every pull
+#      request.
 #
 # eslint is deliberately NOT here. It comes from `package.json` and runs as
 # `npm run lint`, which `pretest` chains. Two installs and two resolution paths
@@ -13,8 +21,8 @@
 #
 # Run it:
 #   qlty fmt                # rewrite the tree to prettier's shape
-#   qlty check --all        # prettier, as a check
-#   qlty smells --all       # duplication and complexity findings
+#   qlty check --all        # the plugins, as a gate
+#   bin/qlty-smells-gate    # duplication and complexity, as a gate
 #   qlty metrics --all -d   # per-directory size and complexity totals
 #
 # Reference: https://qlty.sh/d/qlty-toml
@@ -111,6 +119,71 @@ plugins = ["prettier", "markdownlint", "yamllint"]
 file_patterns = [".agents/**"]
 
 # ---------------------------------------------------------------------------
+# The checks
+# ---------------------------------------------------------------------------
+#
+# Each of these answers a question nothing else in this project answers. None
+# of them repeats eslint, the invariant checks or the test suite.
+
+# 69 tracked `.md` files - the architecture, the contract, the principles and
+# one dated record per settled decision - and until now nothing read any of
+# them. Configured in `.markdownlint.yaml` at the repository root, where the one
+# retuned rule carries its reason.
+[[plugin]]
+name = "markdownlint"
+
+# Two places markdownlint is right about markdown and wrong about this
+# repository.
+#
+# `fixtures/homes/*/data/backlog.md` is not documentation. It is a synthetic
+# fleet home's queue file, written in the shape a real one is written in -
+# which is to say by a person typing a line per item, not wrapped to 80. The
+# panel reads these as data and `tests/document.test.ts` walks them; their line
+# shape is part of what they simulate. Ten MD013 findings, all of them the tool
+# grading a fixture as prose.
+#
+# `CLAUDE.md` is a three-line pointer stub whose shape Claude Code dictates: an
+# HTML comment and an `@AGENTS.md` import, with no heading anywhere. MD041
+# wants a top-level heading on line 1 and there is nowhere to put one that
+# would not be noise in a file nobody reads as a document.
+[[exclude]]
+plugins = ["markdownlint"]
+file_patterns = ["fixtures/**", "CLAUDE.md"]
+
+# One workflow, and it is now the thing that gates every pull request. A typo
+# in a `runs-on` or a shell quoting mistake in the gate step fails the gate
+# open, which is the one failure mode a gate cannot have.
+[[plugin]]
+name = "actionlint"
+
+# actionlint reads the workflow as a workflow; yamllint reads it as YAML.
+# Configured in `.yamllint.yaml` at the repository root.
+[[plugin]]
+name = "yamllint"
+
+# This repository is public. `npm test` already greps every tracked file for
+# machine paths and task identifiers - the "Nothing real in the repository"
+# principle - but that check knows this project's own leak shapes and nothing
+# about an AWS key or a GitHub token. It is a different question, and gitleaks
+# is the only thing here that asks it.
+[[plugin]]
+name = "gitleaks"
+
+# Dead exports and unused dependencies. Nothing else looks: eslint sees one
+# file at a time and cannot know an export has no importer, and the test suite
+# exercises what is reachable rather than reporting what is not. Configured in
+# `knip.json`.
+[[plugin]]
+name = "knip"
+
+# osv-scanner is deliberately absent, and it is the one plugin whose absence is
+# a gap rather than a preference. It reaches the network on every run, and a
+# local `qlty check` that stalls offline is a tool people stop running.
+# `[[plugin]] triggers` cannot fix that here - see the decision record for what
+# was measured - so it runs as its own CI step in `ci.yml` instead, where the
+# network is a given. Do not add a `[[plugin]]` entry for it.
+
+# ---------------------------------------------------------------------------
 # The measurements
 # ---------------------------------------------------------------------------
 #
@@ -122,9 +195,9 @@ file_patterns = [".agents/**"]
 #
 # What is measured here is NOT gated by `qlty check`: smells do not participate
 # in the linter pipeline, and `qlty smells` exits 0 whether it finds twelve
-# problems or none. Turning these numbers into a verdict is a later commit on
-# this branch; until then the four paths this project has looked at and decided
-# to keep are reported and not acted on.
+# problems or none. `bin/qlty-smells-gate` is what turns these numbers into a
+# verdict, and the findings this project has looked at and decided to keep are
+# listed there, each with its reason.
 [smells]
 
 # Duplication: `identical_code` is copy-paste, `similar_code` is the same shape

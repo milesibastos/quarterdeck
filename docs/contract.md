@@ -135,7 +135,9 @@ Lifecycle {
 
 **The coarse stage** is where the worker is. Six on-track:
 
-    dispatched -> working -> validating -> pr-open -> in-review -> landed
+```text
+dispatched -> working -> validating -> pr-open -> in-review -> landed
+```
 
 and four it stops in: `blocked` (waiting on another work item), `held` (waiting
 for a person to decide), `waiting` (waiting on something outside the fleet), and
@@ -151,7 +153,9 @@ to decide what to do with it instead of silently counting it as one of them.
 **The fine step** is which check is running inside the stage, from the
 validation pipeline's own vocabulary:
 
-    intent, rebase, review, test, document, lint, push, pr, ci
+```text
+intent, rebase, review, test, document, lint, push, pr, ci
+```
 
 `null` means the stage has no finer detail to give - not that it is unknown.
 Upstream reconciles every worker in one read, so a worker's fine detail arrives
@@ -585,7 +589,8 @@ find a line it cannot parse.
 Both formats are frozen. Records written by earlier builds are still sitting in
 spools, and their names are what make a replay a collision rather than a second
 action; `tests/answering.test.ts` and `tests/merging.test.ts` pin each digest and
-extension for that reason. Where they go is declared per fleet, not once for the panel:
+extension for that reason. Where they go is declared per fleet, not once for
+the panel:
 `QUARTERDECK_INTENT_DIR` is a colon-separated list positionally aligned with the
 configured fleet list, the same convention `QUARTERDECK_FLEET_HOME` and
 `QUARTERDECK_FIXTURE_SET` use. A request is written to the selected fleet's own
@@ -599,7 +604,7 @@ guessed at.
 One file per answered decision, named `<request-id>.keyed-answer-v1`, holding one
 line and nothing else:
 
-```
+```text
 <task-id>\t<answer>\t<label>\t<mode>\n
 ```
 
@@ -623,7 +628,7 @@ open, and pipes the lines in. See
 One file per merge order, named `<request-id>.merge-order-v1`, holding one line
 and nothing else:
 
-```
+```text
 <task-id>\t<pr-url>\n
 ```
 

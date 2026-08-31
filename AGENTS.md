@@ -77,7 +77,8 @@ before adding a fifth.
 
 - `docs/ARCHITECTURE.md` - the layers, the seven invariants, and why each exists.
 - `docs/principles.md` - the mechanical rules a cleanup pass enforces.
-- `docs/contract.md` - the document schema and the upstream contract it is pinned to.
+- `docs/contract.md` - the document schema and the upstream contract it is
+  pinned to.
 - `docs/decisions/` - one dated file per settled decision, with its trade-offs.
 - `docs/plans/active/` - what is being built now. `docs/plans/done/` is the memory.
 - `docs/quality.md` - a grade per area, and where the gaps are.

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": [
+    "src/app/**/{page,layout,route,not-found,error,global-error}.tsx",
+    "src/app/**/route.ts",
+    "src/proxy.ts",
+    "bin/quarterdeck",
+    "tests/**/*.test.ts",
+    "src/ui/components/**/*.tsx",
+    "src/app/globals.css"
+  ],
+  "project": [
+    "src/**/*.{ts,tsx}",
+    "tests/**/*.ts",
+    "bin/quarterdeck",
+    "src/app/*.css"
+  ],
+  "ignore": ["tests/violations/**", "fixtures/**"],
+  "ignoreDependencies": ["postcss"]
+}

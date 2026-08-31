@@ -1,0 +1,37 @@
+# yamllint for quarterdeck's YAML: the CI workflow, and the config files this
+# branch added beside it.
+#
+# actionlint reads `ci.yml` as a workflow - job graph, expressions, action
+# references. yamllint reads it as YAML - indentation, duplicate keys, quoting.
+# They overlap nowhere, which is why both are enabled.
+#
+# qlty reads this from the repository root, not from `.qlty/configs/`.
+extends: default
+
+rules:
+  # Off, deliberately.
+  #
+  # `---` opens a document in a YAML *stream*. Every YAML file in this
+  # repository is a single document, so the marker separates nothing from
+  # nothing. GitHub's own workflow documentation writes none, no file in this
+  # tree has ever carried one, and adding four of them to satisfy a default
+  # would be the rule shaping the repository rather than the reverse.
+  document-start: disable
+
+  # The `on:` key of a GitHub Actions workflow is required, and spelled `on`.
+  #
+  # YAML 1.1 reads a bare `on` as a boolean, so yamllint's `truthy` rule sees a
+  # non-canonical boolean where the workflow schema sees its trigger block.
+  # Quoting it to `"on":` is legal and is what the rule would have us do; it is
+  # also a spelling nobody writing a workflow recognises.
+  #
+  # `check-keys: false` narrows the rule to values, which is where a stray
+  # `yes` or `off` would actually be a bug worth catching.
+  truthy:
+    check-keys: false
+
+  # 80 is the width every other file in this repository is written to, and the
+  # three lines that broke it were a comment that had grown rather than YAML
+  # that needed the room. They were rewrapped; the limit stays where prose is.
+  line-length:
+    max: 80
