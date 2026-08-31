@@ -141,3 +141,9 @@ fixed.
 from two files. The line is pinned by `tests/panel.test.ts`, which reads it
 without caring which band drew it, so a drift that changes the words fails; a
 drift that changes only the styling will not.
+
+All three of the above were the next pass this section asked for, and it has
+since happened: the deck's dead `AnswerControl` and `DeckRowTone` are deleted,
+`AnsweringSession` moved to `src/ui/lib/answering.ts`, and the identity line is
+`src/ui/lib/item-identity.tsx`, called from both surfaces. See
+`docs/decisions/2026-08-31-what-the-parallel-lens-build-duplicated.md`.
