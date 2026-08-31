@@ -33,6 +33,14 @@ panel rather than three components sharing a page:
   theme that went with the first,
   `docs/decisions/2026-08-31-the-theme-follows-the-system.md`.
 
+Two of the features version 4 froze a shape for have now been drawn: the landed
+band, which is the first place this panel has ever said what the fleet finished
+and which home finished it, and the disclosure bar under it, which names every
+absence the document declares and which of three reasons it has -
+`docs/decisions/2026-08-31-landed-work-and-the-disclosure-bar.md`. The bar is
+worth reading before adding anything that can be partly shown: it is derived
+from the document rather than written, on purpose.
+
 The first feature built on top of that document has now landed too, and it is
 the one that does not use it: the worker's terminal, read on demand and kept off
 the first paint on purpose -

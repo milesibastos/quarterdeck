@@ -1,7 +1,9 @@
 import type { PanelDocument } from "@/types/document.ts";
 import type { AnsweringSession } from "@/ui/deck/answer-control";
 import { DeckLens } from "@/ui/deck/deck-lens";
+import { DisclosureBar } from "@/ui/disclosure-bar";
 import { FleetLens } from "@/ui/fleet/fleet-lens";
+import { LandedLens } from "@/ui/landed/landed-lens";
 import type { TerminalReader } from "@/ui/fleet/worker-terminal";
 import { ago } from "@/ui/lib/age";
 import { NeedsYouBand } from "@/ui/needs-you/needs-you-band";
@@ -45,9 +47,15 @@ function snapshotAsOf(document: PanelDocument): string | null {
  *
  * Underway comes next and is meant to peek: its header and the top of its first
  * row of cards sit above the fold, so it is obvious there is more page without
- * any of it competing for the first screen. Deck and shipshape follow. Nothing
- * is capped and nothing scrolls inside itself - a band that grows pushes the
- * ones below it down, which is a page an operator already knows how to read.
+ * any of it competing for the first screen. Deck, landed and shipshape follow,
+ * in that order - what is coming, then what finished, then whether the
+ * machinery is well - and the disclosure bar closes the page. Nothing is capped
+ * and nothing scrolls inside itself - a band that grows pushes the ones below
+ * it down, which is a page an operator already knows how to read.
+ *
+ * The bar is last on purpose and is the only thing here that is not a lens: it
+ * is a statement about the page rather than a part of it, and an operator who
+ * has read to the bottom has read what this page is not showing them.
  *
  * ## The width
  *
@@ -157,7 +165,23 @@ export function Shell({
         session={session}
       />
 
+      {/* What finished. Below the fold and drawn at ordinary weight: it is a
+          record rather than a call for attention, and the first screen belongs
+          to what needs the operator personally. */}
+      <LandedLens lens={document.landed} nowMs={nowMs} />
+
       <ShipshapeLens lens={document.health} nowMs={nowMs} />
+
+      {/* Last, and always present. Everything above draws what the document
+          carries; this draws what it does not, and an operator who has read to
+          the bottom of the page has read what is missing from it. The snapshot
+          status goes with it because "nothing is missing" is a claim only a
+          read that happened is entitled to make - see the bar itself. */}
+      <DisclosureBar
+        omissions={document.omissions}
+        snapshot={document.fleet.status}
+        nowMs={nowMs}
+      />
     </main>
   );
 }

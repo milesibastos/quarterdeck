@@ -55,7 +55,11 @@ describe("the healthy fleet", () => {
     assert.ok(html.includes('data-lens="needs-you"'), "the band that owns the first screen");
     assert.ok(html.includes('data-lens="fleet"'));
     assert.ok(html.includes("Queued"), "the deck lens drew its own piles");
+    assert.ok(html.includes('data-lens="landed"'), "what finished, below the fold");
     assert.ok(html.includes('data-signal="supervisor"'));
+    // Not a lens: a statement about the page rather than a part of it, and the
+    // last thing on it. See `src/ui/disclosure-bar.tsx`.
+    assert.ok(html.includes("data-disclosure"), "the bar naming what is not here");
   });
 
   test("hands each lens the part of the document it reads", async () => {
@@ -66,7 +70,7 @@ describe("the healthy fleet", () => {
 
   test("says every lens is current", async () => {
     const html = await body(panel);
-    for (const lens of ["needs-you", "fleet", "deck", "shipshape"]) {
+    for (const lens of ["needs-you", "fleet", "deck", "landed", "shipshape"]) {
       assert.equal(lensStatus(html, lens), "fresh", `${lens} should be current`);
     }
   });
@@ -84,6 +88,10 @@ describe("the empty fleet", () => {
     assert.equal(workerCards(html), 0);
     assert.ok(html.includes("No workers under way"), "a definitive empty state, in words");
     assert.ok(html.includes("Nothing queued, blocked or held."), "a definitive empty deck");
+    assert.ok(
+      html.includes("Nothing has landed: the read carried no finished work, here or in a mate's home."),
+      "a definitive empty landed band",
+    );
     assert.equal(lensStatus(html, "fleet"), "fresh", "an empty fleet is not a degraded one");
   });
 });
