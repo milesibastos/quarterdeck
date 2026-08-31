@@ -97,6 +97,7 @@ instead of the panel falling over.
 | `steady` | A fleet running normally: workers busy, one idle for an hour having declared why, a work item record that agrees with what the workers are doing, a queue with two notifications on it, and no away or lock marker. |
 | `adrift` | A fleet with something wrong in it: one worker idle past the point that is normal with nothing declared, one whose busy record carries a retired incarnation token, one work item held after its decision was answered, one in flight with no worker behind it, an empty queue file, and both the away and lock markers present. |
 | `moved` | Upstream restructured: the state directory is not a directory any more. Every signal reads unreadable and nothing throws. |
+| `unstarted` | A home with a backlog but no state directory at all - discovered before its first supervisor tick. Every signal that lives in state/, including the queue, reads unreadable rather than one of them reporting a fabricated empty reading. |
 
 None of them carries the liveness beacon, because the beacon holds nothing but
 its modification time and git does not carry those - a committed one would be as

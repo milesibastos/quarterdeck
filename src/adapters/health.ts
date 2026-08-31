@@ -536,6 +536,12 @@ async function readOverdue(
  * there yet" and "nothing queued" are the same fact. Anything else - a
  * directory where a file should be, a permission refusal - is unreadable,
  * because that is a file that exists and would not be read.
+ *
+ * ENOENT on the file alone cannot tell "the file was never created" from "the
+ * state directory itself is gone", so a missing file is only read as an empty
+ * queue once the directory it would live in is confirmed listable. Otherwise
+ * this would be the one signal still reporting a clean zero while its four
+ * siblings correctly go dark for the same missing directory.
  */
 async function readQueue(stateDir: string, signal: AbortSignal): Promise<QueueSignal> {
   const queue = join(stateDir, QUEUE_FILE);
@@ -546,7 +552,14 @@ async function readQueue(stateDir: string, signal: AbortSignal): Promise<QueueSi
       queued: text.split("\n").filter((line) => line.trim().length > 0).length,
     };
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === "ENOENT") return { read: "ok", queued: 0 };
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      try {
+        await withDeadline(readdir(stateDir), signal);
+        return { read: "ok", queued: 0 };
+      } catch (dirError) {
+        return dark(`Could not list ${STATE_DIR}/ for the notification queue: ${why(dirError)}`);
+      }
+    }
     return dark(`Could not read the notification queue ${STATE_DIR}/${QUEUE_FILE}: ${why(error)}`);
   }
 }
