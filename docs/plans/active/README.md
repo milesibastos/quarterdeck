@@ -26,9 +26,11 @@ panel rather than three components sharing a page:
 - Choosing which fleet the panel is looking at, which settled where a per-viewer
   choice lives and is worth reading before adding a second one -
   `docs/decisions/2026-08-30-choosing-a-fleet.md`.
-- The shell's proportions and fold line, which needed real lens content before
-  they could be tuned - `docs/decisions/2026-08-31-the-fold-line.md`, and the
-  theme that went with it,
+- The shell's proportions, which needed real lens content before they could be
+  tuned - `docs/decisions/2026-08-31-the-fold-line.md` and the ruling that
+  superseded it,
+  `docs/decisions/2026-08-31-what-needs-you-owns-the-first-screen.md`, plus the
+  theme that went with the first,
   `docs/decisions/2026-08-31-the-theme-follows-the-system.md`.
 
 The first feature built on top of that document has now landed too, and it is
@@ -38,5 +40,10 @@ the first paint on purpose -
 adding anything else a card opens, because it settles where an on-demand read
 lives and why it is not a field.
 
-What remains is in `docs/quality.md` under known gaps, and the fleet lens's own
-lanes and filters, which nobody has asked for yet.
+Two things the layout has kept a place for and deliberately not built: the
+ready-to-merge card, which is the needs-you band's second group, and the thin
+shipshape strip the wireframe draws in the masthead. Both are named in
+`docs/decisions/2026-08-31-what-needs-you-owns-the-first-screen.md`.
+
+What remains beyond those is in `docs/quality.md` under known gaps, and the
+fleet lens's own lanes and filters, which nobody has asked for yet.

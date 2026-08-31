@@ -37,13 +37,14 @@ Seven positions, one direction. Dependencies point right, and only right.
   Pure.
 - `src/runtime/` - watch, debounce, coalesce, cache, publish the change signal.
 - `src/ui/` - server-rendered components. Reads the document and the terminal
-  shape beside it, nothing else. One directory per lens - `fleet/`, `deck/`, `shipshape/` - so the worker building
-  a lens edits no file another worker is also editing. `shell.tsx` lays the
-  three out, `lens-frame.tsx` is the chrome they share, and `fleet-picker.tsx`
-  wraps the lot with which fleet is being looked at. The fold line is
-  `lens-frame.tsx`'s: it pins a header and scrolls the body, so all three lenses
-  answer "what stays on screen" the same way at any fleet size. See
-  `docs/decisions/2026-08-31-the-fold-line.md`.
+  shape beside it, nothing else. One directory per lens - `fleet/`, `deck/`,
+  `shipshape/`, `needs-you/` - so the worker building one edits no file another
+  worker is also editing. `shell.tsx` stacks them as bands and owns the
+  proportions, `lens-frame.tsx` is the chrome they share, and `fleet-picker.tsx`
+  wraps the lot with which fleet is being looked at. One rule decides the
+  layout: what needs the operator personally owns the first screen, and width
+  buys more cards rather than wider ones. See
+  `docs/decisions/2026-08-31-what-needs-you-owns-the-first-screen.md`.
 
 Plus two positions off the line:
 
