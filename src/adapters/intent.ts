@@ -411,7 +411,7 @@ export async function submitIntent(
   if (options.intentDir === null) {
     return refused(
       intent.requestId,
-      `This panel has nowhere to record ${format.aNoun}; no answer spool is configured.`,
+      `Nothing is configured for this panel to record ${format.aNoun} in.`,
     );
   }
 

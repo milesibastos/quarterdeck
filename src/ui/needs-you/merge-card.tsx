@@ -162,7 +162,8 @@ export function MergeCard({
           data-merge-unavailable={worker.id}
           className="font-mono text-[0.6875rem] text-muted-foreground"
         >
-          No answer spool is configured, so a merge cannot be ordered here.
+          Nothing is configured for this panel to record an order in, so a merge cannot be
+          ordered here.
         </p>
       ) : (
         <div className="space-y-1.5">

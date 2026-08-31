@@ -197,15 +197,20 @@ function parseMerge(body: unknown): ParsedMerge {
 }
 
 /**
- * What the checks say right now, in a sentence a refusal can end with.
+ * Why `isMergeReady` now reads false, in a sentence a refusal can end with.
  *
- * Reads the reading rather than summarising it: the three arms are three
- * different facts about the panel's own sight, and an operator told only "the
- * checks are not passing" cannot tell a red run from a run nobody looked at.
+ * Walks the same clauses `isMergeReady` checks, in the same order, so the
+ * sentence names whichever one actually failed. A landed pull request still
+ * carries checks that read ok and passing - landing normally requires
+ * exactly that - so `state` has to be checked before the checks are: reading
+ * straight to the checks would describe a green run on a refusal caused by
+ * something else entirely.
  */
-function checksNow(worker: Worker): string {
-  const checks = worker.pullRequest?.checks;
-  if (checks === undefined) return "it no longer carries a pull request";
+function notMergeReadyReason(worker: Worker): string {
+  const pr = worker.pullRequest;
+  if (pr === null) return "it no longer carries a pull request";
+  if (pr.state !== "open") return "it has landed";
+  const checks = pr.checks;
   if (checks.read === "not-looked-up") return "nothing has read its checks";
   if (checks.read === "unreadable") return `its checks could not be read - ${checks.detail}`;
   return `its checks now read ${checks.finished} of ${checks.total} ${checks.outcome}`;
@@ -285,7 +290,7 @@ async function recheck(
   if (!isMergeReady(worker)) {
     return {
       ok: false,
-      error: `${parsed.url} is no longer ready to merge: ${checksNow(worker)}. Nothing was recorded.`,
+      error: `${parsed.url} is no longer ready to merge: ${notMergeReadyReason(worker)}. Nothing was recorded.`,
     };
   }
 

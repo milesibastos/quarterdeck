@@ -408,6 +408,12 @@ describe("a pull request that changed between the render and the press", () => {
     const result = await order(panel, secret, { taskId: READY.taskId, url: READY.url });
     assert.equal(result.status, 409);
     assert.match(String(result.body.error), /no longer ready/i);
+    assert.match(String(result.body.error), /it has landed/i, "names the real reason");
+    assert.doesNotMatch(
+      String(result.body.error),
+      /passing|6 of 6/i,
+      "must not lead with the still-green checks reading",
+    );
     assert.deepEqual(await spool(dir), []);
   });
 
