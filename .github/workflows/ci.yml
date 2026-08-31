@@ -99,10 +99,13 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      # Pinned by digest rather than tag: a tag can be moved, and this is the
-      # one step in the pipeline that runs somebody else's container. The
-      # digest below is v2.5.1. A pinned reference is 87 characters and cannot
-      # be wrapped, which is the one place the 80-column limit cannot be met.
+      # Pinned by digest rather than tag, because a tag can be moved and this
+      # is the one step in the pipeline that runs somebody else's code. The
+      # digest below is v2.5.1. It pins the action definition; the container
+      # that definition pulls is still `ghcr.io/...:v2.5.1` by tag, which
+      # upstream can repoint - this is the strongest pin the action offers,
+      # not a complete one. A pinned reference is 87 characters and cannot be
+      # wrapped, which is the one place the 80-column limit cannot be met.
       - name: Scan the lockfile against the OSV database
         # yamllint disable-line rule:line-length
         uses: google/osv-scanner-action/osv-scanner-action@6e4298ebc4db23e847df9b2e2de2939d6f066c67
