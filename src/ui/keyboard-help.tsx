@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import type { GrokMenuItem } from "@/ui/components/grok/grok-header";
 import {
   GrokShortcuts,
   type GrokShortcutGroup,
@@ -64,18 +63,6 @@ export const FRAME_SHORTCUTS: GrokShortcutGroup[] = [
 ];
 
 /**
- * The same three keys, shaped as a `GrokHeader` start menu.
- *
- * Nothing draws it today: the masthead used to and the rows only repeated what
- * is one click away here, at 75 pixels of first screen. It stays because it is
- * the honest shape of that menu if the card ever wants one, and it is derived
- * rather than typed twice.
- */
-export const FRAME_MENU: GrokMenuItem[] = FRAME_SHORTCUTS[0].items.map(
-  ({ action, keys }) => ({ label: action, key: keys }),
-);
-
-/**
  * True when a keystroke belongs to whatever the operator is typing into.
  *
  * A bare letter binding on a page with a text field is a bug waiting for the
@@ -100,11 +87,19 @@ export function KeyboardHelp() {
       if (event.key === "Escape") {
         // Escape closes whatever is open wherever it is pressed, including
         // from inside a field - which is the one case the typing guard below
-        // must not swallow.
+        // must not swallow. Both disclosures, not just this one: the list
+        // above says "Close this - Esc" and the fleet chooser is a this.
         setOpen((wasOpen) => {
           if (wasOpen) trigger.current?.focus();
           return false;
         });
+        const chooser = document.querySelector<HTMLElement>(FLEET_DISCLOSURE);
+        if (chooser?.getAttribute("aria-expanded") === "true") {
+          chooser.click();
+          // A programmatic click does not move focus, and the element the
+          // operator was on is about to be hidden.
+          chooser.focus();
+        }
         return;
       }
       if (isTyping(event.target)) return;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { FLEET_COOKIE, FLEET_COOKIE_MAX_AGE_SECONDS } from "@/types/selection.ts";
 import { GrokProjectPicker } from "@/ui/components/grok/grok-project-picker";
 import { GrokStatus } from "@/ui/components/grok/grok-status";
@@ -109,15 +109,20 @@ export function FleetPicker({
     startTransition(() => router.refresh());
   };
 
-  /** Opening it puts focus on the row that is showing, so `f` lands somewhere. */
-  const open = () => {
-    setChoosing(true);
-    queueMicrotask(() =>
-      list.current
-        ?.querySelector<HTMLElement>('[data-fleet-choice][aria-current="true"]')
-        ?.focus(),
-    );
-  };
+  /*
+   * Opening it puts focus on the row that is showing, so `f` lands somewhere.
+   *
+   * In an effect rather than beside the `setChoosing` that causes it: until
+   * React has committed, the row is still inside a `hidden` element, and
+   * focusing a hidden element does nothing and says nothing. The effect runs
+   * after the commit, which is the only moment the row can take focus.
+   */
+  useEffect(() => {
+    if (!choosing) return;
+    list.current
+      ?.querySelector<HTMLElement>('[data-fleet-choice][aria-current="true"]')
+      ?.focus();
+  }, [choosing]);
 
   const note = switching ? (
     <>
@@ -159,7 +164,7 @@ export function FleetPicker({
             data-fleet-open
             aria-expanded={choosing}
             aria-controls="fleet-chooser"
-            onClick={() => (choosing ? setChoosing(false) : open())}
+            onClick={() => setChoosing((wasOpen) => !wasOpen)}
             className="shrink-0 rounded-sm border border-term-rule-soft px-2 py-0.5 font-mono text-[12px] text-term-muted outline-none hover:bg-term-selected hover:text-term-fg focus-visible:ring-1 focus-visible:ring-ring"
           >
             [f] fleet
