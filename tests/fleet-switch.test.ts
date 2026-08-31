@@ -3,13 +3,8 @@ import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
 import { FLEET_COOKIE } from "../src/types/selection.ts";
-import {
-  copyFixtures,
-  rawRequest,
-  startPanel,
-  testPort,
-  type Panel,
-} from "./lib/server.ts";
+import { portsFor } from "./lib/ports.ts";
+import { copyFixtures, rawRequest, startPanel, type Panel } from "./lib/server.ts";
 
 /**
  * Choosing which fleet the panel is looking at, driven through the built server.
@@ -27,13 +22,12 @@ import {
  * are marked before the panel starts, so "this is the other fleet's content"
  * is a string that can only have come from one file on disk.
  *
- * The ports are taken from the 40s deliberately. `node --test` runs test files
- * in parallel and `testPort` derives from the worktree plus this offset, so two
- * files sharing an offset get the same port - and the second panel then answers
- * the first suite's requests, which is a wrong-fleet assertion rather than an
- * honest failure. Several suites had independently reached for the 30s. Check
- * what is already taken before picking a range here.
+ * A wrong port would read here as a wrong-fleet assertion rather than an
+ * honest failure - the other file's panel would answer these requests - which
+ * is why ports come from `portsFor` and not from a number chosen by hand.
  */
+
+const nextPort = portsFor(import.meta.filename);
 
 /** The two fleets under test, and the mark planted in each. */
 const ONE = { set: "healthy", mark: "brightwater-one" };
@@ -160,7 +154,7 @@ function assertAttributedTo(rendered: Rendered, expected: { set: string; mark: s
 
 describe("a panel that can see more than one fleet", () => {
   let panel: Panel;
-  const port = testPort(40);
+  const port = nextPort();
 
   before(async () => {
     const fixtureRoot = await copyFixtures();
@@ -236,7 +230,7 @@ describe("a panel that can see more than one fleet", () => {
 
 describe("a fleet that cannot be read", () => {
   let panel: Panel;
-  const port = testPort(41);
+  const port = nextPort();
 
   before(async () => {
     const fixtureRoot = await copyFixtures();
@@ -285,7 +279,7 @@ describe("a fleet that cannot be read", () => {
 
 describe("a panel that can see exactly one fleet", () => {
   let panel: Panel;
-  const port = testPort(42);
+  const port = nextPort();
 
   before(async () => {
     panel = await startPanel({ port, fixtureSet: ONE.set });
@@ -304,7 +298,7 @@ describe("a panel that can see exactly one fleet", () => {
 });
 
 describe("a selection outlives the panel that was told it", () => {
-  const port = testPort(43);
+  const port = nextPort();
 
   test("a restarted panel is still pointed where it was left", async () => {
     const fixtureRoot = await copyFixtures();

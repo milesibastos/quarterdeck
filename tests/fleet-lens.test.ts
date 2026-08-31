@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
-import { copyFixtures, startPanel, testPort, until, type Panel } from "./lib/server.ts";
+import { portsFor } from "./lib/ports.ts";
+import { copyFixtures, startPanel, until, type Panel } from "./lib/server.ts";
 
 /**
  * What the fleet lens draws, driven end to end through the built server.
@@ -12,6 +13,8 @@ import { copyFixtures, startPanel, testPort, until, type Panel } from "./lib/ser
  * worker that stopped says where and why, and a lens that cannot be trusted
  * says so instead of going blank. `panel.test.ts` asserts the shell around it.
  */
+
+const nextPort = portsFor(import.meta.filename);
 
 /** The rendered page, with React's text-node markers removed. */
 async function body(panel: Panel, path = "/"): Promise<string> {
@@ -46,7 +49,7 @@ describe("the lifecycle rail", () => {
   let panel: Panel;
   let html: string;
   before(async () => {
-    panel = await startPanel({ port: testPort(20), fixtureSet: "fleet-only" });
+    panel = await startPanel({ port: nextPort(), fixtureSet: "fleet-only" });
     html = await body(panel);
   });
   after(() => panel.stop());
@@ -121,7 +124,7 @@ describe("the lifecycle rail", () => {
 describe("a fleet that cannot be trusted", () => {
   test("shows the last good picture with its age when the read went stale", async () => {
     const panel = await startPanel({
-      port: testPort(21),
+      port: nextPort(),
       fixtureSet: "stale",
       // Long after the snapshot was generated, pinned so this never races.
       now: "2019-03-05T11:00:00.000Z",
@@ -137,7 +140,7 @@ describe("a fleet that cannot be trusted", () => {
 
   test("says the read failed rather than dating the content from it", async () => {
     const fixtureRoot = await copyFixtures();
-    const panel = await startPanel({ port: testPort(22), fixtureSet: "healthy", fixtureRoot });
+    const panel = await startPanel({ port: nextPort(), fixtureSet: "healthy", fixtureRoot });
     try {
       await body(panel);
       await writeFile(
@@ -156,7 +159,7 @@ describe("a fleet that cannot be trusted", () => {
 
   test("says there is nothing to show when a failed read has nothing behind it", async () => {
     // The malformed set never parses, so there is no earlier picture to keep.
-    const panel = await startPanel({ port: testPort(23), fixtureSet: "malformed" });
+    const panel = await startPanel({ port: nextPort(), fixtureSet: "malformed" });
     try {
       const html = await body(panel);
       assert.ok(html.includes("Nothing to show"));
@@ -168,7 +171,7 @@ describe("a fleet that cannot be trusted", () => {
 
   test("shows the last good picture's age even when that picture is empty", async () => {
     const panel = await startPanel({
-      port: testPort(24),
+      port: nextPort(),
       fixtureSet: "fleet-empty-stale",
       // Long after the snapshot was generated, pinned so this never races.
       now: "2019-03-05T11:00:00.000Z",

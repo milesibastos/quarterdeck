@@ -265,8 +265,13 @@ at once, so a change to its shape has to break a test there rather than surface
 later as a lens quietly rendering nothing.
 
 Behavioural tests copy `fixtures/` to a temporary directory before changing
-anything, take a port derived from the worktree plus a per-file offset, and pin
-`QUARTERDECK_NOW` where staleness is under test, so nothing races the clock.
+anything, and pin `QUARTERDECK_NOW` where staleness is under test, so nothing
+races the clock. They do not pick a port: `node --test` runs test files in
+parallel, so each file claims a block of ports by naming itself to
+`portsFor(import.meta.filename)` and no two files can claim one - see
+`docs/decisions/2026-08-31-one-port-block-per-test-file.md`. Stopping a panel
+is bounded: a child that ignores SIGTERM fails its test instead of hanging the
+run.
 
 Scroll preservation is the one claim not asserted here: it is React's
 reconciliation contract, and it is demonstrated in a browser instead. See

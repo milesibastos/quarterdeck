@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
-import { copyFixtures, startPanel, testPort, type Panel } from "./lib/server.ts";
+import { portsFor } from "./lib/ports.ts";
+import { copyFixtures, startPanel, type Panel } from "./lib/server.ts";
 
 /**
  * What the shipshape lens draws, driven end to end through the built server.
@@ -14,6 +15,8 @@ import { copyFixtures, startPanel, testPort, type Panel } from "./lib/server.ts"
  * implying what it would have said. `panel.test.ts` asserts the frame around
  * it, and `document.test.ts` asserts the document underneath.
  */
+
+const nextPort = portsFor(import.meta.filename);
 
 /** The rendered page, with React's text-node markers removed. */
 async function body(panel: Panel, path = "/"): Promise<string> {
@@ -46,7 +49,7 @@ describe("three signals that read cleanly and found nothing wrong", () => {
   let panel: Panel;
   let html: string;
   before(async () => {
-    panel = await startPanel({ port: testPort(30), fixtureSet: "healthy", now: NOW });
+    panel = await startPanel({ port: nextPort(), fixtureSet: "healthy", now: NOW });
     html = await body(panel);
   });
   after(() => panel.stop());
@@ -78,7 +81,7 @@ describe("signals that read cleanly and found something", () => {
   let html: string;
   before(async () => {
     panel = await startPanel({
-      port: testPort(31),
+      port: nextPort(),
       fixtureSet: "stale",
       // Long after the reading was taken, pinned so this never races.
       now: "2019-03-05T11:00:00.000Z",
@@ -117,7 +120,7 @@ describe("signals that could not be read", () => {
   let html: string;
   before(async () => {
     // The health file reads; its three signals each report that they did not.
-    panel = await startPanel({ port: testPort(32), fixtureSet: "health-unread", now: NOW });
+    panel = await startPanel({ port: nextPort(), fixtureSet: "health-unread", now: NOW });
     html = await body(panel);
   });
   after(() => panel.stop());
@@ -154,7 +157,7 @@ describe("the whole lens dark", () => {
   let html: string;
   before(async () => {
     // The health-dark set has no health file at all.
-    panel = await startPanel({ port: testPort(33), fixtureSet: "health-dark", now: NOW });
+    panel = await startPanel({ port: nextPort(), fixtureSet: "health-dark", now: NOW });
     html = await body(panel);
   });
   after(() => panel.stop());
@@ -209,7 +212,7 @@ describe("a mixed reading", () => {
     const fixtureRoot = await copyFixtures();
     await writeFile(join(fixtureRoot, "healthy", "health.json"), JSON.stringify(MIXED, null, 2));
     panel = await startPanel({
-      port: testPort(34),
+      port: nextPort(),
       fixtureSet: "healthy",
       fixtureRoot,
       now: NOW,

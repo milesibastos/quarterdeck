@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
 import { SESSION_HEADER } from "../src/runtime/session.ts";
-import { startPanel, testPort, type Panel } from "./lib/server.ts";
+import { portsFor } from "./lib/ports.ts";
+import { startPanel, type Panel } from "./lib/server.ts";
 
 /**
  * Answering a held decision, against the built server.
@@ -19,6 +20,8 @@ import { startPanel, testPort, type Panel } from "./lib/server.ts";
  * re-verifies the decision is still open before acting - which is why none of
  * these tests expect the panel to filter a stale answer out.
  */
+
+const nextPort = portsFor(import.meta.filename);
 
 /** The deck's three held items, from the `healthy` fixture set. */
 const ANSWERABLE = { id: "wi-tidewater-126", since: "2099-01-01T07:20:05.000Z" };
@@ -78,7 +81,7 @@ describe("the answer control in the deck", () => {
   before(async () => {
     dir = await spoolDir();
     panel = await startPanel({
-      port: testPort(30),
+      port: nextPort(),
       fixtureSet: "healthy",
       env: { QUARTERDECK_INTENT_DIR: dir },
     });
@@ -130,7 +133,7 @@ describe("recording an answer", () => {
   before(async () => {
     dir = await spoolDir();
     panel = await startPanel({
-      port: testPort(31),
+      port: nextPort(),
       fixtureSet: "healthy",
       env: { QUARTERDECK_INTENT_DIR: dir },
     });
@@ -224,7 +227,7 @@ describe("replaying an answer", () => {
   before(async () => {
     dir = await spoolDir();
     panel = await startPanel({
-      port: testPort(32),
+      port: nextPort(),
       fixtureSet: "healthy",
       env: { QUARTERDECK_INTENT_DIR: dir },
     });
@@ -262,7 +265,7 @@ describe("replaying an answer", () => {
   test("a burst of identical requests still leaves one record", async () => {
     const dir2 = await spoolDir();
     const burst = await startPanel({
-      port: testPort(33),
+      port: nextPort(),
       fixtureSet: "healthy",
       env: { QUARTERDECK_INTENT_DIR: dir2 },
     });
@@ -308,7 +311,7 @@ describe("what the panel refuses to record", () => {
   before(async () => {
     dir = await spoolDir();
     panel = await startPanel({
-      port: testPort(34),
+      port: nextPort(),
       fixtureSet: "healthy",
       env: { QUARTERDECK_INTENT_DIR: dir },
     });
@@ -371,7 +374,7 @@ describe("what the panel refuses to record", () => {
 describe("a panel with nowhere to record an answer", () => {
   let panel: Panel;
   before(async () => {
-    panel = await startPanel({ port: testPort(35), fixtureSet: "healthy" });
+    panel = await startPanel({ port: nextPort(), fixtureSet: "healthy" });
   });
   after(() => panel.stop());
 
