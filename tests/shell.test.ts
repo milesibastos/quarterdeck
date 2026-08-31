@@ -66,8 +66,22 @@ describe("the order of the bands, at the large end of the range", () => {
       "needs-you",
       "fleet",
       "deck",
+      "landed",
       "shipshape",
     ]);
+  });
+
+  test("the bar naming what is not on the page is the last thing on it", async () => {
+    const html = await body(panel);
+    const bar = html.indexOf("data-disclosure");
+    assert.ok(bar > 0, "the page drew the disclosure bar");
+    // After every band, and it is not one: an absence is a statement about the
+    // page rather than a part of it, so it carries no lens envelope and no
+    // trust word of its own.
+    for (const band of bands(html)) {
+      assert.ok(bar > html.indexOf(`data-lens="${band}"`), `the bar comes after ${band}`);
+    }
+    assert.ok(!/data-lens="disclosure"/.test(html), "the bar is not a lens");
   });
 
   test("only the first band is drawn as the dominant one", async () => {
@@ -108,7 +122,9 @@ describe("the accessibility of a page that changes under the reader", () => {
   test("the headings form an outline with no level skipped", async () => {
     const levels = headings(await body(panel));
     assert.equal(levels.filter((level) => level === 1).length, 1, "one page, one h1");
-    assert.equal(levels.filter((level) => level === 2).length, 4, "one h2 per band");
+    // Five bands, and the disclosure bar - which is not a band but is a
+    // top-level part of the page and so sits at the same level as one.
+    assert.equal(levels.filter((level) => level === 2).length, 6, "one h2 per band, plus the bar");
     assert.equal(levels[0], 1, "and the page's own heading comes first");
     for (const [index, level] of levels.entries()) {
       const previous = levels[index - 1] ?? 1;
@@ -122,7 +138,7 @@ describe("the accessibility of a page that changes under the reader", () => {
 
   test("each band header is a live region, so a band going stale is announced", async () => {
     const html = await body(panel);
-    for (const name of ["needs-you", "fleet", "deck", "shipshape"]) {
+    for (const name of ["needs-you", "fleet", "deck", "landed", "shipshape"]) {
       assert.match(
         lens(html, name),
         /<header role="status" data-lens-headline="true"/,
@@ -133,7 +149,7 @@ describe("the accessibility of a page that changes under the reader", () => {
 
   test("each band body is named by its own heading", async () => {
     const html = await body(panel);
-    for (const name of ["needs-you", "fleet", "deck", "shipshape"]) {
+    for (const name of ["needs-you", "fleet", "deck", "landed", "shipshape"]) {
       const section = lens(html, name);
       const region = /<div data-lens-body[^>]*>/.exec(section)?.[0] ?? "";
       const labelled = /aria-labelledby="([^"]+)"/.exec(region)?.[1];

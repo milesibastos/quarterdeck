@@ -593,6 +593,25 @@ describe("the omissions", () => {
   test("nothing left out is an empty list rather than a silence", async () => {
     assert.deepEqual((await documentOf("empty")).omissions, []);
   });
+
+  test("every reason has a fixture behind it, and so does a second mate's home", async () => {
+    // The bar draws the three reasons apart, so each has to be reachable from a
+    // committed set: a reason with no fixture is a reason the next reader
+    // cannot see rendered, and the one that would go untested is whichever
+    // upstream stopped sending. Landed work from two homes at once is the same
+    // rule for the thing prior boards lost - one home's landed list would look
+    // exactly like a board that had dropped the other.
+    const documents = await Promise.all(Object.keys(SHAPES).map(documentOf));
+    const reasons = new Set(documents.flatMap(({ omissions }) => omissions.map((o) => o.reason)));
+    assert.deepEqual([...reasons].sort(), ["not-looked-up", "not-shown", "unreadable"]);
+
+    const homes = documents.flatMap(({ landed }) =>
+      landed.content.filter((item) => item.home !== null).map((item) => item.home),
+    );
+    assert.ok(new Set(homes).size > 1, "landed work comes from more than one home");
+    const wheres = new Set(documents.flatMap(({ landed }) => landed.content.map((i) => i.where)));
+    assert.deepEqual([...wheres].sort(), ["second-mate", "this-home"]);
+  });
 });
 
 describe("degradation is per lens, not per document", () => {
