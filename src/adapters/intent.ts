@@ -7,10 +7,11 @@ import { link, mkdir, rm, writeFile } from "node:fs/promises";
  * THE ONLY FILE IN THIS REPOSITORY PERMITTED TO WRITE ANYTHING.
  *
  * That marker line above is not decoration: `npm test` reads it. Every other
- * file is checked for write-capable APIs - `fs` mutation, `child_process`,
- * `process.chdir`, and friends - and the build fails if one appears. The whole
- * safety argument for a panel that will eventually act on a live fleet reduces
- * to reviewing this one file.
+ * file is checked for `fs` mutation, and the build fails if one appears.
+ * `child_process`, `worker_threads` and `process.chdir` are banned everywhere,
+ * this file included - the exemption here grants writing one record and
+ * nothing more. The whole safety argument for a panel that will eventually act
+ * on a live fleet reduces to reviewing this one file.
  *
  * So read what it does, and what it deliberately does not.
  *
