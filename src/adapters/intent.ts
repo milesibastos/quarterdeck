@@ -33,7 +33,16 @@ import { link, mkdir, rm, writeFile } from "node:fs/promises";
  * See `docs/decisions/2026-08-30-answering-a-held-decision.md`.
  */
 
-/** What an operator can ask the fleet to do. Only `answer` is planned so far. */
+/**
+ * What an operator can ask the fleet to do.
+ *
+ * One kind today. A second - a merge order - is coming, and the shape below is
+ * arranged so that adding it is adding a member to a union and a row to one
+ * table, rather than redefining what an answer is or growing a second writer.
+ * That matters more than it sounds: the safety argument for this panel is that
+ * there is exactly one file that writes, and a second intent kind arriving as a
+ * second file would end that argument quietly.
+ */
 export type IntentKind = "answer-decision";
 
 /**
@@ -58,7 +67,15 @@ export const CLOSE_MODES: readonly CloseMode[] = ["done", "release"];
  */
 export const MAX_ANSWER_BYTES = 4096;
 
-export interface Intent {
+/**
+ * What every intent carries, whatever it is asking for.
+ *
+ * Only the identity, deliberately. A merge order has no answer, no label and no
+ * close mode; an answer has no pull request. Hoisting anything past `requestId`
+ * into here would make one kind's fields optional on the other, which is how a
+ * record ends up written with a field its intake never reads.
+ */
+interface IntentBase {
   readonly kind: IntentKind;
   /**
    * Minted by the caller, unique per intended action.
@@ -68,6 +85,11 @@ export interface Intent {
    * timing is what makes acting twice impossible rather than unlikely.
    */
   readonly requestId: string;
+}
+
+/** An answer to a decision the fleet is holding for a person. */
+export interface AnswerDecisionIntent extends IntentBase {
+  readonly kind: "answer-decision";
   /**
    * The held task the answer is for. This is the intake's key, verbatim: the
    * key IS the task id, so there is no mapping to do and none is done.
@@ -81,6 +103,31 @@ export interface Intent {
    */
   readonly label: string;
   readonly mode: CloseMode;
+}
+
+/**
+ * Everything an operator can ask for. A union of one, on purpose.
+ *
+ * `kind` is the discriminant and every member carries it, so a second kind
+ * added here makes every `switch` over it a compile error until it is handled -
+ * which is the point. A single interface with optional fields would let a new
+ * kind be added and silently written with the old kind's format.
+ */
+export type Intent = AnswerDecisionIntent;
+
+/**
+ * How one kind of intent becomes a file: its extension, and the bytes inside.
+ *
+ * One entry per kind, and the whole of what a second kind has to supply. The
+ * extension is part of the format rather than a constant beside it because the
+ * fleet's sources watch for the shapes they can read - a merge order landing
+ * with `.keyed-answer-v1` on it would be handed to the answer intake, which
+ * would find a line it cannot parse.
+ */
+interface RecordFormat<T extends Intent> {
+  readonly suffix: string;
+  /** The bytes, or why they cannot be written. Format only. */
+  readonly line: (intent: T) => Refusal & { readonly line?: string };
 }
 
 export interface IntentResult {
@@ -138,6 +185,17 @@ export function requestIdFor(parts: {
  */
 export const RECORD_SUFFIX = ".keyed-answer-v1";
 
+/**
+ * The format each kind of intent is written in.
+ *
+ * The one table a second kind of intent extends. Nothing below reads a kind's
+ * format any other way, so the writer itself does not know what an answer is -
+ * it looks the format up, checks it, and links the bytes into place.
+ */
+const FORMATS: { readonly [K in IntentKind]: RecordFormat<Extract<Intent, { kind: K }>> } = {
+  "answer-decision": { suffix: RECORD_SUFFIX, line: (intent) => keyedAnswerLine(intent) },
+};
+
 /** Everything a record is refused for. Format only; never "is this still open". */
 export type Refusal =
   | { readonly ok: true }
@@ -155,7 +213,9 @@ export type Refusal =
  * decision is still open - the fleet re-verifies that, and it is the only
  * reader whose answer to that question is current.
  */
-export function keyedAnswerLine(intent: Intent): Refusal & { readonly line?: string } {
+export function keyedAnswerLine(
+  intent: AnswerDecisionIntent,
+): Refusal & { readonly line?: string } {
   const fields: readonly [string, string][] = [
     ["task id", intent.taskId],
     ["answer", intent.answer],
@@ -217,12 +277,13 @@ export async function submitIntent(
     );
   }
 
-  const check = keyedAnswerLine(intent);
+  const format = FORMATS[intent.kind] as RecordFormat<Intent>;
+  const check = format.line(intent);
   if (!check.ok) return refused(intent.requestId, check.detail);
   const line = check.line as string;
 
   const dir = options.intentDir;
-  const final = `${dir}/${intent.requestId}${RECORD_SUFFIX}`;
+  const final = `${dir}/${intent.requestId}${format.suffix}`;
   // Distinct per attempt - random, not derived - so two identical requests in
   // flight at once stage to two different names and race only at the link,
   // where the filesystem settles it. Deriving this from the content would give

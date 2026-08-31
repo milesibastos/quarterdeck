@@ -509,10 +509,28 @@ stall would teach an operator to ignore the signal. `blocked:` and
 `needs-decision:` are not declared waits: a worker stopped for those is waiting
 on the machinery this lens watches.
 
-## The answer record (the one thing the panel writes)
+## The intent record (the one thing the panel writes)
 
 The panel's only outbound shape, written by `src/adapters/intent.ts` and by
-nothing else. Where it goes is declared per fleet, not once for the panel:
+nothing else.
+
+`Intent` is a union discriminated on `kind`, with one member today -
+`answer-decision` - and a table beside it giving each kind its file extension
+and the bytes it holds. A second kind (a merge order is the one coming) is a
+member added to the union and a row added to the table; it is not a second
+writer, and it may not redefine the first. That matters more than it sounds: the
+whole safety argument for this panel is that exactly one file writes, and a
+second intent kind arriving as a second file would end that argument quietly.
+
+The extension is part of each format rather than a constant beside it, because
+the fleet's sources watch for the shapes they can read - a merge order landing
+with `.keyed-answer-v1` on it would be handed to the answer intake, which would
+find a line it cannot parse.
+
+What follows is `answer-decision`'s format, unchanged and frozen. Records
+written by earlier builds are still sitting in spools, and their names are what
+make a replay a collision rather than a second answer; `tests/answering.test.ts`
+pins the digest and the extension for that reason. Where it goes is declared per fleet, not once for the panel:
 `QUARTERDECK_INTENT_DIR` is a colon-separated list positionally aligned with the
 configured fleet list, the same convention `QUARTERDECK_FLEET_HOME` and
 `QUARTERDECK_FIXTURE_SET` use. A request is written to the selected fleet's own

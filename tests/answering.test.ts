@@ -3,6 +3,7 @@ import { readFile, readdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
+import { RECORD_SUFFIX, requestIdFor } from "../src/adapters/intent.ts";
 import { SESSION_HEADER } from "../src/runtime/session.ts";
 import { portsFor } from "./lib/ports.ts";
 import { startPanel, type Panel } from "./lib/server.ts";
@@ -301,6 +302,51 @@ describe("replaying an answer", () => {
     // What a changed answer MEANS is the intake's to decide, not this panel's:
     // it rejects a decision that contradicts the one already recorded. The
     // panel's job ended at recording what the operator said.
+  });
+});
+
+describe("the answer record's identity is frozen", () => {
+  /**
+   * An answer's name is what makes a replay a collision instead of a second
+   * answer, and records written by earlier builds are still sitting in spools.
+   * So the digest's inputs and the record's extension are pinned here rather
+   * than described: change either and every one of those records stops
+   * colliding, quietly, and a double click becomes two answers again.
+   *
+   * This is also what holds the line under the intent record becoming a union.
+   * A second kind of intent may be added beside this one; it may not change
+   * what this one is.
+   */
+  test("the same question and answer always name the same record", () => {
+    assert.equal(
+      requestIdFor({
+        taskId: "wi-tidewater-126",
+        since: "2099-01-01T09:10:00.000Z",
+        answer: "Call it a hold, not a park.",
+        label: "Answer and close",
+        mode: "done",
+      }),
+      "9262cbfc8d2249b6c6864e3a7285e239",
+    );
+  });
+
+  test("a record with no start date keeps one stable name", () => {
+    // The empty string, not the moment of the read: a row that recorded no
+    // start date must not mint a fresh identity every time the panel looks.
+    assert.equal(
+      requestIdFor({
+        taskId: "wi-tidewater-126",
+        since: "",
+        answer: "Call it a hold, not a park.",
+        label: "Answer and close",
+        mode: "done",
+      }),
+      "3620954952a3b28e093928747853fd60",
+    );
+  });
+
+  test("the extension is the one the fleet's answer intake watches for", () => {
+    assert.equal(RECORD_SUFFIX, ".keyed-answer-v1");
   });
 });
 
