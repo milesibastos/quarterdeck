@@ -720,9 +720,13 @@ describe("upstream's shape, projected", () => {
     assert.equal(content.length, 5, "one unstructured line and one done row dropped");
   });
 
-  test("a start date widens to an instant; a row that did not say carries none", async () => {
+  test("a start date stays a day; a row that did not say carries none", async () => {
     const { content } = (await fleetOf("upstream-shape")).deck;
-    assert.equal(content[0].since, "2099-01-01T00:00:00.000Z");
+    assert.equal(
+      content[0].since,
+      "2099-01-01",
+      "the day the record wrote, not a midnight it never stated",
+    );
     assert.equal(content[3].since, null, "not the moment upstream happened to look");
   });
 

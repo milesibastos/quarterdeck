@@ -40,8 +40,8 @@ second, bogus key.
 because the contract says there is none to do.
 
 **The request identity is the filename.** `<32 hex>.keyed-answer-v1`, derived
-from the task id, the instant the item entered its current state, the answer,
-the label and the close mode. The record is published by writing to a private
+from the task id, when the item entered its current state, the answer, the
+label and the close mode. The record is published by writing to a private
 staging name and then `link`ing it into place: `link` fails with `EEXIST` when
 the name is taken, and that failure *is* the duplicate check. It is atomic, it
 is the filesystem's own, it survives a restart, and two requests arriving at

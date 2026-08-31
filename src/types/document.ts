@@ -394,8 +394,16 @@ export interface DeckItem {
   readonly state: DeckState;
   readonly priority: Priority;
   /**
-   * ISO-8601 instant the item entered `state`, or `null` when no start date was
-   * recorded. A hold's age is measured from here.
+   * When the item entered `state`, at the precision the record carries: a
+   * calendar day, `YYYY-MM-DD`, or a full ISO-8601 instant. `null` when no
+   * start date was recorded. A hold's age is measured from here.
+   *
+   * Two forms, declared rather than incidental, and a reader must tell them
+   * apart before phrasing an age. A backlog line usually says `(since
+   * 2026-08-31)` and carries no time; widening that to midnight would let the
+   * page count hours from a moment the record never stated and print a number
+   * that looks measured - see `agoAtPrecision` in `src/ui/lib/age.ts`.
+   * `Hold.deferredTo` and `LandedItem.landedOn` carry a day the same way.
    *
    * Nullable because a hand-written backlog row often carries no date at all,
    * and the alternative - stamping it with whenever upstream happened to look -
