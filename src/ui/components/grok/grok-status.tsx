@@ -52,8 +52,11 @@ export function GrokStatus({
       aria-label="Session status"
     >
       <div className="min-w-0 max-w-full truncate" style={{ color: MUTED }}>
+        {/* Upstream used the Powerline branch glyph at U+E0A0, which is in
+            the private use area and draws as an empty box in any font that
+            has not been patched with it. U+2387 is the standard branch mark. */}
         <span aria-hidden style={{ color: FG }}>
-          {" "}
+          {"\u2387 "}
         </span>
         <span style={{ color: FG }}>{branch}</span>
         <span style={{ color: DIM }}> </span>

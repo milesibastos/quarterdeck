@@ -66,17 +66,27 @@ function usePrefersReducedMotion() {
   );
 }
 
+/**
+ * The mark, drawn as a dot matrix with the shimmer sweeping across it.
+ *
+ * `bits` is a prop rather than the constant above because the grammar is the
+ * dot matrix and the sweep, not grok's braille mark. A product that adopts the
+ * one and ships the other has borrowed somebody else's logo.
+ */
 export function GrokLogo({
+  bits = LOGO_BITS,
   scale = 4,
   className,
 }: {
+  /** A 1-bit sprite: equal-length rows of "0" and "1". */
+  bits?: readonly string[];
   scale?: number;
   className?: string;
 }) {
   const uid = React.useId().replace(/[^a-z0-9]/gi, "");
   const reduced = usePrefersReducedMotion();
-  const cols = LOGO_BITS[0].length;
-  const rows = LOGO_BITS.length;
+  const cols = bits[0].length;
+  const rows = bits.length;
 
   // Grok renders each braille dot as a separate spaced dot, not filled strokes.
   const CELL = 10;
@@ -85,7 +95,7 @@ export function GrokLogo({
   const W = cols * CELL;
   const H = rows * CELL;
   const dots: React.ReactElement[] = [];
-  LOGO_BITS.forEach((row, y) => {
+  bits.forEach((row, y) => {
     for (let x = 0; x < cols; x += 1) {
       if (row[x] === "1") {
         dots.push(
@@ -144,7 +154,21 @@ export function GrokLogo({
   );
 }
 
-const MENU: { label: string; key?: string }[] = [
+/**
+ * One row of the start menu.
+ *
+ * `onSelect` is optional, and a row without one is drawn as a plain row rather
+ * than as a button. A page that has the key binding but no click target for it
+ * - the binding lives elsewhere, or there is nothing to click - would otherwise
+ * have to render a button that does nothing when pressed.
+ */
+export type GrokMenuItem = {
+  label: string;
+  key?: string;
+  onSelect?: () => void;
+};
+
+const MENU: GrokMenuItem[] = [
   { label: "New worktree", key: "ctrl+w" },
   { label: "Resume session", key: "ctrl+s" },
   { label: "Changelog" },
@@ -152,14 +176,25 @@ const MENU: { label: string; key?: string }[] = [
 ];
 
 export function GrokHeader({
+  mark = <GrokLogo className="hidden shrink-0 sm:block" />,
+  name = "Grok Build Beta",
   version = "0.2.93",
   headline = "Grok 4.5 is here!",
   subhead = "Grok 4.5 is now available. Try it out in the /model picker.",
+  menu = MENU,
+  aside,
   className,
 }: {
+  /** The dot-matrix mark, or anything else. */
+  mark?: React.ReactNode;
+  /** A node, so the page that owns the document outline can make it a heading. */
+  name?: React.ReactNode;
   version?: string;
-  headline?: string;
-  subhead?: string;
+  headline?: React.ReactNode;
+  subhead?: React.ReactNode;
+  menu?: GrokMenuItem[];
+  /** Pinned to the trailing edge of the card, opposite the mark. */
+  aside?: React.ReactNode;
   className?: string;
 }) {
   return (
@@ -169,34 +204,55 @@ export function GrokHeader({
         className,
       )}
     >
-      <div className="flex min-w-0 items-center gap-5">
-        <GrokLogo className="hidden shrink-0 sm:block" />
-        <div className="min-w-0 flex-1">
-          <div className="break-words">
-            <span className="font-semibold">Grok Build Beta</span>{" "}
+      <div className="flex min-w-0 flex-wrap items-start gap-x-5 gap-y-3">
+        {mark}
+        <div className="min-w-0 flex-1 basis-64">
+          <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 break-words">
+            <span className="font-semibold">{name}</span>
             <span className="text-term-faint">{version}</span>
           </div>
-          <div className="mt-2 break-words font-semibold" style={{ color: AMBER }}>
-            {headline}
-          </div>
-          <div className="truncate text-term-muted">{subhead}</div>
+          {headline ? (
+            <div className="mt-2 break-words font-semibold" style={{ color: AMBER }}>
+              {headline}
+            </div>
+          ) : null}
+          {subhead ? (
+            <div className="mt-1 break-words text-term-muted">{subhead}</div>
+          ) : null}
 
-          <ul className="mt-2.5 min-w-0 space-y-0.5">
-            {MENU.map((m) => (
-              <li key={m.label}>
-                <button
-                  type="button"
-                  className="flex w-full min-w-0 items-center justify-between gap-4 rounded px-1 py-0.5 text-left hover:bg-term-selected"
-                >
-                  <span className="min-w-0 truncate">{m.label}</span>
-                  {m.key ? (
-                    <span className="shrink-0 text-term-faint">{m.key}</span>
-                  ) : null}
-                </button>
-              </li>
-            ))}
-          </ul>
+          {menu.length ? (
+            <ul className="mt-2.5 min-w-0 space-y-0.5">
+              {menu.map((m) => {
+                const row = (
+                  <>
+                    <span className="min-w-0 truncate">{m.label}</span>
+                    {m.key ? (
+                      <span className="shrink-0 text-term-faint">{m.key}</span>
+                    ) : null}
+                  </>
+                );
+                const shape =
+                  "flex w-full min-w-0 items-center justify-between gap-4 rounded px-1 py-0.5 text-left";
+                return (
+                  <li key={m.label}>
+                    {m.onSelect ? (
+                      <button
+                        type="button"
+                        onClick={m.onSelect}
+                        className={cn(shape, "hover:bg-term-selected")}
+                      >
+                        {row}
+                      </button>
+                    ) : (
+                      <span className={shape}>{row}</span>
+                    )}
+                  </li>
+                );
+              })}
+            </ul>
+          ) : null}
         </div>
+        {aside ? <div className="min-w-0 shrink-0">{aside}</div> : null}
       </div>
     </div>
   );

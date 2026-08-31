@@ -1,12 +1,15 @@
 import type { PanelDocument } from "@/types/document.ts";
 import type { AnsweringSession } from "@/ui/deck/answer-control";
 import type { MergeSession } from "@/ui/needs-you/merge-card";
+import { GrokHeader, GrokLogo } from "@/ui/components/grok/grok-header";
 import { DeckLens } from "@/ui/deck/deck-lens";
 import { DisclosureBar } from "@/ui/disclosure-bar";
 import { FleetLens } from "@/ui/fleet/fleet-lens";
 import { LandedLens } from "@/ui/landed/landed-lens";
 import type { TerminalReader } from "@/ui/fleet/worker-terminal";
+import { FRAME_MENU, KeyboardHelp } from "@/ui/keyboard-help";
 import { ago } from "@/ui/lib/age";
+import { QUARTERDECK_MARK } from "@/ui/mark.ts";
 import { NeedsYouBand } from "@/ui/needs-you/needs-you-band";
 import { ShipshapeLens } from "@/ui/shipshape/shipshape-lens";
 import { SnapshotBadge, type Rebuild } from "@/ui/snapshot-badge";
@@ -133,20 +136,48 @@ export function Shell({
       data-panel
       className="flex w-full min-w-0 flex-col gap-4 px-4 pt-4 pb-10 sm:px-6"
     >
-      <header className="flex flex-wrap items-start justify-between gap-x-6 gap-y-3">
-        <div className="min-w-0">
-          <h1 className="font-display text-2xl tracking-wide text-foreground sm:text-3xl">
-            Quarterdeck
-          </h1>
-          <p className="font-mono text-xs text-muted-foreground">
-            document v{document.version} &middot; assembled{" "}
-            {ago(document.generatedAt, nowMs)}
-          </p>
-        </div>
+      {/*
+        The masthead, drawn as the launch card an agent CLI opens with: the
+        mark, the name, what version of the document is on screen, and the two
+        controls the frame answers to. The snapshot badge rides in the card's
+        trailing slot rather than in a corner of its own - it is the second
+        thing in the masthead by rule, and the card is now the masthead.
 
-        {/* Not a footnote in the corner: everything below is drawn as though it
-            were true now, and it is not. See `src/ui/snapshot-badge.tsx`. */}
-        <SnapshotBadge asOf={snapshotAsOf(document)} nowMs={nowMs} rebuild={rebuild} />
+        The mark is quarterdeck's, drawn through grok's dot-matrix logo: the
+        grammar is the matrix and the shimmer, not somebody else's braille.
+      */}
+      <header>
+        <GrokHeader
+          mark={
+            <GrokLogo
+              bits={QUARTERDECK_MARK}
+              scale={3}
+              className="hidden shrink-0 text-term-fg sm:block"
+            />
+          }
+          name={
+            <h1 className="font-display text-2xl tracking-wide text-term-fg-bright sm:text-3xl">
+              Quarterdeck
+            </h1>
+          }
+          version={`document v${document.version}`}
+          headline={null}
+          subhead={`assembled ${ago(document.generatedAt, nowMs)}`}
+          menu={FRAME_MENU}
+          aside={
+            <div className="flex min-w-0 flex-col items-start gap-2">
+              {/* Not a footnote in the corner: everything below is drawn as
+                  though it were true now, and it is not. See
+                  `src/ui/snapshot-badge.tsx`. */}
+              <SnapshotBadge
+                asOf={snapshotAsOf(document)}
+                nowMs={nowMs}
+                rebuild={rebuild}
+              />
+              <KeyboardHelp />
+            </div>
+          }
+        />
       </header>
 
       {/* The reserve. Sized by rule so an omission is physically obvious rather

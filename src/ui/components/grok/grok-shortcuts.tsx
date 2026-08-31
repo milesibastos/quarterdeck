@@ -77,13 +77,26 @@ const DEFAULT_GROUPS: GrokShortcutGroup[] = [
 ];
 
 export function GrokShortcuts({
+  id,
   groups = DEFAULT_GROUPS,
   defaultExpanded = "essentials",
+  search = "/ to search",
+  legend = "↑/↓ nav · e/Space/→ expand · ← collapse · Esc close",
   onClose,
   className,
 }: {
+  id?: string;
   groups?: GrokShortcutGroup[];
   defaultExpanded?: string | null;
+  /** The search hint. `null` where there is nothing to search. */
+  search?: React.ReactNode | null;
+  /**
+   * The footer legend. A prop because it is a claim about which keys work, and
+   * the default names four this component does not implement - the group rows
+   * are buttons, so Enter and Space expand them and the arrows do not. A page
+   * that has not added the rest should say so rather than inherit the claim.
+   */
+  legend?: React.ReactNode;
   onClose?: () => void;
   className?: string;
 }) {
@@ -91,6 +104,7 @@ export function GrokShortcuts({
 
   return (
     <div
+      id={id}
       className={cn(
         "overflow-hidden rounded-sm border font-mono text-[13px] leading-[1.5]",
         className,
@@ -115,11 +129,14 @@ export function GrokShortcuts({
         </button>
       </div>
 
-      <div className="px-3 py-2 text-[12px]" style={{ color: DIM }}>
-        / to search
-      </div>
-
-      <div className="border-t" style={{ borderColor: BORDER }} />
+      {search === null ? null : (
+        <>
+          <div className="px-3 py-2 text-[12px]" style={{ color: DIM }}>
+            {search}
+          </div>
+          <div className="border-t" style={{ borderColor: BORDER }} />
+        </>
+      )}
 
       <ul className="max-h-[22rem] overflow-auto py-1.5">
         {groups.map((g) => {
@@ -190,7 +207,7 @@ export function GrokShortcuts({
         className="border-t px-3 py-1.5 text-[11px]"
         style={{ borderColor: BORDER, color: DIM }}
       >
-        ↑/↓ nav · e/Space/→ expand · ← collapse · Esc close
+        {legend}
       </div>
     </div>
   );
