@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
-import { after, before, describe, test } from "node:test";
+import { describe, test } from "node:test";
 import { portsFor } from "./lib/ports.ts";
-import { startPanel, type Panel } from "./lib/server.ts";
+import { startPanel } from "./lib/server.ts";
 import { ago, agoAtPrecision } from "../src/ui/lib/age.ts";
 
 /**
