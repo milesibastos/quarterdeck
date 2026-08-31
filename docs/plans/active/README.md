@@ -18,14 +18,15 @@ from fixtures when none is configured - see `docs/contract.md` and
 1. **The fleet lens** - `src/ui/fleet/` - has its worker card and lifecycle
    rail; lanes and filters remain. The first to ask real questions of the theme
    and the layering.
-2. **The shipshape lens** - `src/ui/shipshape/`.
 
-The deck lens has landed - see `docs/plans/done/2026-08-30-deck-lens.md`.
+The deck lens has landed - see `docs/plans/done/2026-08-30-deck-lens.md`. The
+shipshape lens has landed too - see
+`docs/plans/done/2026-08-30-shipshape-lens.md`.
 
 Then, and not in parallel with those:
 
-3. **The write path.** `src/adapters/intent.ts` holds the type and the marker.
+2. **The write path.** `src/adapters/intent.ts` holds the type and the marker.
    The guard in front of `/api/act` already exists; what is missing is getting
    the session secret to the page and an endpoint that does something.
-4. **The shell's proportions and fold line**, which need real lens content
+3. **The shell's proportions and fold line**, which need real lens content
    before they can be tuned.
