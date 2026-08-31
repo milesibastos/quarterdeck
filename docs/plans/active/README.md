@@ -11,27 +11,21 @@ nobody can reconstruct from the code.
 
 ## What comes next
 
-Two sides of the document, able to be worked at the same time because the shape
-between them is frozen and the build enforces it: filling the document from the
-outside world, and drawing it. Each item below owns files nobody else touches.
+The fleet and deck parts of the document now come from a real fleet home, or
+from fixtures when none is configured - see `docs/contract.md` and
+`docs/quality.md`. What is left, each item owning files nobody else touches:
 
-1. **A real fleet source for the snapshot.** The injected-source position in
-   `src/adapters/contract.ts` has exactly one implementation; the fleet and deck
-   lenses still come only from the fixture loader. Health already reads a real
-   fleet home on its own path, outside this position - see
-   `docs/decisions/2026-08-30-reading-a-fleet-home.md`. The open assumptions at
-   the end of `docs/contract.md` are this worker's list.
-2. **The fleet lens** - `src/ui/fleet/` - has its worker card and lifecycle
+1. **The fleet lens** - `src/ui/fleet/` - has its worker card and lifecycle
    rail; lanes and filters remain. The first to ask real questions of the theme
    and the layering.
-3. **The shipshape lens** - `src/ui/shipshape/`.
+2. **The shipshape lens** - `src/ui/shipshape/`.
 
 The deck lens has landed - see `docs/plans/done/2026-08-30-deck-lens.md`.
 
 Then, and not in parallel with those:
 
-4. **The write path.** `src/adapters/intent.ts` holds the type and the marker.
+3. **The write path.** `src/adapters/intent.ts` holds the type and the marker.
    The guard in front of `/api/act` already exists; what is missing is getting
    the session secret to the page and an endpoint that does something.
-5. **The shell's proportions and fold line**, which need real lens content
+4. **The shell's proportions and fold line**, which need real lens content
    before they can be tuned.

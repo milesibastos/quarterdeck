@@ -31,10 +31,12 @@ Seven positions, one direction. Dependencies point right, and only right.
 
 Plus two positions off the line:
 
-**`src/providers/`** is the single door for cross-cutting concerns: the clock
-and the logger. Any layer may import it; it imports only `types`. It exists so
-the projection can be tested with a fixed clock, and so nothing reaches for
-`Date.now()` or `console.log` directly - which is itself checked.
+**`src/providers/`** is the single door for cross-cutting concerns: the clock,
+the logger, and running a command. Any layer may import it; it imports only
+`types`. It exists so the projection can be tested with a fixed clock, so a real
+fleet's snapshot command can be stubbed out in a test, and so nothing reaches
+for `Date.now()`, `console.log` or `child_process` directly - all of which are
+themselves checked.
 
 **`src/app/` and `src/proxy.ts`** are the composition point. Next owns those
 filenames, and invariant 6 keeps fleet reading out of `src/ui/`, so the wiring
@@ -55,7 +57,7 @@ foundation everything else rests on, so they are themselves known-good.
 | --- | --- | --- |
 | 1 | Imports point forward only | Prevents the slow collapse into one tangled module |
 | 2 | `src/domain/` performs no I/O | Keeps the projection testable against fixtures with no fleet present |
-| 3 | Exactly one file may write anything: `src/adapters/intent.ts` | The whole safety argument for acting reduces to one reviewable file |
+| 3 | Exactly one file may write anything (`src/adapters/intent.ts`), and exactly one may start a process (`src/providers/process.ts`) | The whole safety argument for acting reduces to two reviewable files |
 | 4 | Only `src/adapters/health.ts` may name fleet-internal paths | Confines the one unstable dependency |
 | 5 | The contract version is pinned and parsed at the boundary | A changed contract refuses loudly rather than rendering something plausible and wrong |
 | 6 | `src/ui/` imports only the document type and providers | Keeps the panel replaceable; stops fleet reading creeping into rendering |
@@ -87,6 +89,17 @@ carries the `quarterdeck:permitted-writer` marker and it must be
 every mutating API is banned outside that file: `writeFile` and its family,
 `child_process`, `worker_threads`, `process.chdir`. Reads are untouched, so
 `readFile` and `watch` stay legal everywhere adapters may use them.
+
+Starting a process is the one capability held by a second file. A real fleet
+publishes its snapshot through a command rather than a file, so the panel has to
+be able to run one - but "reads a fleet" and "can run anything" are different
+claims and only the first is true. The spawn door is confined the same way:
+`src/providers/process.ts` carries the `quarterdeck:permitted-spawner` marker,
+it is the only file that may import `child_process`, every write API above is
+still banned inside it, and it exposes one method that returns a command's
+standard output. No shell, no stdin, no working-directory change. Everything
+else takes a `Runner` and is handed one, which is also what lets the whole real
+fleet read be tested with no fleet present.
 
 Scope is `src/`. `bin/quarterdeck` is the launcher, not panel code: it stages
 build output before the server exists, which is not the panel acting on a fleet.
@@ -134,7 +147,9 @@ resolves to `'self'`. Fonts are committed woff2 subsets under `src/ui/fonts/`.
 
 ## The refresh loop
 
-1. The runtime watches the fixture directory, debounced and coalesced.
+1. The runtime watches the source's directories - the fixture set, or the fleet
+   home's worker records and its backlog - debounced and coalesced across all
+   of them, so a change touching two is still one read.
 2. On a change it publishes one signal over server-sent events. **The signal
    carries no data.**
 3. The page asks the server to re-render.
@@ -161,6 +176,11 @@ Rules that come with the pipe, all in `src/runtime/fleet.ts`:
 The runtime is a singleton hung off `globalThis`, because route modules can be
 evaluated more than once in a process and two watchers would publish every
 change twice.
+
+Which source the loop reads is one config value, `QUARTERDECK_FLEET_HOME`: set,
+the panel runs the fleet home's snapshot command; unset, it reads a committed
+fixture set. Nothing else in the panel changes between the two, which is what
+makes "the fixtures behave exactly as a fleet does" a claim the suite can check.
 
 ## Security
 

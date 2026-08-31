@@ -358,7 +358,7 @@ test("a configured fleet home is what the panel's own document is built from", a
     source,
     clock: clockFor(config),
     logger: quiet,
-    watchDir: fixtureSet,
+    watchDirs: [fixtureSet],
     healthDir: fixtureSet,
   });
 

@@ -1,0 +1,16 @@
+{
+  "asOf": "2099-01-01T09:15:00.000Z",
+  "supervisor": {
+    "read": "ok",
+    "alive": true,
+    "lastSeen": "2099-01-01T09:15:00.000Z"
+  },
+  "overdue": {
+    "read": "ok",
+    "overdue": []
+  },
+  "drift": {
+    "read": "ok",
+    "disagreements": []
+  }
+}

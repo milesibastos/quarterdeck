@@ -183,6 +183,18 @@ export const PERMITTED_WRITER = "src/adapters/intent.ts";
 export const WRITER_MARKER = "quarterdeck:permitted-writer";
 
 /**
+ * Starting a process is its own capability, and it has its own one file.
+ *
+ * A real fleet publishes its snapshot through a command rather than a file, so
+ * the panel has to be able to start one - but "reads a fleet" and "can run
+ * anything" are different claims, and only the first is true. The spawn door
+ * confines the second the way the writer marker confines writing: one file, one
+ * marker, and a failing build for any other file that reaches for it.
+ */
+export const PERMITTED_SPAWNER = "src/providers/process.ts";
+export const SPAWNER_MARKER = "quarterdeck:permitted-spawner";
+
+/**
  * APIs that mutate something outside this process. Reads are not listed.
  *
  * Matched as imported names and as member calls (`fs.writeFile(`), never as
@@ -224,8 +236,11 @@ const WRITE_APIS = [
   "cpSync",
 ];
 
+/** Importing either of these at all means the file can run a second process. */
+const SPAWN_MODULES = ["node:child_process", "child_process"];
+
 /** Importing any of these at all means the file can reach outside the process. */
-const WRITE_MODULES = ["node:child_process", "child_process", "node:worker_threads", "worker_threads"];
+const WRITE_MODULES = [...SPAWN_MODULES, "node:worker_threads", "worker_threads"];
 
 const MEMBER_WRITE = new RegExp(`\\.(${WRITE_APIS.join("|")})\\s*\\(`);
 /** The same calls, reached through bracket notation: `fs["writeFile"](`. */
@@ -284,37 +299,52 @@ function destructuredFrom(text: string, sourcePattern: string): string[] {
   return names;
 }
 
+/**
+ * The two confined capabilities, checked the same way: exactly one file carries
+ * the marker, and it is the file named here.
+ */
+const MARKED_CAPABILITIES = [
+  { path: PERMITTED_WRITER, marker: WRITER_MARKER, verb: "write anything" },
+  { path: PERMITTED_SPAWNER, marker: SPAWNER_MARKER, verb: "start a process" },
+] as const;
+
 export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
-  const marked = files.filter((f) => f.text.includes(WRITER_MARKER));
 
-  for (const file of marked) {
-    if (`src/${file.path}` === PERMITTED_WRITER) continue;
-    violations.push({
-      slug: "single-writer",
-      file: `src/${file.path}`,
-      line: file.lines.findIndex((l) => l.includes(WRITER_MARKER)) + 1,
-      what: `A second file claims the ${WRITER_MARKER} marker. Exactly one file may write anything, and it is ${PERMITTED_WRITER}.`,
-      why: `The whole safety argument for a panel that will act on a live fleet is that acting is confined to one reviewable file. Two markers means nobody can tell by reading one file what the panel can do.`,
-      fix: `Remove the marker from this file and move the write into ${PERMITTED_WRITER}, calling it from here.`,
-      doc: `${ARCH} - invariant 3`,
-    });
-  }
+  for (const { path, marker, verb } of MARKED_CAPABILITIES) {
+    const marked = files.filter((f) => f.text.includes(marker));
 
-  if (marked.length === 0 && files.some((f) => `src/${f.path}` === PERMITTED_WRITER)) {
-    violations.push({
-      slug: "single-writer",
-      file: PERMITTED_WRITER,
-      line: 1,
-      what: `The ${WRITER_MARKER} marker is missing. Exactly one file may write anything, and it must say so.`,
-      why: `The marker is what the check reads. Without it there is no file the build can point at as the one permitted writer, and the confinement stops being verifiable.`,
-      fix: `Restore the ${WRITER_MARKER} line to the header comment of ${PERMITTED_WRITER}.`,
-      doc: `${ARCH} - invariant 3`,
-    });
+    for (const file of marked) {
+      if (`src/${file.path}` === path) continue;
+      violations.push({
+        slug: "single-writer",
+        file: `src/${file.path}`,
+        line: file.lines.findIndex((l) => l.includes(marker)) + 1,
+        what: `A second file claims the ${marker} marker. Exactly one file may ${verb}, and it is ${path}.`,
+        why: `The whole safety argument for a panel that will act on a live fleet is that acting is confined to one reviewable file. Two markers means nobody can tell by reading one file what the panel can do.`,
+        fix: `Remove the marker from this file and move the call into ${path}, calling it from here.`,
+        doc: `${ARCH} - invariant 3`,
+      });
+    }
+
+    if (marked.length === 0 && files.some((f) => `src/${f.path}` === path)) {
+      violations.push({
+        slug: "single-writer",
+        file: path,
+        line: 1,
+        what: `The ${marker} marker is missing. Exactly one file may ${verb}, and it must say so.`,
+        why: `The marker is what the check reads. Without it there is no file the build can point at as the one file holding this capability, and the confinement stops being verifiable.`,
+        fix: `Restore the ${marker} line to the header comment of ${path}.`,
+        doc: `${ARCH} - invariant 3`,
+      });
+    }
   }
 
   for (const file of files) {
     if (`src/${file.path}` === PERMITTED_WRITER) continue;
+    // The spawn door holds one capability, not both: it may start a process,
+    // and every write API below is still banned in it.
+    const spawnPermitted = `src/${file.path}` === PERMITTED_SPAWNER;
     const code = stripComments(file.text, file.path);
     // One report per file and API: naming the import line and every use of it
     // says the same thing several times and buries the next finding.
@@ -336,7 +366,9 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
       const found: string[] = [];
 
       for (const ref of importsOf({ ...file, text, lines: [text] })) {
-        if (WRITE_MODULES.includes(ref.specifier)) found.push(ref.specifier);
+        if (!WRITE_MODULES.includes(ref.specifier)) continue;
+        if (spawnPermitted && SPAWN_MODULES.includes(ref.specifier)) continue;
+        found.push(ref.specifier);
       }
       for (const name of imported) {
         if (WRITE_APIS.includes(name) && new RegExp(`\\b${name}\\b`).test(text)) {
@@ -356,9 +388,11 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
           slug: "single-writer",
           file: `src/${file.path}`,
           line,
-          what: `${api} used outside ${PERMITTED_WRITER}. Exactly one file may write anything.`,
-          why: `Everything but that one file is read-only by construction. A write here means the question "what can this panel change?" can no longer be answered by reading a single file.`,
-          fix: `Move the mutation into ${PERMITTED_WRITER} behind an Intent, and call it from here. If this is genuinely a read, use the reading form of the API instead.`,
+          what: `${api} used outside ${PERMITTED_WRITER}. Exactly one file may write anything, and only ${PERMITTED_SPAWNER} may start a process.`,
+          why: `Everything but those files is read-only by construction. A write here means the question "what can this panel change?" can no longer be answered by reading a single file.`,
+          fix: SPAWN_MODULES.includes(api)
+            ? `Take a Runner from ${PERMITTED_SPAWNER} and pass it in, the way src/adapters/contract.ts does for the fleet snapshot command.`
+            : `Move the mutation into ${PERMITTED_WRITER} behind an Intent, and call it from here. If this is genuinely a read, use the reading form of the API instead.`,
           doc: `${ARCH} - invariant 3`,
         });
       }

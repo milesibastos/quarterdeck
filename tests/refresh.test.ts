@@ -73,7 +73,7 @@ describe("the refresh loop", () => {
         detail: "editing the projection",
         observed_at: "2099-01-01T09:15:00.000Z",
       },
-      pr: null,
+      pr: { url: null, source: "absent" },
     });
     await writeFile(snapshot, JSON.stringify(document, null, 2));
   }

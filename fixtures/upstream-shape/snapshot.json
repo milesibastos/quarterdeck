@@ -1,0 +1,751 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2099-01-01T09:15:00.000Z",
+  "tasks": [
+    {
+      "id": "wi-tidewater-501",
+      "kind": "ship",
+      "harness": "anchor",
+      "mode": "guarded",
+      "yolo": "off",
+      "project": "/anchorage/projects/tidewater",
+      "backend": "panes",
+      "remote": null,
+      "paths": {
+        "meta": {
+          "path": "/anchorage/state/wi-tidewater-501.meta",
+          "present": true
+        },
+        "status_log": {
+          "path": "/anchorage/state/wi-tidewater-501.status",
+          "present": false,
+          "kind": "event_history",
+          "last_event": {
+            "state": "",
+            "note": "",
+            "raw": ""
+          }
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-tidewater-501",
+          "present": true
+        },
+        "home": {
+          "path": null,
+          "present": false
+        },
+        "report": {
+          "path": "/anchorage/data/wi-tidewater-501/report.md",
+          "present": false
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "source": "pane",
+        "detail": "harness busy (anchor-hook)",
+        "raw": "state: working - source: pane - harness busy (anchor-hook)",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "endpoint": {
+        "target": "anchorage:wi-tidewater-501",
+        "exists": true,
+        "agent_alive": "not_checked",
+        "status": "unknown",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "hints": {
+        "pending_decision": false,
+        "blocked_event": false,
+        "open_decisions": [],
+        "scout_report_present": false,
+        "last_event_text": ""
+      }
+    },
+    {
+      "id": "wi-lamplight-502",
+      "kind": "ship",
+      "harness": "anchor",
+      "mode": "guarded",
+      "yolo": "off",
+      "project": "/anchorage/projects/lamplight",
+      "backend": "panes",
+      "remote": null,
+      "paths": {
+        "meta": {
+          "path": "/anchorage/state/wi-lamplight-502.meta",
+          "present": true
+        },
+        "status_log": {
+          "path": "/anchorage/state/wi-lamplight-502.status",
+          "present": false,
+          "kind": "event_history",
+          "last_event": {
+            "state": "",
+            "note": "",
+            "raw": ""
+          }
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-lamplight-502",
+          "present": true
+        },
+        "home": {
+          "path": null,
+          "present": false
+        },
+        "report": {
+          "path": "/anchorage/data/wi-lamplight-502/report.md",
+          "present": false
+        }
+      },
+      "current_state": {
+        "state": "parked",
+        "source": "pane",
+        "detail": "parked at review: 1 finding(s) (ask-user: naming decision)",
+        "raw": "state: parked - source: pane - parked at review: 1 finding(s) (ask-user: naming decision)",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "endpoint": {
+        "target": "anchorage:wi-lamplight-502",
+        "exists": true,
+        "agent_alive": "not_checked",
+        "status": "unknown",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "hints": {
+        "pending_decision": false,
+        "blocked_event": false,
+        "open_decisions": [],
+        "scout_report_present": false,
+        "last_event_text": ""
+      }
+    },
+    {
+      "id": "wi-saltmarsh-503",
+      "kind": "ship",
+      "harness": "anchor",
+      "mode": "guarded",
+      "yolo": "off",
+      "project": "/anchorage/projects/saltmarsh",
+      "backend": "panes",
+      "remote": null,
+      "paths": {
+        "meta": {
+          "path": "/anchorage/state/wi-saltmarsh-503.meta",
+          "present": true
+        },
+        "status_log": {
+          "path": "/anchorage/state/wi-saltmarsh-503.status",
+          "present": false,
+          "kind": "event_history",
+          "last_event": {
+            "state": "",
+            "note": "",
+            "raw": ""
+          }
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-saltmarsh-503",
+          "present": true
+        },
+        "home": {
+          "path": null,
+          "present": false
+        },
+        "report": {
+          "path": "/anchorage/data/wi-saltmarsh-503/report.md",
+          "present": false
+        }
+      },
+      "current_state": {
+        "state": "blocked",
+        "source": "pane",
+        "detail": "waiting on wi-tidewater-501",
+        "raw": "state: blocked - source: pane - waiting on wi-tidewater-501",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "endpoint": {
+        "target": "anchorage:wi-saltmarsh-503",
+        "exists": true,
+        "agent_alive": "not_checked",
+        "status": "unknown",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "hints": {
+        "pending_decision": false,
+        "blocked_event": false,
+        "open_decisions": [],
+        "scout_report_present": false,
+        "last_event_text": ""
+      }
+    },
+    {
+      "id": "wi-cordage-504",
+      "kind": "ship",
+      "harness": "anchor",
+      "mode": "guarded",
+      "yolo": "off",
+      "project": "/anchorage/projects/cordage",
+      "backend": "panes",
+      "remote": null,
+      "paths": {
+        "meta": {
+          "path": "/anchorage/state/wi-cordage-504.meta",
+          "present": true
+        },
+        "status_log": {
+          "path": "/anchorage/state/wi-cordage-504.status",
+          "present": false,
+          "kind": "event_history",
+          "last_event": {
+            "state": "",
+            "note": "",
+            "raw": ""
+          }
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-cordage-504",
+          "present": true
+        },
+        "home": {
+          "path": null,
+          "present": false
+        },
+        "report": {
+          "path": "/anchorage/data/wi-cordage-504/report.md",
+          "present": false
+        }
+      },
+      "current_state": {
+        "state": "done",
+        "source": "pane",
+        "detail": "run passed: PR merged/closed",
+        "raw": "state: done - source: pane - run passed: PR merged/closed",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "endpoint": {
+        "target": "anchorage:wi-cordage-504",
+        "exists": true,
+        "agent_alive": "not_checked",
+        "status": "unknown",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "pr": {
+        "url": "https://forge.invalid/cordage/pull/504",
+        "source": "meta"
+      },
+      "hints": {
+        "pending_decision": false,
+        "blocked_event": false,
+        "open_decisions": [],
+        "scout_report_present": false,
+        "last_event_text": ""
+      },
+      "backlog": {
+        "order": 6,
+        "state": "done",
+        "structured": true,
+        "id": "wi-cordage-504",
+        "title": "Splice the cordage",
+        "priority": "1",
+        "completion": {
+          "verb": "merged",
+          "date": "2099-01-01"
+        },
+        "captain_actionable": false
+      }
+    },
+    {
+      "id": "wi-tidewater-505",
+      "kind": "ship",
+      "harness": "anchor",
+      "mode": "guarded",
+      "yolo": "off",
+      "project": "/anchorage/projects/tidewater",
+      "backend": "panes",
+      "remote": null,
+      "paths": {
+        "meta": {
+          "path": "/anchorage/state/wi-tidewater-505.meta",
+          "present": true
+        },
+        "status_log": {
+          "path": "/anchorage/state/wi-tidewater-505.status",
+          "present": false,
+          "kind": "event_history",
+          "last_event": {
+            "state": "",
+            "note": "",
+            "raw": ""
+          }
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-tidewater-505",
+          "present": true
+        },
+        "home": {
+          "path": null,
+          "present": false
+        },
+        "report": {
+          "path": "/anchorage/data/wi-tidewater-505/report.md",
+          "present": false
+        }
+      },
+      "current_state": {
+        "state": "failed",
+        "source": "pane",
+        "detail": "run failed at lint",
+        "raw": "state: failed - source: pane - run failed at lint",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "endpoint": {
+        "target": "anchorage:wi-tidewater-505",
+        "exists": true,
+        "agent_alive": "not_checked",
+        "status": "unknown",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "hints": {
+        "pending_decision": false,
+        "blocked_event": false,
+        "open_decisions": [],
+        "scout_report_present": false,
+        "last_event_text": ""
+      }
+    },
+    {
+      "id": "wi-lamplight-506",
+      "kind": "scout",
+      "harness": "anchor",
+      "mode": "guarded",
+      "yolo": "off",
+      "project": "/anchorage/projects/lamplight",
+      "backend": "panes",
+      "remote": null,
+      "paths": {
+        "meta": {
+          "path": "/anchorage/state/wi-lamplight-506.meta",
+          "present": true
+        },
+        "status_log": {
+          "path": "/anchorage/state/wi-lamplight-506.status",
+          "present": false,
+          "kind": "event_history",
+          "last_event": {
+            "state": "",
+            "note": "",
+            "raw": ""
+          }
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-lamplight-506",
+          "present": true
+        },
+        "home": {
+          "path": null,
+          "present": false
+        },
+        "report": {
+          "path": "/anchorage/data/wi-lamplight-506/report.md",
+          "present": false
+        }
+      },
+      "current_state": {
+        "state": "paused",
+        "source": "pane",
+        "detail": "waiting on an upstream release",
+        "raw": "state: paused - source: pane - waiting on an upstream release",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "endpoint": {
+        "target": "anchorage:wi-lamplight-506",
+        "exists": true,
+        "agent_alive": "not_checked",
+        "status": "unknown",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "hints": {
+        "pending_decision": false,
+        "blocked_event": false,
+        "open_decisions": [],
+        "scout_report_present": false,
+        "last_event_text": ""
+      }
+    },
+    {
+      "id": "wi-saltmarsh-507",
+      "kind": "secondmate",
+      "harness": "anchor",
+      "mode": "guarded",
+      "yolo": "off",
+      "project": "/anchorage/projects/saltmarsh",
+      "backend": "panes",
+      "remote": null,
+      "paths": {
+        "meta": {
+          "path": "/anchorage/state/wi-saltmarsh-507.meta",
+          "present": true
+        },
+        "status_log": {
+          "path": "/anchorage/state/wi-saltmarsh-507.status",
+          "present": false,
+          "kind": "event_history",
+          "last_event": {
+            "state": "",
+            "note": "",
+            "raw": ""
+          }
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-saltmarsh-507",
+          "present": false
+        },
+        "home": {
+          "path": null,
+          "present": false
+        },
+        "report": {
+          "path": "/anchorage/data/wi-saltmarsh-507/report.md",
+          "present": false
+        }
+      },
+      "current_state": {
+        "state": "unknown",
+        "source": "pane",
+        "detail": "worktree gone (torn down?)",
+        "raw": "state: unknown - source: pane - worktree gone (torn down?)",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "endpoint": {
+        "target": "anchorage:wi-saltmarsh-507",
+        "exists": true,
+        "agent_alive": "not_checked",
+        "status": "unknown",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "hints": {
+        "pending_decision": false,
+        "blocked_event": false,
+        "open_decisions": [],
+        "scout_report_present": false,
+        "last_event_text": ""
+      }
+    },
+    {
+      "id": "wi-northreach-508",
+      "kind": "ship",
+      "harness": "anchor",
+      "mode": "guarded",
+      "yolo": "off",
+      "project": "/anchorage/projects/northreach",
+      "backend": "panes",
+      "remote": null,
+      "paths": {
+        "meta": {
+          "path": "/anchorage/state/wi-northreach-508.meta",
+          "present": true
+        },
+        "status_log": {
+          "path": "/anchorage/state/wi-northreach-508.status",
+          "present": false,
+          "kind": "event_history",
+          "last_event": {
+            "state": "",
+            "note": "",
+            "raw": ""
+          }
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-northreach-508",
+          "present": true
+        },
+        "home": {
+          "path": null,
+          "present": false
+        },
+        "report": {
+          "path": "/anchorage/data/wi-northreach-508/report.md",
+          "present": false
+        }
+      },
+      "current_state": {
+        "state": "done",
+        "source": "pane",
+        "detail": "checks green: PR ready for review",
+        "raw": "state: done - source: run-step - checks green: PR ready for review",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "endpoint": {
+        "target": "anchorage:wi-northreach-508",
+        "exists": true,
+        "agent_alive": "not_checked",
+        "status": "unknown",
+        "observed_at": "2099-01-01T09:14:00.000Z",
+        "freshness": "fresh"
+      },
+      "pr": {
+        "url": "https://forge.invalid/northreach/pull/508",
+        "source": "meta"
+      },
+      "hints": {
+        "pending_decision": false,
+        "blocked_event": false,
+        "open_decisions": [],
+        "scout_report_present": false,
+        "last_event_text": ""
+      },
+      "backlog": {
+        "order": 7,
+        "state": "in_flight",
+        "structured": true,
+        "id": "wi-northreach-508",
+        "title": "Reach the north mooring",
+        "priority": "1",
+        "completion": {
+          "verb": null,
+          "date": null
+        },
+        "captain_actionable": false
+      }
+    }
+  ],
+  "backlog": {
+    "path": "/anchorage/data/backlog.md",
+    "present": true,
+    "records": [
+      {
+        "order": 1,
+        "state": "in_flight",
+        "structured": true,
+        "id": "wi-tidewater-501",
+        "checked": false,
+        "title": "Widen the tide gauge",
+        "repo": "tidewater",
+        "kind": "ship",
+        "priority": "1",
+        "hold_reason": null,
+        "hold_kind": null,
+        "hold_until": null,
+        "blocked_by": null,
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "since": "2099-01-01",
+        "completion": {
+          "verb": null,
+          "date": null
+        },
+        "links": [],
+        "pr_url": null,
+        "report_path": null,
+        "captain_actionable": false,
+        "body_lines": []
+      },
+      {
+        "order": 2,
+        "state": "queued",
+        "structured": true,
+        "id": "wi-cordage-512",
+        "checked": false,
+        "title": "Draw the mooring rail",
+        "repo": "cordage",
+        "kind": "ship",
+        "priority": "2",
+        "hold_reason": null,
+        "hold_kind": null,
+        "hold_until": null,
+        "blocked_by": "wi-tidewater-501",
+        "blocked_by_ids": [
+          "wi-tidewater-501"
+        ],
+        "blocked_reason": "Waits on the gauge landing first",
+        "since": "2099-01-01",
+        "completion": {
+          "verb": null,
+          "date": null
+        },
+        "links": [],
+        "pr_url": null,
+        "report_path": null,
+        "captain_actionable": false,
+        "body_lines": []
+      },
+      {
+        "order": 3,
+        "state": "queued",
+        "structured": true,
+        "id": "wi-lamplight-513",
+        "checked": false,
+        "title": "Name the lamp housings",
+        "repo": "lamplight",
+        "kind": "ship",
+        "priority": "3",
+        "hold_reason": "Needs a naming decision",
+        "hold_kind": "captain",
+        "hold_until": "2099-01-04",
+        "blocked_by": null,
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "since": "2099-01-01",
+        "completion": {
+          "verb": null,
+          "date": null
+        },
+        "links": [],
+        "pr_url": null,
+        "report_path": null,
+        "captain_actionable": true,
+        "body_lines": []
+      },
+      {
+        "order": 4,
+        "state": "queued",
+        "structured": false,
+        "id": null,
+        "raw": "  a hand-written note nobody turned into a row",
+        "body_lines": [],
+        "body_excerpt": null
+      },
+      {
+        "order": 5,
+        "state": "queued",
+        "structured": true,
+        "id": "wi-saltmarsh-514",
+        "checked": false,
+        "title": "",
+        "repo": "saltmarsh",
+        "kind": "ship",
+        "priority": null,
+        "hold_reason": null,
+        "hold_kind": "captain",
+        "hold_until": "soon",
+        "blocked_by": null,
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "since": null,
+        "completion": {
+          "verb": null,
+          "date": null
+        },
+        "links": [],
+        "pr_url": null,
+        "report_path": null,
+        "captain_actionable": false,
+        "body_lines": []
+      },
+      {
+        "order": 6,
+        "state": "done",
+        "structured": true,
+        "id": "wi-cordage-504",
+        "checked": true,
+        "title": "Splice the cordage",
+        "repo": "cordage",
+        "kind": "ship",
+        "priority": "1",
+        "hold_reason": null,
+        "hold_kind": null,
+        "hold_until": null,
+        "blocked_by": null,
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "since": null,
+        "completion": {
+          "verb": "merged",
+          "date": "2099-01-01"
+        },
+        "links": [],
+        "pr_url": "https://forge.invalid/cordage/pull/504",
+        "report_path": null,
+        "captain_actionable": false,
+        "body_lines": []
+      },
+      {
+        "order": 7,
+        "state": "in_flight",
+        "structured": true,
+        "id": "wi-northreach-508",
+        "checked": false,
+        "title": "Reach the north mooring",
+        "repo": "northreach",
+        "kind": "ship",
+        "priority": "1",
+        "hold_reason": null,
+        "hold_kind": null,
+        "hold_until": null,
+        "blocked_by": null,
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "since": "2099-01-01",
+        "completion": {
+          "verb": null,
+          "date": null
+        },
+        "links": [],
+        "pr_url": "https://forge.invalid/northreach/pull/508",
+        "report_path": null,
+        "captain_actionable": false,
+        "body_lines": []
+      }
+    ]
+  },
+  "main_inventory": {
+    "valid": true,
+    "reason": null,
+    "orphan_in_flight": [],
+    "unstructured_current_count": 1
+  },
+  "scout_reports": [],
+  "secondmate_current": {
+    "records": [],
+    "total": 0,
+    "shown": 0,
+    "truncated": false
+  },
+  "secondmate_landed": {
+    "records": [],
+    "truncated": [],
+    "unreadable": [],
+    "partial": []
+  },
+  "secondmate_guidance": null
+}

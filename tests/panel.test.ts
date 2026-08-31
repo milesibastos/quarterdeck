@@ -184,7 +184,7 @@ describe("a snapshot that stops parsing", () => {
       // Truncate the snapshot under the running panel.
       await writeFile(
         join(fixtureRoot, "healthy", "snapshot.json"),
-        '{ "schema": "fm-fleet-snapshot.v1", "generated_at": "2099-01-01T09:15',
+        '{ "schema": "fm-fleet-snapshot.v1", "generated": "2099-01-01T09:15',
       );
 
       const html = await until(
