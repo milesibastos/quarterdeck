@@ -343,6 +343,7 @@
         "captain_actionable": false
       },
       {
+        "structured": true,
         "id": "wi-driftwood-540",
         "title": "Choose between the two rail layouts",
         "state": "in_flight",
@@ -356,6 +357,7 @@
         "captain_actionable": true
       },
       {
+        "structured": true,
         "id": "wi-brackish-277",
         "title": "Adopt the upstream snapshot flag",
         "state": "queued",
