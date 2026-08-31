@@ -327,6 +327,35 @@ describe("a fleet that cannot be trusted", () => {
 });
 
 /**
+ * The one forge state `healthy` does not carry: a checks block that was asked
+ * for and could not be answered.
+ *
+ * `crowded` is where it lives, on a pull request whose review nobody asked
+ * about at all - which puts both halves of the distinction on one card, and is
+ * why this is asserted here rather than folded into the suite above.
+ */
+describe("a forge that could not answer", () => {
+  test("says the checks were unreadable, and the comments unasked, on one card", async () => {
+    const panel = await startPanel({ port: nextPort(), fixtureSet: "crowded" });
+    try {
+      const html = await body(panel);
+      const start = html.indexOf('data-worker="wi-windlass-142"');
+      assert.notEqual(start, -1);
+      const card = html.slice(start, html.indexOf('data-worker="', start + 1));
+
+      assert.ok(card.includes("checks unreadable"));
+      assert.ok(card.includes("The forge timed out on the check run."), "and what failed");
+      // The other half, on the same pull request: a read that failed and a read
+      // nobody did are two different facts and both are on screen.
+      assert.ok(card.includes("comments not looked up"));
+      assert.ok(!card.includes("checks not looked up"), "the checks were asked for");
+    } finally {
+      await panel.stop();
+    }
+  });
+});
+
+/**
  * The forge read, driven through the built server against a `gh` that is a
  * shell script on the panel's own `PATH`.
  *
