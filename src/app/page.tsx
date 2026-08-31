@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { ContractIdentifierError } from "@/adapters/contract.ts";
+import { ContractIdentifierError, SNAPSHOT_REBUILD } from "@/adapters/contract.ts";
 import { fleetById, loadConfig, type Config, type FleetRef } from "@/config/index.ts";
 import { clockFor, fleetRuntime } from "@/runtime/fleet.ts";
 import { SESSION_HEADER, sessionSecret } from "@/runtime/session.ts";
@@ -11,6 +11,7 @@ import { Shell } from "@/ui/shell";
 import { LiveRefresh } from "@/ui/live-refresh";
 import type { AnsweringSession } from "@/ui/deck/answer-control";
 import type { TerminalReader } from "@/ui/fleet/worker-terminal";
+import type { Rebuild } from "@/ui/snapshot-badge";
 
 /**
  * The composition point.
@@ -103,6 +104,23 @@ function terminalReader(fleet: FleetRef): TerminalReader {
 }
 
 /**
+ * How the operator makes a newer snapshot, or `null` when nothing here would.
+ *
+ * A fleet home publishes its own snapshot command and running it is what
+ * produces a fresher picture, so the badge can offer the exact line. A fixture
+ * set has no such command - it is a committed file - and inventing one for it
+ * would be the panel telling an operator to run something that does not exist.
+ *
+ * The command goes out relative to the home, and the home is named by the
+ * fleet's label rather than by its path: `src/config/` keeps full home paths
+ * out of the markup on purpose, and this is not the place to make an exception.
+ */
+function rebuilding(fleet: FleetRef): Rebuild | null {
+  if (fleet.source.kind !== "home") return null;
+  return { command: SNAPSHOT_REBUILD, where: fleet.label };
+}
+
+/**
  * Which fleet the operator last chose, or the first one configured.
  *
  * The selection is remembered in their browser rather than on this machine, so
@@ -141,6 +159,7 @@ export default async function Page() {
           nowMs={clockFor(config).nowMs()}
           terminal={terminalReader(fleet)}
           session={answering(fleet)}
+          rebuild={rebuilding(fleet)}
         />
       )}
     </FleetPicker>

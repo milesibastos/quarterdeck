@@ -6,6 +6,24 @@ import type { TerminalReader } from "@/ui/fleet/worker-terminal";
 import { ago } from "@/ui/lib/age";
 import { NeedsYouBand } from "@/ui/needs-you/needs-you-band";
 import { ShipshapeLens } from "@/ui/shipshape/shipshape-lens";
+import { SnapshotBadge, type Rebuild } from "@/ui/snapshot-badge";
+
+/**
+ * When the snapshot behind this page was taken, or `null` when it could not be
+ * read at all.
+ *
+ * Read off the fleet's status rather than off `generatedAt`, which is when the
+ * panel assembled the document - always a moment ago, because assembling it is
+ * what serving the page does. The snapshot fills fleet, deck and landed in one
+ * read, so its instant is on all three; the fleet is the one that is never
+ * darkened on its own, which makes it the honest carrier. A fleet status with
+ * no `asOf` is a snapshot that did not read, and the badge says that rather
+ * than inventing an age for it.
+ */
+function snapshotAsOf(document: PanelDocument): string | null {
+  const { status } = document.fleet;
+  return status.state === "unreadable" ? null : status.asOf;
+}
 
 /**
  * The panel shell: the masthead, and the bands under it in the order they are
@@ -60,6 +78,7 @@ export function Shell({
   nowMs,
   terminal,
   session = null,
+  rebuild = null,
 }: {
   document: PanelDocument;
   /** Chosen by the composition point, so the ages agree with the projection. */
@@ -77,11 +96,19 @@ export function Shell({
   /**
    * How an answer reaches the server, for the deck's answerable items.
    *
-   * The one thing on this page that is not the document. It has to
+   * One of the two things on this page that are not the document. It has to
    * come from the composition point: `src/ui/` cannot read the runtime, which
    * is what keeps the panel replaceable, and the secret lives in the runtime.
    */
   session?: AnsweringSession | null;
+  /**
+   * How the operator makes a newer snapshot than the one on screen, or `null`
+   * when nothing this panel knows of would.
+   *
+   * The other one. Which command publishes a fleet's snapshot is the adapter's
+   * knowledge and `src/ui/` may not import it, so it arrives as a prop.
+   */
+  rebuild?: Rebuild | null;
 }) {
   return (
     <main
@@ -98,6 +125,10 @@ export function Shell({
             {ago(document.generatedAt, nowMs)}
           </p>
         </div>
+
+        {/* Not a footnote in the corner: everything below is drawn as though it
+            were true now, and it is not. See `src/ui/snapshot-badge.tsx`. */}
+        <SnapshotBadge asOf={snapshotAsOf(document)} nowMs={nowMs} rebuild={rebuild} />
       </header>
 
       {/* The reserve. Sized by rule so an omission is physically obvious rather
