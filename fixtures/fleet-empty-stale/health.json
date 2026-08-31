@@ -11,8 +11,8 @@
   },
   "attendance": {
     "read": "ok",
-    "away": false,
-    "locked": false
+    "away": true,
+    "locked": true
   },
   "overdue": {
     "read": "ok",

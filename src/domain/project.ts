@@ -183,12 +183,13 @@ function deferredTo(holdUntil: string | null): string | null {
  * When work landed is a day, and the same rule a deferral gets.
  *
  * Not a theoretical case: a live fleet's completion date is lifted out of a
- * hand-written record, and one real row carries a whole sentence there -
- * "at gitops 367f211 through <a url>. What is needed from you: run it". A
- * sentence rendered where the panel promises a date is a dishonest render, and
- * a hundred characters in a date-shaped slot is the exact shape that bursts a
- * lens frame sideways. The words are still on the record; they are not a date,
- * so the document does not carry them as one.
+ * hand-written record, and one real row was found carrying a whole sentence
+ * there - a commit, a pull request address, and what is still needed from the
+ * operator, all in the field the panel promises a date for. A sentence rendered
+ * as a date is a dishonest render, and a hundred characters in a date-shaped
+ * slot is the exact shape that bursts a lens frame sideways. The words are
+ * still on the record; they are not a date, so the document does not carry
+ * them as one.
  */
 function landedOn(date: string | null): string | null {
   return date !== null && ISO_DATE.test(date) ? date : null;

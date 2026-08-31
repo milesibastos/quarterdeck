@@ -241,9 +241,15 @@ export interface PathRef {
  * say.
  *
  * A path alone is what a card can only offer a path for. `summary` is the one
- * line a collapsed card shows, `text` the full instructions behind it, and both
- * are `null` when the text was not carried - which is one absence, not two:
- * either the words arrived or they did not.
+ * line a collapsed card shows and `text` is the full instructions behind it,
+ * and each is `null` on its own when that much was not carried. A summary with
+ * no text behind it is an ordinary shape, not a broken one - a card can have a
+ * line to show and nothing behind the click - so a reader must not take a
+ * present `summary` as a promise that `text` is there too.
+ *
+ * `ref` is upstream's own pointer for the worker and is not necessarily the
+ * brief file: a live fleet points it at the dispatch record. See
+ * `docs/quality.md`.
  */
 export interface Brief {
   readonly ref: string;
@@ -328,7 +334,8 @@ export interface Worker {
    * work never reaches a review.
    */
   readonly delivery: Delivery | null;
-  /** The instructions the worker was dispatched with, and where they are. */
+  /** The instructions the worker was dispatched with, and the pointer upstream
+   * gives for it - which is not always the brief file itself. See `Brief`. */
   readonly brief: Brief;
   /** The isolated copy of the repository the worker is working in. */
   readonly worktree: PathRef;
