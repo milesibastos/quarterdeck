@@ -46,14 +46,53 @@ no stdin, changes no directory and hands back standard output. Nothing new is
 permitted: the panel may run read-only commands a fleet publishes about itself,
 and this is a second one.
 
+### Why it had to be the published command, and not merely why it was easier
+
+The rule the write path is built on is that quarterdeck never touches fleet
+state itself - it invokes the guarded commands that already exist, and the
+authority to do anything is the fleet's, lent through a surface the fleet
+publishes and controls. `docs/decisions/2026-08-30-answering-a-held-decision.md`
+is that rule applied to writing.
+
+**This is the first time that rule has been tested by a read, and a read is
+where it is most tempting to waive.** "It is only looking" is exactly the
+argument that would justify resolving the session target ourselves and capturing
+the pane directly - nothing is written, nothing is sent, so what is the harm.
+The harm is that it makes the panel a second authority on something the fleet is
+the only authority on. Concretely:
+
+- **Whose rules decide what a worker's session even is.** Upstream resolves a
+  selector through five backends today, and routes a remote mate's pane over its
+  own transport with its own cap. A panel that resolved targets itself would
+  hold a second, quietly diverging copy of that policy - and the day the two
+  disagree, the panel shows one worker's pane under another worker's name. That
+  is the failure mode the quarantine exists to prevent, arriving through a door
+  marked "read".
+- **Whose rules decide what may be looked at.** The published command is the
+  fleet's own boundary around its sessions. Going around it means the panel
+  deciding for itself which panes on the machine are in scope - a decision it
+  has no standing to make, and one that is invisible in review because it looks
+  like a path join.
+- **Who can revoke it.** Authority that is borrowed can be withdrawn: a fleet
+  that stops publishing the peek, or narrows what it answers, stops the panel
+  reading, and correctly so. Authority the panel took for itself cannot be
+  withdrawn by anyone but us.
+
+So the peek command is not the convenient route to the same place. It is the
+only route that leaves the fleet in charge of its own sessions, and it keeps the
+borrowed-authority rule intact on the read side rather than letting the first
+read quietly establish that the rule was only ever about writing.
+
 What was considered and rejected:
 
 - **Reading the session target out of `state/<id>.meta` and capturing it
-  directly.** That is a fleet-internal path, so it would have to be read by the
-  quarantined health module (invariant 4) - putting the fleet lens's newest
-  reader behind the panel's least stable one - and it would mean the panel
-  reimplementing upstream's backend resolution, which now has five backends. The
-  peek command already does all of it and is the supported surface.
+  directly.** The borrowed-authority argument above is the whole of why not, and
+  two mechanical objections come with it: `state/<id>.meta` is a fleet-internal
+  path, so it would have to be read by the quarantined health module (invariant
+  4), putting the fleet lens's newest reader behind the panel's least stable
+  one; and it would mean carrying our own copy of upstream's backend resolution.
+  The peek command already does all of it, and is the surface the fleet
+  supports.
 - **Asking upstream to publish tails in the snapshot.** That is the live-stream
   cost the ruling forbids, moved upstream. A tail nobody asked for should not be
   computed at all.
