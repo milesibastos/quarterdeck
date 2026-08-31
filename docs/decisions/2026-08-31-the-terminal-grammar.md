@@ -179,10 +179,12 @@ it.
 
 ## What this does not cover
 
-The needs-you band, the fleet lens, the deck, the landed band and the
-disclosure bar are unconverted. (The shipshape strip has since converted -
-see `docs/decisions/2026-08-31-the-shipshape-strip-in-the-grok-grammar.md`.)
-An unconverted lens under a converted frame is the expected intermediate
-state. They convert against the tokens above; if one of them wants a role
-this table has no word for, the answer is a new token in all three layers of
-the stylesheet, not an exception in the component.
+The shipshape strip has since converted - see
+`docs/decisions/2026-08-31-the-shipshape-strip-in-the-grok-grammar.md`. The
+deck, the landed band and the disclosure bar have since converted too - see
+`docs/decisions/2026-08-31-the-reading-surfaces-in-the-grammar.md`, which named
+no new token. The needs-you band and the fleet lens are still unconverted. An
+unconverted lens under a converted frame is the expected intermediate state.
+They convert against the tokens above; if one of them wants a role this table
+has no word for, the answer is a new token in all three layers of the
+stylesheet, not an exception in the component.

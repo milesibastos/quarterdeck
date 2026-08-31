@@ -1,4 +1,5 @@
 import type { DeckItem, Lens, Worker } from "@/types/document.ts";
+import { GrokEvent } from "@/ui/components/grok/grok-event";
 import type { DeckRow } from "@/ui/deck/deck-groups";
 import { DeckItemRow } from "@/ui/deck/deck-row";
 import type { AnsweringSession } from "@/ui/deck/answer-control";
@@ -25,7 +26,40 @@ import { needsYou } from "@/ui/needs-you/needs-you";
  * nothing more: a blocker arrives as a bare identity, and the work it names has
  * usually already started, so without the fleet the lens can only repeat an id
  * back. See `deck-groups.ts` for what it does and does not conclude from it.
+ *
+ * ## The grammar
+ *
+ * grok's, per `docs/decisions/2026-08-31-the-terminal-grammar.md`. Every line
+ * this lens writes about itself - how old the picture is, what a failed read
+ * cost, what an empty deck means - is a `◆` event line, because that is what
+ * each of them is: something that happened to the read, said in the order it
+ * happened. The rows underneath are the `┃` gutter, and the pile headings are
+ * the same `◆` mark at the rank above.
  */
+
+/**
+ * A pile's heading, in the `◆` rhythm of `grok-event` but as a real heading.
+ *
+ * `GrokEvent` itself cannot do this job: it takes its label as a string and
+ * renders it in a `span` inside a `div`, and a heading may not wrap a `div`.
+ * Drawing the pile's name as anything but an `h3` would leave the page's
+ * outline skipping from the band's `h2` straight to a row's `h4`, which costs
+ * every reader navigating by heading their way into the deck. So the mark and
+ * the rhythm are grok's and the element is the document's.
+ */
+function PileHeading({ title, count }: { title: string; count: number }) {
+  return (
+    <header className="flex flex-wrap items-baseline justify-between gap-x-3 font-mono text-[13px] leading-[1.55]">
+      <h3 className="flex min-w-0 items-baseline gap-2 font-normal text-term-fg">
+        <span aria-hidden className="shrink-0 text-term-dim">
+          ◆
+        </span>
+        <span className="min-w-0">{title}</span>
+      </h3>
+      <span className="shrink-0 tabular-nums text-term-faint">[{count}]</span>
+    </header>
+  );
+}
 
 function Section({
   name,
@@ -44,12 +78,7 @@ function Section({
   if (rows.length === 0) return null;
   return (
     <section data-deck-group={name} className="flex flex-col gap-2">
-      <header className="flex flex-wrap items-baseline justify-between gap-x-3">
-        <h3 className="font-display text-sm tracking-wide text-foreground">{title}</h3>
-        <span className="font-mono text-[0.6875rem] tracking-wide uppercase text-muted-foreground">
-          {rows.length}
-        </span>
-      </header>
+      <PileHeading title={title} count={rows.length} />
       {/* A pile of rows is a grid too: a wider monitor shows more of the queue
           at once rather than three rows of whitespace. */}
       <ul className="card-grid [--qd-card-min:26rem]">
@@ -80,19 +109,19 @@ function EmptyDeck({
 }) {
   if (status.state === "unreadable") {
     return (
-      <p className="text-sm text-muted-foreground">
-        {`Nothing to show: the deck could not be read. Noticed ${ago(status.observedAt, nowMs)}.`}
-      </p>
+      <GrokEvent
+        label={`Nothing to show: the deck could not be read. Noticed ${ago(status.observedAt, nowMs)}.`}
+      />
     );
   }
   if (counted > 0) {
     return (
-      <p className="text-sm text-muted-foreground">
-        {`Nothing here: every one of the ${counted} ${counted === 1 ? "item" : "items"} the deck carried is waiting on you, and is in the band above.`}
-      </p>
+      <GrokEvent
+        label={`Nothing here: every one of the ${counted} ${counted === 1 ? "item" : "items"} the deck carried is waiting on you, and is in the band above.`}
+      />
     );
   }
-  return <p className="text-sm text-muted-foreground">Nothing queued, blocked or held.</p>;
+  return <GrokEvent label="Nothing queued, blocked or held." />;
 }
 
 /**
@@ -136,14 +165,14 @@ export function DeckLens({
       {/* How old the picture is, which the frame's one line deliberately does
           not say - it names the policy that was breached instead. */}
       {lens.status.state === "stale" && (
-        <p className="font-mono text-[0.6875rem] text-muted-foreground">
-          {`Current as of ${ago(lens.status.asOf, nowMs)}.`}
-        </p>
+        <GrokEvent
+            label={`Current as of ${ago(lens.status.asOf, nowMs)}.`}
+        />
       )}
       {lens.status.state === "unreadable" && lens.content.length > 0 && (
-        <p className="font-mono text-[0.6875rem] text-muted-foreground">
-          {`The read failed ${ago(lens.status.observedAt, nowMs)}; showing the last deck that read cleanly.`}
-        </p>
+        <GrokEvent
+            label={`The read failed ${ago(lens.status.observedAt, nowMs)}; showing the last deck that read cleanly.`}
+        />
       )}
 
       {shown === 0 ? (

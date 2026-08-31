@@ -1,5 +1,5 @@
 import type { LandedItem, Lens } from "@/types/document.ts";
-import { Badge } from "@/ui/components/badge";
+import { GrokEvent } from "@/ui/components/grok/grok-event";
 import { inLandingOrder, sizeOf } from "@/ui/landed/landed-order";
 import { LensFrame } from "@/ui/lens-frame";
 import { ago } from "@/ui/lib/age";
@@ -23,6 +23,15 @@ import { ago } from "@/ui/lib/age";
  * band that owns the first screen owns it precisely because everything else
  * yields; a landed band that competed would be taking back what
  * `docs/decisions/2026-08-31-what-needs-you-owns-the-first-screen.md` settled.
+ *
+ * That rule is what decides the grammar here. grok marks a finished thing with
+ * a green `✓`, and the deck's rows carry a rail whose hue is the message. This
+ * band takes neither: every row is the same resting box with the same faint
+ * `◆`, because a wall of green ticks under the deck would be the loudest thing
+ * on a page whose first screen is meant to own the operator's attention. The
+ * marks are grok's; which of them a purely retrospective band is entitled to
+ * use is this band's own judgement. See
+ * `docs/decisions/2026-08-31-the-terminal-grammar.md`.
  *
  * ## Why every row says whose home it landed in
  *
@@ -49,6 +58,15 @@ const NOT_RECORDED = "not recorded";
  * the work is a mate's and that which mate was not recorded. A row that showed
  * only "landed elsewhere" would be true and useless; one that filled in this
  * home would be false.
+ *
+ * The bracket is grok's, and the two cases are told apart by rank rather than
+ * by hue: a mate's home is the one worth noticing, so it takes ordinary text
+ * where this home takes the timestamp rank.
+ *
+ * It carries the row's own indent so that when the card is too narrow to hold
+ * the title and the home on one line, the home drops into the column the rest
+ * of the row's detail already sits in rather than hanging out to the left of
+ * everything above and below it.
  */
 function Attribution({ item }: { item: LandedItem }) {
   const mate = item.where === "second-mate";
@@ -56,15 +74,15 @@ function Attribution({ item }: { item: LandedItem }) {
     <span
       data-landed-where={item.where}
       data-landed-home={item.home ?? ""}
-      className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1"
+      className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 pl-4"
     >
-      <Badge variant={mate ? "secondary" : "outline"} className="shrink-0">
-        {mate ? "a mate's home" : "this home"}
-      </Badge>
+      <span className={mate ? "shrink-0 text-term-fg" : "shrink-0 text-term-faint"}>
+        [{mate ? "a mate's home" : "this home"}]
+      </span>
       {/* The home verbatim, as upstream wrote it. Shortening a path to its last
           segment is the picker's business, where the operator chose the fleet;
           here the whole thing is what tells two mates' homes apart. */}
-      <span className="min-w-0 font-mono text-[0.6875rem] wrap-anywhere text-muted-foreground">
+      <span className="min-w-0 text-[12px] wrap-anywhere text-term-muted">
         {item.home ?? `home ${NOT_RECORDED}`}
       </span>
     </span>
@@ -85,10 +103,15 @@ function LandedRow({ item }: { item: LandedItem }) {
   return (
     <li
       data-landed-item={item.id}
-      className="flex min-w-0 flex-col gap-1 rounded-lg border border-border bg-card px-3 py-2.5"
+      className="flex min-w-0 flex-col gap-1 rounded-sm border border-term-rule-soft bg-term-bg px-3 py-2.5 font-mono text-[13px] leading-[1.55]"
     >
       <div className="flex min-w-0 flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <p className="min-w-0 wrap-anywhere text-sm font-medium text-foreground">{item.title}</p>
+        <p className="flex min-w-0 items-baseline gap-2 text-term-fg-bright">
+          <span aria-hidden className="shrink-0 text-term-faint">
+            ◆
+          </span>
+          <span className="min-w-0 wrap-anywhere">{item.title}</span>
+        </p>
         <Attribution item={item} />
       </div>
 
@@ -99,8 +122,8 @@ function LandedRow({ item }: { item: LandedItem }) {
         is somehow empty, and "reported" is worth showing verbatim even when it
         is a word this build has never seen.
       */}
-      <p className="min-w-0 font-mono text-[0.6875rem] wrap-anywhere text-muted-foreground">
-        <span className={item.closedAs === null ? undefined : "text-foreground"}>
+      <p className="min-w-0 pl-4 text-[12px] wrap-anywhere text-term-faint">
+        <span className={item.closedAs === null ? undefined : "text-term-fg"}>
           {item.closedAs ?? `closed, how ${NOT_RECORDED}`}
         </span>
         {" · "}
@@ -119,14 +142,14 @@ function LandedRow({ item }: { item: LandedItem }) {
         {item.project !== null && (
           <>
             {" · "}
-            <span className="text-foreground">{item.project}</span>
+            <span className="text-term-fg">{item.project}</span>
           </>
         )}
         {` · ${item.id}`}
       </p>
 
       {item.pullRequest === null ? (
-        <p data-landed-artifact="none" className="text-xs text-muted-foreground">
+        <p data-landed-artifact="none" className="pl-4 text-[12px] text-term-muted">
           No pull request on the record.
         </p>
       ) : (
@@ -135,7 +158,7 @@ function LandedRow({ item }: { item: LandedItem }) {
           href={item.pullRequest}
           target="_blank"
           rel="noreferrer"
-          className="min-w-0 font-mono text-xs wrap-anywhere text-info underline-offset-2 hover:underline"
+          className="min-w-0 pl-4 text-[12px] wrap-anywhere text-term-info underline-offset-2 outline-none hover:underline focus-visible:ring-1 focus-visible:ring-ring"
         >
           {item.pullRequest}
         </a>
@@ -161,15 +184,17 @@ function NothingLanded({
 }) {
   if (status.state === "unreadable") {
     return (
-      <p data-landed-empty="unknown" className="text-sm wrap-anywhere text-muted-foreground">
-        {`Nothing to show: the read that carries landed work failed ${ago(status.observedAt, nowMs)}. Whether anything landed is unknown, not none.`}
-      </p>
+      <div data-landed-empty="unknown" className="min-w-0">
+        <GrokEvent
+          label={`Nothing to show: the read that carries landed work failed ${ago(status.observedAt, nowMs)}. Whether anything landed is unknown, not none.`}
+        />
+      </div>
     );
   }
   return (
-    <p data-landed-empty="none" className="text-sm text-muted-foreground">
-      {"Nothing has landed: the read carried no finished work, here or in a mate's home."}
-    </p>
+    <div data-landed-empty="none" className="min-w-0">
+      <GrokEvent label="Nothing has landed: the read carried no finished work, here or in a mate's home." />
+    </div>
   );
 }
 
@@ -186,9 +211,9 @@ export function LandedLens({
   return (
     <LensFrame lens={lens} name="landed" title="Landed" summary={sizeOf(items)}>
       {lens.status.state === "stale" && (
-        <p className="font-mono text-[0.6875rem] text-muted-foreground">
-          {`Current as of ${ago(lens.status.asOf, nowMs)}; anything that landed since is not here.`}
-        </p>
+        <GrokEvent
+          label={`Current as of ${ago(lens.status.asOf, nowMs)}; anything that landed since is not here.`}
+        />
       )}
       {/*
         Deliberately not the deck's "showing the last that read cleanly" line.
@@ -199,9 +224,9 @@ export function LandedLens({
         frame above already says what could not be read; this says only when.
       */}
       {lens.status.state === "unreadable" && items.length > 0 && (
-        <p className="font-mono text-[0.6875rem] text-muted-foreground">
-          {`The read failed ${ago(lens.status.observedAt, nowMs)}; what follows is the part of it that still arrived.`}
-        </p>
+        <GrokEvent
+          label={`The read failed ${ago(lens.status.observedAt, nowMs)}; what follows is the part of it that still arrived.`}
+        />
       )}
 
       {items.length === 0 ? (
