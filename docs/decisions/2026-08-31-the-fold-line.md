@@ -64,7 +64,17 @@ places. The difference between two workers and thirty shows up as a scrollbar,
 not as a lens leaving the page.
 
 At 360 CSS pixels, with the `wide-detail` set on screen, no element's right edge
-passes the document's client width.
+passes the document's client width. Swept across three viewports, both themes
+and four sets - twenty-four pages - nothing overflows sideways in any of them.
+
+Scroll preservation moved with the scroll and survives it. The refresh loop's
+whole argument is that a card being read is not rebuilt underneath the reader,
+and that claim was demonstrated against a page that scrolled as a page. Re-done
+against this layout: with the fleet column scrolled to 1029 pixels and one
+card's `dispatched with` disclosure open, a snapshot rewritten under the running
+panel changed the card's text with the scroll position and the open disclosure
+both untouched. React reconciles the scroll container rather than rebuilding it,
+which is the same contract as before, applied one element deeper.
 
 ## Trade-offs
 
