@@ -37,6 +37,11 @@ function lensStatus(html: string, name: string): string | null {
   );
 }
 
+/** How many worker cards the fleet lens drew. */
+function workerCards(html: string): number {
+  return (html.match(/data-worker="/g) ?? []).length;
+}
+
 /**
  * A fleet home: the snapshot command, and the two directories a real one keeps
  * its worker records and its backlog in. What the command prints is whatever is
@@ -92,7 +97,7 @@ describe("the panel pointed at a fleet home", () => {
     const html = await body(panel);
     assert.equal(lensStatus(html, "fleet"), "fresh");
     assert.equal(lensStatus(html, "deck"), "fresh");
-    assert.ok(html.includes("8 workers in the document"));
+    assert.equal(workerCards(html), 8);
     assert.ok(html.includes("5 items in the document"));
   });
 
@@ -129,8 +134,9 @@ describe("the panel pointed at a fleet home", () => {
     );
 
     assert.equal(lensStatus(html, "deck"), "unreadable");
-    assert.ok(
-      html.includes("8 workers in the document"),
+    assert.equal(
+      workerCards(html),
+      8,
       "the fleet the operator was looking at is still on screen",
     );
     assert.ok(
