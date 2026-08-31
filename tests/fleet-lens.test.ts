@@ -303,21 +303,19 @@ describe("the rail a worker's own work has", () => {
     assert.ok(card.includes("parked at review: 1 finding(s) (ask-user: authority decision)"));
   });
 
-  test("anchors a stop on a rail with no validating stage to what its evidence supports", () => {
-    // The step still says the worker was doing its own work when it stopped,
-    // even on a rail with no validating stage to land it on: it falls back to
-    // that rail's working stage instead of leaving the stop unplaced.
-    assert.equal(rail("wi-halyard-617").line, "Held · stage 2 of 5", "direct-pr falls back to working");
-    assert.equal(rail("wi-halyard-618").line, "Held · stage 2 of 3", "research falls back to working");
+  test("says so rather than guessing when a rail has no stage to anchor a stop to", () => {
+    // The step word says the pipeline was running, and on a rail whose contract
+    // skips the pipeline it evidences nothing about which stage the worker
+    // stopped in. Falling back to that rail's working stage would be a guess
+    // dressed as a deduction, so the panel says the position is not known.
+    assert.equal(rail("wi-halyard-617").line, "Held · position not known", "direct-pr");
+    assert.equal(rail("wi-halyard-618").line, "Held · position not known", "research");
 
-    // The fallback must never understate what the worker has demonstrably
-    // reached: a direct-pr worker whose pull request already opened is pinned
-    // there, not walked back to working.
-    assert.equal(
-      rail("wi-halyard-619").line,
-      "Held · stage 3 of 5",
-      "the pull request it already has, not the working fallback",
-    );
+    // A pull request is not the missing evidence either: it proves the worker
+    // REACHED that stage, where the marker claims it STOPPED there. This worker
+    // has one and is still unplaced rather than pinned to it.
+    assert.equal(rail("wi-halyard-619").line, "Held · position not known", "a pull request is not a stop");
+    assert.equal(rail("wi-halyard-619").shape, "direct-pr", "and the rail itself is still right");
   });
 
   test("says a stopped worker's position is not known rather than showing none", () => {
@@ -325,6 +323,7 @@ describe("the rail a worker's own work has", () => {
     // evidence to anchor a position to, and drawing nothing would read as a
     // claim that it has none rather than the truth that the panel cannot tell.
     assert.equal(rail("wi-cordage-611").line, "Waiting · position not known");
+    assert.equal(rail("wi-lamplight-605").line, "Blocked · position not known");
   });
 
   test("keeps the rail's meaning in words rather than only in shape and colour", () => {
