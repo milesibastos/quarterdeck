@@ -63,6 +63,12 @@ request's checks and its review comments, read through `gh`. Off by default,
 never on the first paint, and never more than once a minute per pull request -
 see `docs/decisions/2026-08-31-reading-the-forge.md`.
 
+`qlty smells --all` reports duplication and complexity, the two things neither
+eslint nor the test suite measures; `qlty metrics --all -d` prints the totals per
+directory. Nothing gates on either, no plugins and no formatter are enabled, and
+qlty never runs eslint - see
+`docs/decisions/2026-08-31-measuring-duplication-and-complexity.md`.
+
 ## Read before changing anything
 
 - `docs/ARCHITECTURE.md` - the layers, the seven invariants, and why each exists.
