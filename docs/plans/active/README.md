@@ -20,8 +20,9 @@ outside world, and drawing it. Each item below owns files nobody else touches.
    where `adapters/health.ts` gets tested for the behaviour it exists for:
    degrading rather than throwing when a path moves. The open assumptions at the
    end of `docs/contract.md` are this worker's list.
-2. **The fleet lens** - `src/ui/fleet/` - lifecycle rail, lanes, filters. The
-   first thing to ask real questions of the theme and the layering.
+2. **The fleet lens** - `src/ui/fleet/` - has its worker card and lifecycle
+   rail; lanes and filters remain. The first to ask real questions of the theme
+   and the layering.
 3. **The deck lens** - `src/ui/deck/`.
 4. **The shipshape lens** - `src/ui/shipshape/`.
 

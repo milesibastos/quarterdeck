@@ -3,9 +3,10 @@
 A local command panel for a firstmate fleet: what is running now, what is queued
 or held for a decision, and whether the machinery supervising it all is healthy.
 
-Today it renders three placeholder lenses over a frozen document shape, filled
-from a synthetic fixture fleet. It does not read a real fleet and it cannot
-change anything.
+Today the fleet lens draws a worker card and lifecycle rail per piece of work
+under way; the deck and shipshape lenses are still placeholders. All three sit
+over a frozen document shape, filled from a synthetic fixture fleet. It does
+not read a real fleet and it cannot change anything.
 
 ## Run it
 
