@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { request as httpRequest } from "node:http";
 import { tmpdir } from "node:os";
@@ -17,17 +17,62 @@ export const REPO_ROOT = join(import.meta.dirname, "..", "..");
 const STANDALONE = join(REPO_ROOT, ".next", "standalone");
 export const SERVER_ENTRY = join(STANDALONE, "server.js");
 
+const ASSETS_STAGED_MARKER = join(STANDALONE, ".assets-staged");
+const STAGING_LOCK = join(STANDALONE, ".staging.lock");
+
 /**
  * `next build --output standalone` emits a server that expects the static
  * assets beside it but does not copy them itself.
+ *
+ * Every test file that starts a panel calls this, and `node --test` runs test
+ * files as separate processes: unguarded, concurrent copies into this one
+ * shared directory race on the same destination files (one process's copy
+ * unlinks a file another is still writing). The lock serialises the copy: the
+ * marker, keyed to the build, then skips it once another process has already
+ * staged this exact build, and re-stages if a later build left it behind.
  */
 export async function stageAssets(): Promise<void> {
-  await mkdir(join(STANDALONE, ".next"), { recursive: true });
-  await cp(join(REPO_ROOT, ".next", "static"), join(STANDALONE, ".next", "static"), {
-    recursive: true,
+  await mkdir(STANDALONE, { recursive: true });
+  await withStagingLock(async () => {
+    const buildId = await readFile(join(REPO_ROOT, ".next", "BUILD_ID"), "utf8").catch(
+      () => null,
+    );
+    const staged = await readFile(ASSETS_STAGED_MARKER, "utf8").catch(() => null);
+    if (buildId !== null && staged === buildId) return;
+
+    await mkdir(join(STANDALONE, ".next"), { recursive: true });
+    await cp(join(REPO_ROOT, ".next", "static"), join(STANDALONE, ".next", "static"), {
+      recursive: true,
+    });
+    if (existsSync(join(REPO_ROOT, "public"))) {
+      await cp(join(REPO_ROOT, "public"), join(STANDALONE, "public"), { recursive: true });
+    }
+    if (buildId !== null) await writeFile(ASSETS_STAGED_MARKER, buildId);
   });
-  if (existsSync(join(REPO_ROOT, "public"))) {
-    await cp(join(REPO_ROOT, "public"), join(STANDALONE, "public"), { recursive: true });
+}
+
+/**
+ * A cross-process mutex: `mkdir` without `recursive` is atomic, so exactly
+ * one caller creates the lock directory and the rest retry until it is gone.
+ */
+async function withStagingLock<T>(fn: () => Promise<T>): Promise<T> {
+  const deadline = Date.now() + 20_000;
+  for (;;) {
+    try {
+      await mkdir(STAGING_LOCK);
+      break;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      if (Date.now() > deadline) {
+        throw new Error(`timed out waiting for the asset-staging lock at ${STAGING_LOCK}`);
+      }
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+  }
+  try {
+    return await fn();
+  } finally {
+    await rm(STAGING_LOCK, { recursive: true, force: true });
   }
 }
 
