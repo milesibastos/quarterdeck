@@ -138,9 +138,9 @@ export function GrokSettings({
       const nextItem = flat[next];
       activate(nextItem.id);
       itemRefs.current[nextItem.id]?.focus();
-    } else if (e.key === "ArrowRight" && item.expandable) {
+    } else if (e.key === "ArrowRight" && item.expandable && onExpand) {
       e.preventDefault();
-      onExpand?.(item.id);
+      onExpand(item.id);
     }
   }
 
@@ -227,7 +227,7 @@ export function GrokSettings({
                         style={{ color: FG }}
                       >
                         {display}
-                        {item.expandable ? (
+                        {item.expandable && onExpand ? (
                           <span style={{ color: DIM }}>  ›</span>
                         ) : null}
                       </span>
