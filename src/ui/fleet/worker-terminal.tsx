@@ -77,13 +77,13 @@ function Absence({
     <div
       className={
         tone === "danger"
-          ? "rounded-md border border-dashed border-danger/40 px-3 py-4 text-center"
-          : "rounded-md border border-dashed border-border px-3 py-4 text-center"
+          ? "rounded-sm border border-dashed border-term-danger/40 px-3 py-4 text-center"
+          : "rounded-sm border border-dashed border-term-rule px-3 py-4 text-center"
       }
     >
-      <p className="text-xs font-medium text-foreground">{headline}</p>
+      <p className="text-xs text-term-fg-bright">{headline}</p>
       {detail !== null && (
-        <p className="mt-1 text-xs wrap-anywhere text-muted-foreground">{detail}</p>
+        <p className="mt-1 text-xs wrap-anywhere text-term-muted">{detail}</p>
       )}
     </div>
   );
@@ -109,7 +109,7 @@ function Lines({ lines }: { lines: readonly string[] }) {
       // Ligatures off: the vendored mono face draws `==>` as a single arrow
       // glyph, which is charming in source and a lie in a pane capture - the
       // worker printed three characters and the page must show three.
-      className="max-h-56 overflow-auto rounded-md bg-muted px-3 py-2 font-mono text-[11px] leading-[1.45] whitespace-pre text-foreground [font-variant-ligatures:none]"
+      className="max-h-56 overflow-auto rounded-sm border border-term-rule bg-term-bg px-3 py-2 font-mono text-[12px] leading-[1.45] whitespace-pre text-term-fg [font-variant-ligatures:none]"
     >
       {lines.join("\n")}
     </pre>
@@ -195,7 +195,7 @@ export function WorkerTerminal({
   return (
     <details
       data-terminal={worker}
-      className="group/terminal text-xs"
+      className="group/terminal font-mono text-[13px] leading-[1.55]"
       // Fires on open and on close. Only the first open reads; closing and
       // reopening shows what was already read, because a disclosure toggled by
       // accident must not start a process.
@@ -203,19 +203,21 @@ export function WorkerTerminal({
         if (event.currentTarget.open && !asked.current) void read();
       }}
     >
-      <summary className="cursor-pointer list-none text-muted-foreground hover:text-foreground">
+      <summary className="cursor-pointer list-none text-term-muted hover:text-term-fg-bright">
         terminal
-        <span className="ms-1 inline-block group-open/terminal:rotate-90">&rsaquo;</span>
+        <span aria-hidden="true" className="ms-1 inline-block group-open/terminal:rotate-90">
+          &rsaquo;
+        </span>
       </summary>
 
-      <div className="mt-1.5 flex flex-col gap-1.5 border-t border-border pt-1.5">
-        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[11px] text-muted-foreground">
+      <div className="mt-1.5 flex flex-col gap-1.5 border-t border-term-rule-soft pt-1.5">
+        <p className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-[12px] text-term-faint">
           <span>last {TERMINAL_LINES} lines &middot; read only</span>
           {/* Live, because what it says changes without the page moving: a
               reader who cannot see "reading" become "read at 09:15" is being
               told nothing happened. The control is outside it, so asking again
               does not announce itself twice. */}
-          <span role="status" className="font-mono">
+          <span role="status" className="text-term-muted">
             {reading
               ? "reading the session\u2026"
               : tail !== null && tail.asOf !== ""
@@ -227,7 +229,7 @@ export function WorkerTerminal({
               type="button"
               onClick={() => void read()}
               disabled={reading}
-              className="ms-auto cursor-pointer underline-offset-2 hover:text-foreground hover:underline disabled:cursor-default disabled:no-underline"
+              className="ms-auto cursor-pointer underline-offset-2 hover:text-term-fg-bright hover:underline disabled:cursor-default disabled:no-underline"
             >
               read again
             </button>
