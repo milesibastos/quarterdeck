@@ -5,8 +5,8 @@ Status: accepted
 
 ## Context
 
-Two of the panel's three lenses arrive through a versioned contract that either
-parses or refuses. The third does not. Whether the supervision machinery is
+Three of the panel's four lenses arrive through a versioned contract that either
+parses or refuses. The fourth does not. Whether the supervision machinery is
 itself alive can only be read from the fleet's own working files: a beacon the
 supervision cycle touches on every poll, one busy record per worker it has out,
 each worker's status log, and the durable work item record. None of those is
@@ -19,7 +19,7 @@ supervising had quietly stopped, and it never landed.
 ## Decision
 
 The quarantined module reads a fleet home named by `QUARTERDECK_FLEET_HOME`,
-and produces the same three signals as the fixture health file. Where each comes
+and produces the same signals as the fixture health file. Where each comes
 from is recorded in `docs/contract.md`. With no fleet home configured, the panel
 reads the fixture health file exactly as before.
 
@@ -38,7 +38,7 @@ upstream's own rule for the same data. Free-form lines in the work item record
 are skipped rather than parsed hopefully. A status verb the fold does not know
 is an ordinary event, not a format change.
 
-**The three signals fail separately.** One directory moving takes the signals
+**The signals fail separately.** One directory moving takes the signals
 that needed it and leaves the rest. Only the home itself being absent darkens
 the whole lens - the one failure that says nothing about any individual signal.
 
@@ -48,8 +48,8 @@ Because it would make the panel's one loud, honest refusal quieter. The pinned
 snapshot identifier can promise that a shape change refuses rather than renders,
 precisely because upstream maintains that identifier. Nothing maintains the
 layout of a fleet home. Pinning something nobody promises would produce a
-refusal on an ordinary upstream release, and the fleet and deck lenses would go
-down with a change that has nothing to do with them.
+refusal on an ordinary upstream release, and the lenses fed by the snapshot
+would go down with a change that has nothing to do with them.
 
 ## Trade-offs
 

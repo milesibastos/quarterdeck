@@ -82,6 +82,19 @@ function stubRunner(answer: (call: Call) => Promise<string>): Runner & {
 
 const silentLogger: Logger = { info: () => {}, warn: () => {}, error: () => {} };
 
+/** A logger that keeps every warning, so a test can assert on what it said. */
+function recordingLogger(): Logger & {
+  readonly warnings: Array<{ message: string; fields?: Record<string, unknown> }>;
+} {
+  const warnings: Array<{ message: string; fields?: Record<string, unknown> }> = [];
+  return {
+    info: () => {},
+    warn: (message, fields) => warnings.push({ message, fields }),
+    error: () => {},
+    warnings,
+  };
+}
+
 /** Waits for something the runtime does off the caller's turn - starting a read. */
 async function settles(predicate: () => boolean): Promise<void> {
   const deadline = Date.now() + 2_000;
@@ -104,6 +117,7 @@ function thrownBy(attempt: () => unknown): unknown {
 function runtimeOn(
   source: { description: string; read(signal: AbortSignal): Promise<string> },
   readTimeoutMs = 5_000,
+  logger: Logger = silentLogger,
 ): FleetRuntime {
   return new FleetRuntime({
     config: {
@@ -125,7 +139,7 @@ function runtimeOn(
     },
     source,
     clock: OPTIONS.clock,
-    logger: silentLogger,
+    logger,
     watchDirs: [join(FIXTURES, "healthy")],
     healthDir: join(FIXTURES, "healthy"),
     // null, not FLEET_HOME: this suite stubs the snapshot source directly, and
@@ -495,6 +509,32 @@ describe("the read discipline the refresh loop runs on", () => {
     );
   });
 
+  test("a failed read's warning names every lens the returned document shows as unreadable", async () => {
+    const runner = stubRunner(async () => {
+      throw new Error("the fleet home went away");
+    });
+    const logger = recordingLogger();
+    const runtime = runtimeOn(fleetSource(FLEET_HOME, runner, {}), 5_000, logger);
+
+    const document = await runtime.document();
+
+    const lensNames = ["fleet", "deck", "landed", "health"] as const;
+    const darkened = lensNames.filter((lens) => document[lens].status.state === "unreadable");
+    assert.ok(darkened.length > 0, "the failure must darken at least one lens, or this test proves nothing");
+
+    assert.equal(logger.warnings.length, 1);
+    const [warning] = logger.warnings;
+    for (const lens of darkened) {
+      assert.ok(warning.message.includes(lens), `expected the warning to name the ${lens} lens: ${warning.message}`);
+    }
+    for (const lens of lensNames.filter((lens) => !darkened.includes(lens))) {
+      assert.ok(
+        !warning.message.includes(lens),
+        `expected the warning not to name the ${lens} lens, which stayed current: ${warning.message}`,
+      );
+    }
+  });
+
   test("a failed read leaves the panel trying again rather than stuck", async () => {
     let fail = true;
     const runner = stubRunner(async () => {
@@ -594,8 +634,64 @@ describe("upstream's shape, projected", () => {
     assert.deepEqual(content[3].pullRequest, {
       url: "https://forge.invalid/cordage/pull/504",
       state: "landed",
-      checks: "unknown",
+      // A live fleet carries the address and nothing about the forge, so both
+      // readings are the honest "nobody asked" rather than a cheerful default.
+      checks: { read: "not-looked-up" },
+      review: { read: "not-looked-up" },
     });
+  });
+
+  test("a completion date that is a sentence is not carried as a date", async () => {
+    // Upstream lifts a completion date out of a hand-written record, and a live
+    // fleet has been seen writing a whole sentence into that field. The record
+    // still says it merged; it does not say when, so the document does not
+    // either. The same rule a deferral that is not a date gets.
+    const { content } = (await fleetOf("upstream-shape")).landed;
+    const landed = content.find((item) => item.id === "wi-cordage-504")!;
+    assert.equal(landed.closedAs, "merged");
+    assert.equal(landed.landedOn, null);
+  });
+
+  test("a live fleet records the delivery contract, and not the branch, model or effort", async () => {
+    const { content } = (await fleetOf("upstream-shape")).fleet;
+
+    // What a live fleet publishes per worker: its harness, and the mode it was
+    // dispatched under. Verified against a running fleet - see docs/quality.md.
+    assert.deepEqual(
+      content.map((worker) => `${worker.kind}/${worker.delivery ?? "-"}`),
+      [
+        "build/validated",
+        "build/direct-pr",
+        "build/local",
+        "build/validated",
+        "build/direct-pr",
+        // A scout carries no delivery contract, and `secondmate` is a role
+        // rather than one.
+        "research/-",
+        "build/-",
+        "build/validated",
+      ],
+    );
+    assert.deepEqual(
+      [...new Set(content.map((worker) => worker.dispatch.runtime))],
+      ["anchor"],
+    );
+
+    // And what it does not publish. All three are recorded when the worker is
+    // dispatched and none of them reaches this snapshot, so the document says
+    // so rather than deriving them from something else on the worker.
+    for (const worker of content) {
+      assert.deepEqual(
+        { branch: worker.dispatch.branch, model: worker.dispatch.model, effort: worker.dispatch.effort },
+        { branch: null, model: null, effort: null },
+        `${worker.id} may not invent what upstream did not publish`,
+      );
+      assert.deepEqual(
+        { summary: worker.brief.summary, text: worker.brief.text },
+        { summary: null, text: null },
+        `${worker.id}'s brief text is not in the snapshot`,
+      );
+    }
   });
 
   test("numeric ranks are the deck's own words, and an unranked row is later", async () => {

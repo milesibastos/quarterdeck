@@ -1,6 +1,7 @@
 {
   "schema": "fm-fleet-snapshot.v1",
   "generated": "2099-01-01T09:15:00.000Z",
+  "fm_home": "/anchorage/homes/tidewater",
   "tasks": [
     {
       "id": "wi-tidewater-100",
@@ -24,7 +25,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "no-mistakes",
+      "harness": "claude",
+      "branch": "crew/tidewater-100",
+      "model": "sonnet",
+      "effort": "low"
     },
     {
       "id": "wi-lamplight-107",
@@ -48,7 +54,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "direct-PR",
+      "harness": "claude",
+      "branch": "crew/lamplight-107",
+      "model": "opus",
+      "effort": "high"
     },
     {
       "id": "wi-saltmarsh-114",
@@ -96,7 +107,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "no-mistakes",
+      "harness": "claude",
+      "branch": "crew/cordage-121",
+      "model": "opus",
+      "effort": "high"
     },
     {
       "id": "wi-driftwood-128",
@@ -120,7 +136,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "direct-PR",
+      "harness": "claude",
+      "branch": "crew/driftwood-128",
+      "model": "sonnet",
+      "effort": "low"
     },
     {
       "id": "wi-brackish-135",
@@ -167,8 +188,17 @@
       },
       "pr": {
         "url": "https://forge.invalid/windlass/pull/142",
-        "source": "meta"
-      }
+        "source": "meta",
+        "checks": {
+          "read": "unreadable",
+          "detail": "The forge timed out on the check run."
+        }
+      },
+      "mode": "no-mistakes",
+      "harness": "claude",
+      "branch": "crew/windlass-142",
+      "model": "sonnet",
+      "effort": "low"
     },
     {
       "id": "wi-halyard-149",
@@ -192,7 +222,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "direct-PR",
+      "harness": "claude",
+      "branch": "crew/halyard-149",
+      "model": "opus",
+      "effort": "high"
     },
     {
       "id": "wi-capstan-156",
@@ -215,7 +250,19 @@
       },
       "pr": {
         "url": "https://forge.invalid/capstan/pull/156",
-        "source": "meta"
+        "source": "meta",
+        "checks": {
+          "read": "ok",
+          "outcome": "pending",
+          "finished": 1,
+          "total": 9,
+          "as_of": "2099-01-01T09:14:30.000Z"
+        },
+        "review": {
+          "read": "ok",
+          "comments": 3,
+          "as_of": "2099-01-01T09:14:30.000Z"
+        }
       }
     },
     {
@@ -240,7 +287,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "no-mistakes",
+      "harness": "claude",
+      "branch": "crew/spindrift-163",
+      "model": "opus",
+      "effort": "high"
     },
     {
       "id": "wi-tidewater-170",
@@ -264,7 +316,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "direct-PR",
+      "harness": "claude",
+      "branch": "crew/tidewater-170",
+      "model": "sonnet",
+      "effort": "low"
     },
     {
       "id": "wi-lamplight-177",
@@ -312,7 +369,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "no-mistakes",
+      "harness": "claude",
+      "branch": "crew/saltmarsh-184",
+      "model": "sonnet",
+      "effort": "low"
     },
     {
       "id": "wi-cordage-191",
@@ -336,7 +398,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "direct-PR",
+      "harness": "claude",
+      "branch": "crew/cordage-191",
+      "model": "opus",
+      "effort": "high"
     },
     {
       "id": "wi-driftwood-198",
@@ -359,7 +426,19 @@
       },
       "pr": {
         "url": "https://forge.invalid/driftwood/pull/198",
-        "source": "meta"
+        "source": "meta",
+        "checks": {
+          "read": "ok",
+          "outcome": "passing",
+          "finished": 9,
+          "total": 9,
+          "as_of": "2099-01-01T09:14:30.000Z"
+        },
+        "review": {
+          "read": "ok",
+          "comments": 0,
+          "as_of": "2099-01-01T09:14:30.000Z"
+        }
       }
     },
     {
@@ -384,7 +463,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "no-mistakes",
+      "harness": "claude",
+      "branch": "crew/brackish-205",
+      "model": "opus",
+      "effort": "high"
     },
     {
       "id": "wi-windlass-212",
@@ -408,7 +492,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "direct-PR",
+      "harness": "claude",
+      "branch": "crew/windlass-212",
+      "model": "sonnet",
+      "effort": "low"
     },
     {
       "id": "wi-halyard-219",
@@ -456,7 +545,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "no-mistakes",
+      "harness": "claude",
+      "branch": "crew/capstan-226",
+      "model": "sonnet",
+      "effort": "low"
     },
     {
       "id": "wi-spindrift-233",
@@ -480,7 +574,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "direct-PR",
+      "harness": "claude",
+      "branch": "crew/spindrift-233",
+      "model": "opus",
+      "effort": "high"
     },
     {
       "id": "wi-tidewater-240",
@@ -527,8 +626,24 @@
       },
       "pr": {
         "url": "https://forge.invalid/lamplight/pull/247",
-        "source": "meta"
-      }
+        "source": "meta",
+        "checks": {
+          "read": "ok",
+          "outcome": "failing",
+          "finished": 4,
+          "total": 9,
+          "as_of": "2099-01-01T09:14:30.000Z"
+        },
+        "review": {
+          "read": "unreadable",
+          "detail": "The forge refused the review listing."
+        }
+      },
+      "mode": "no-mistakes",
+      "harness": "claude",
+      "branch": "crew/lamplight-247",
+      "model": "opus",
+      "effort": "high"
     },
     {
       "id": "wi-saltmarsh-254",
@@ -552,7 +667,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "direct-PR",
+      "harness": "claude",
+      "branch": "crew/saltmarsh-254",
+      "model": "sonnet",
+      "effort": "low"
     },
     {
       "id": "wi-cordage-261",
@@ -600,7 +720,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "no-mistakes",
+      "harness": "claude",
+      "branch": "crew/driftwood-268",
+      "model": "sonnet",
+      "effort": "low"
     },
     {
       "id": "wi-brackish-275",
@@ -624,7 +749,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "direct-PR",
+      "harness": "claude",
+      "branch": "crew/brackish-275",
+      "model": "opus",
+      "effort": "high"
     },
     {
       "id": "wi-windlass-282",
@@ -672,7 +802,12 @@
       "pr": {
         "url": "https://forge.invalid/halyard/pull/289",
         "source": "meta"
-      }
+      },
+      "mode": "no-mistakes",
+      "harness": "claude",
+      "branch": "crew/halyard-289",
+      "model": "opus",
+      "effort": "high"
     },
     {
       "id": "wi-capstan-296",
@@ -696,7 +831,12 @@
       "pr": {
         "url": null,
         "source": "absent"
-      }
+      },
+      "mode": "direct-PR",
+      "harness": "claude",
+      "branch": "crew/capstan-296",
+      "model": "sonnet",
+      "effort": "low"
     },
     {
       "id": "wi-spindrift-303",
@@ -982,7 +1122,12 @@
         "hold_kind": null,
         "hold_reason": null,
         "hold_until": null,
-        "captain_actionable": false
+        "captain_actionable": false,
+        "pr_url": "https://forge.invalid/halyard/pull/269",
+        "completion": {
+          "verb": "merged",
+          "date": "2099-01-01"
+        }
       },
       {
         "structured": true,
@@ -998,8 +1143,32 @@
         "hold_kind": null,
         "hold_reason": null,
         "hold_until": null,
-        "captain_actionable": false
+        "captain_actionable": false,
+        "pr_url": "https://forge.invalid/capstan/pull/362",
+        "completion": {
+          "verb": "merged",
+          "date": "2099-01-01"
+        }
       }
     ]
+  },
+  "secondmate_landed": {
+    "records": [
+      {
+        "id": "wi-shoalwater-77",
+        "title": "Land the mate's own rail",
+        "home": "/anchorage/homes/shoalwater",
+        "pr_url": "https://forge.invalid/shoalwater/pull/77",
+        "completion": {
+          "verb": "merged",
+          "date": "2099-01-01"
+        }
+      }
+    ],
+    "truncated": [
+      "/anchorage/homes/shoalwater"
+    ],
+    "unreadable": [],
+    "partial": []
   }
 }

@@ -4,6 +4,14 @@
     "read": "unreadable",
     "detail": "The supervision cycle's heartbeat file is not where it was."
   },
+  "queue": {
+    "read": "unreadable",
+    "detail": "No notification queue in the state directory."
+  },
+  "attendance": {
+    "read": "unreadable",
+    "detail": "Could not list the state directory for away mode and the home lock."
+  },
   "overdue": {
     "read": "unreadable",
     "detail": "The wait ledger could not be opened."

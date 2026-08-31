@@ -116,6 +116,26 @@ describe("a fleet home that is running normally", () => {
       lastSeen: "2099-01-01T08:55:30.000Z",
     });
   });
+
+  test("counts one queued notification per non-empty line", async () => {
+    const home = await copyHome("steady");
+    await beacon(home, 30_000);
+
+    // The set's committed queue file carries two lines of notification and one
+    // blank line between them, which the count must not include.
+    assert.deepEqual(health(await readHome(home)).queue, { read: "ok", queued: 2 });
+  });
+
+  test("no away marker and no lock read as nobody away and the home unheld", async () => {
+    const home = await copyHome("steady");
+    await beacon(home, 30_000);
+
+    assert.deepEqual(health(await readHome(home)).attendance, {
+      read: "ok",
+      away: false,
+      locked: false,
+    });
+  });
 });
 
 describe("a fleet home with something wrong in it", () => {
@@ -188,6 +208,36 @@ describe("a fleet home with something wrong in it", () => {
       ["data/backlog.md"],
     );
   });
+
+  test("an empty queue file reads as nothing queued, distinct from the file not existing", async () => {
+    const home = await copyHome("adrift");
+    await beacon(home, 30_000);
+
+    assert.deepEqual(health(await readHome(home)).queue, { read: "ok", queued: 0 });
+  });
+
+  test("a queue file that was never created reads the same as an empty one", async () => {
+    const home = await copyHome("steady");
+    await beacon(home, 30_000);
+    await rm(join(home, "state", ".wake-queue"));
+
+    // The fleet creates this file when it first has something to deliver, so
+    // its absence under a state directory that reads fine is "not there yet",
+    // not a failure - unlike the same absence when the directory itself is
+    // gone, covered below.
+    assert.deepEqual(health(await readHome(home)).queue, { read: "ok", queued: 0 });
+  });
+
+  test("away mode on and the home locked are both read from their markers' presence", async () => {
+    const home = await copyHome("adrift");
+    await beacon(home, 30_000);
+
+    assert.deepEqual(health(await readHome(home)).attendance, {
+      read: "ok",
+      away: true,
+      locked: true,
+    });
+  });
 });
 
 describe("a fleet that has moved underneath the panel", () => {
@@ -231,14 +281,18 @@ describe("a fleet that has moved underneath the panel", () => {
     await rm(join(home, "state"), { recursive: true });
     await writeFile(join(home, "state"), "moved\n");
 
-    // All three, here: whether a record disagrees with reality is a question
+    // All five, here: whether a record disagrees with reality is a question
     // about the workers as much as about the record, so drift cannot be
     // answered without the state directory either. It says so rather than
-    // reporting every in-flight row as an item with no worker behind it.
+    // reporting every in-flight row as an item with no worker behind it. The
+    // queue and attendance markers live in the same directory, so a listing
+    // that fails takes both of them down too.
     const signals = health(await readHome(home));
     assert.equal(signals.supervisor.read, "unreadable");
     assert.equal(signals.overdue.read, "unreadable");
     assert.equal(signals.drift.read, "unreadable");
+    assert.equal(signals.queue.read, "unreadable");
+    assert.equal(signals.attendance.read, "unreadable");
   });
 
   test("a home that is not there at all goes dark as a whole, without throwing", async () => {
@@ -248,6 +302,18 @@ describe("a fleet that has moved underneath the panel", () => {
       deadline(),
     );
     assert.equal(reading.read, "unreadable");
+  });
+
+  test("a state directory that was never created is not a queue that is simply empty", async () => {
+    // The home itself is there - it has a backlog - but nothing has ever
+    // touched state/. ENOENT on the queue file alone cannot tell that apart
+    // from the file just not being written yet, so every signal that lives in
+    // state/, the queue included, must go unreadable rather than one of them
+    // reporting a fabricated "nothing queued".
+    const signals = health(await readHome(join(HOMES, "unstarted")));
+    for (const [name, signal] of Object.entries(signals)) {
+      assert.equal(signal.read, "unreadable", `${name} should have gone dark`);
+    }
   });
 
   test("a garbled busy-state record is unknown, never a worker reported as stalled", async () => {
@@ -391,7 +457,7 @@ test("every fixture home on disk is walked by a test above", async () => {
     .sort();
   assert.deepEqual(
     found,
-    ["adrift", "moved", "steady"],
+    ["adrift", "moved", "steady", "unstarted"],
     "add the home to a case above, and its row to fixtures/README.md",
   );
 });

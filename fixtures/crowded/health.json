@@ -5,6 +5,15 @@
     "alive": true,
     "lastSeen": "2099-01-01T09:14:20.000Z"
   },
+  "queue": {
+    "read": "ok",
+    "queued": 7
+  },
+  "attendance": {
+    "read": "ok",
+    "away": false,
+    "locked": true
+  },
   "overdue": {
     "read": "ok",
     "overdue": [

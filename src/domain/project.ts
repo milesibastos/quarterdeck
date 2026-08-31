@@ -1,7 +1,10 @@
 import type {
   FleetSnapshot,
+  SnapshotChecks,
   SnapshotRecord,
   SnapshotRecordState,
+  SnapshotReview,
+  SnapshotSecondmateLanded,
   SnapshotTask,
   SnapshotTaskState,
 } from "../adapters/contract.ts";
@@ -9,13 +12,18 @@ import type { HealthReading } from "../adapters/health.ts";
 import { isIsoInstant, type Clock } from "../providers/clock.ts";
 import {
   DOCUMENT_VERSION,
+  type ChecksSignal,
   type DeckItem,
   type DeckState,
+  type Delivery,
   type Health,
+  type LandedItem,
   type Lens,
   type LensStatus,
+  type Omission,
   type PanelDocument,
   type Priority,
+  type ReviewSignal,
   type Stage,
   type ValidationStep,
   type Worker,
@@ -93,6 +101,33 @@ function kindOf(kind: string): WorkerKind {
 }
 
 /**
+ * Upstream's delivery contracts, in its own spelling.
+ *
+ * A live fleet writes `no-mistakes`, `direct-PR` and `local-only` for ship work
+ * and `secondmate` for a persistent mate, which is a role rather than a
+ * delivery contract and so maps to nothing.
+ */
+const DELIVERY: Readonly<Record<string, Delivery>> = {
+  "no-mistakes": "validated",
+  "direct-pr": "direct-pr",
+  "local-only": "local",
+};
+
+/**
+ * A contract this build does not recognise is `null`, not a default.
+ *
+ * Deliberately the opposite rule to `kindOf`, whose unknown falls back to
+ * building. A worker with an unrecognised kind is still a worker doing
+ * something, so guessing costs a word. A worker with an unrecognised delivery
+ * contract has an unknown number of stages ahead of it, so guessing costs a
+ * rail with steps the work will never reach - which is a drawing of progress
+ * that cannot be true. A lens that does not know the shape draws no shape.
+ */
+function deliveryOf(mode: string | null): Delivery | null {
+  return (mode && DELIVERY[mode.trim().toLowerCase()]) || null;
+}
+
+/**
  * Upstream copies a record's priority out of a hand-written backlog, so the
  * words are whatever the operator wrote. Two spellings are recognised: the
  * document's own, and the numeric ranks a fleet writes in practice.
@@ -142,6 +177,22 @@ function sinceOf(since: string | null): string | null {
  */
 function deferredTo(holdUntil: string | null): string | null {
   return holdUntil !== null && ISO_DATE.test(holdUntil) ? holdUntil : null;
+}
+
+/**
+ * When work landed is a day, and the same rule a deferral gets.
+ *
+ * Not a theoretical case: a live fleet's completion date is lifted out of a
+ * hand-written record, and one real row was found carrying a whole sentence
+ * there - a commit, a pull request address, and what is still needed from the
+ * operator, all in the field the panel promises a date for. A sentence rendered
+ * as a date is a dishonest render, and a hundred characters in a date-shaped
+ * slot is the exact shape that bursts a lens frame sideways. The words are
+ * still on the record; they are not a date, so the document does not carry
+ * them as one.
+ */
+function landedOn(date: string | null): string | null {
+  return date !== null && ISO_DATE.test(date) ? date : null;
 }
 
 /**
@@ -213,6 +264,32 @@ function finishedStage(task: SnapshotTask): Stage {
   return task.pr.url === null ? "landed" : "pr-open";
 }
 
+/**
+ * A forge reading upstream carried, or the honest statement that nobody looked.
+ *
+ * The absent case is `not-looked-up` and never `unreadable`: reading the forge
+ * is opt-in and off the first paint, so a snapshot carrying no checks block is
+ * a read nobody has done rather than a read that failed. Conflating the two
+ * would report an ordinary fast page as a broken one.
+ */
+function checksOf(checks: SnapshotChecks | null): ChecksSignal {
+  if (checks === null) return { read: "not-looked-up" };
+  if (checks.read === "unreadable") return { read: "unreadable", detail: checks.detail };
+  return {
+    read: "ok",
+    outcome: checks.outcome,
+    finished: checks.finished,
+    total: checks.total,
+    asOf: checks.as_of,
+  };
+}
+
+function reviewOf(review: SnapshotReview | null): ReviewSignal {
+  if (review === null) return { read: "not-looked-up" };
+  if (review.read === "unreadable") return { read: "unreadable", detail: review.detail };
+  return { read: "ok", comments: review.comments, asOf: review.as_of };
+}
+
 function projectWorker(task: SnapshotTask): Worker {
   const state = task.current_state.state;
   const stage = state === "done" ? finishedStage(task) : STAGE[state];
@@ -220,8 +297,24 @@ function projectWorker(task: SnapshotTask): Worker {
     id: task.id,
     project: projectOf(task.project),
     kind: kindOf(task.kind),
-    brief: { ref: task.paths.meta.path, present: task.paths.meta.present },
+    delivery: deliveryOf(task.mode),
+    brief: {
+      ref: task.paths.meta.path,
+      present: task.paths.meta.present,
+      summary: task.brief.summary,
+      text: task.brief.text,
+    },
     worktree: { ref: task.paths.worktree.path, present: task.paths.worktree.present },
+    // Carried exactly as recorded, nulls included. Nothing here is derived from
+    // anything else on the worker: a branch guessed from an id, or a model
+    // guessed from a harness, would be the panel stating a fact about where the
+    // work is that nobody wrote down.
+    dispatch: {
+      branch: task.branch,
+      runtime: task.harness,
+      model: task.model,
+      effort: task.effort,
+    },
     lifecycle: {
       stage,
       step: stepOf(stage, task.current_state.detail),
@@ -236,10 +329,8 @@ function projectWorker(task: SnapshotTask): Worker {
             // Only a merge lands a pull request. A worker that has stopped for
             // any other reason still has one somebody can open.
             state: stage === "landed" ? "landed" : "open",
-            // Upstream's snapshot carries a pull request's address but not what
-            // its checks say. Nothing reads the forge yet, so `unknown` is the
-            // honest answer rather than a cheerful default.
-            checks: "unknown",
+            checks: checksOf(task.pr.checks),
+            review: reviewOf(task.pr.review),
           },
   };
 }
@@ -279,6 +370,132 @@ function projectDeckItem(record: SnapshotRecord): DeckItem {
   };
 }
 
+/* ------------------------------------------------------------------ the landed */
+
+/**
+ * Work that finished in the home being looked at.
+ *
+ * Drawn from the `done` rows of the same backlog the deck comes from - upstream
+ * publishes no separate landed list for this home - and stamped with the home
+ * the snapshot says it describes. `where` is the field a lens reads to tell
+ * this home's work from a second mate's; the home name is what it says out
+ * loud, and is `null` when the snapshot did not name one rather than defaulted
+ * to "here", which would attribute unattributed work to the fleet on screen.
+ */
+function projectLandedHere(record: SnapshotRecord, home: string | null): LandedItem {
+  return {
+    id: record.id,
+    title: record.title || record.id,
+    where: "this-home",
+    home,
+    project: record.repo,
+    pullRequest: record.pr_url,
+    closedAs: record.completion?.verb ?? null,
+    landedOn: landedOn(record.completion?.date ?? null),
+  };
+}
+
+/**
+ * Work a second mate landed in its own home.
+ *
+ * Upstream's roll-up carries no project per record, so `project` is `null` for
+ * every one of these - honestly, rather than by borrowing the parent home's
+ * name for work that did not happen there.
+ */
+function projectLandedElsewhere(
+  landed: SnapshotSecondmateLanded,
+): readonly LandedItem[] {
+  return landed.records.map((record) => ({
+    id: record.id,
+    title: record.title || record.id,
+    where: "second-mate" as const,
+    home: record.home,
+    project: null,
+    pullRequest: record.pr_url,
+    closedAs: record.completion?.verb ?? null,
+    landedOn: landedOn(record.completion?.date ?? null),
+  }));
+}
+
+/* --------------------------------------------------------- the omissions */
+
+/**
+ * Everything the document does not carry, and why.
+ *
+ * Assembled here rather than in a component so that an absence cannot be
+ * introduced by a reader that forgets to declare it: the projection is the one
+ * place that knows both what upstream sent and what it said it could not send.
+ *
+ * Three sources, and each keeps its own reason. Upstream's own declarations
+ * about the second mates' homes travel through unchanged - a bound it applied
+ * is `not-shown`, a home that did not answer is `unreadable`, and a home that
+ * answered without full trust is `unreadable` too, because a partial read is a
+ * read that did not fully succeed and calling it a bound would make it sound
+ * deliberate. The backlog being unreadable is upstream's, and the forge not
+ * having been read is the panel's own, which is the one absence on this page
+ * that is nobody's failure.
+ */
+function omissionsOf(snapshot: FleetSnapshot, workers: readonly Worker[]): readonly Omission[] {
+  const omissions: Omission[] = [];
+
+  if (!snapshot.backlog.present) {
+    omissions.push({
+      what: "queued and landed work",
+      reason: "unreadable",
+      detail: "Upstream could not read the backlog, so neither the deck nor this home's landed work is on this page.",
+    });
+  }
+
+  const unreadChecks = workers.filter(
+    (worker) =>
+      worker.pullRequest !== null && worker.pullRequest.checks.read === "not-looked-up",
+  ).length;
+  if (unreadChecks > 0) {
+    omissions.push({
+      what: "pull request checks",
+      reason: "not-looked-up",
+      detail: `Nothing has read the checks for ${unreadChecks} pull request${unreadChecks === 1 ? "" : "s"}; that read is opt-in and off the first paint.`,
+    });
+  }
+
+  const unreadReview = workers.filter(
+    (worker) =>
+      worker.pullRequest !== null && worker.pullRequest.review.read === "not-looked-up",
+  ).length;
+  if (unreadReview > 0) {
+    omissions.push({
+      what: "pull request review comments",
+      reason: "not-looked-up",
+      detail: `Nothing has read the review comments for ${unreadReview} pull request${unreadReview === 1 ? "" : "s"}; that read is opt-in and off the first paint.`,
+    });
+  }
+
+  const landed = snapshot.secondmate_landed;
+  for (const home of landed.truncated) {
+    omissions.push({
+      what: `landed work in ${home}`,
+      reason: "not-shown",
+      detail: `Upstream bounded how much of ${home}'s landed work it reports, and the rest is past that bound.`,
+    });
+  }
+  for (const home of landed.unreadable) {
+    omissions.push({
+      what: `landed work in ${home}`,
+      reason: "unreadable",
+      detail: `${home} did not answer, so nothing it landed is on this page.`,
+    });
+  }
+  for (const home of landed.partial) {
+    omissions.push({
+      what: `landed work in ${home}`,
+      reason: "unreadable",
+      detail: `${home} answered with a reading upstream does not fully trust, so what it landed may be incomplete.`,
+    });
+  }
+
+  return omissions;
+}
+
 export interface ProjectOptions {
   readonly clock: Clock;
   /** Content older than this is still shown, but marked stale. */
@@ -309,7 +526,7 @@ function unreadable(detail: string, clock: Clock): LensStatus {
 /** Every signal dark, with the same one-line reason. */
 function darkHealth(detail: string): Health {
   const signal = { read: "unreadable", detail } as const;
-  return { supervisor: signal, overdue: signal, drift: signal };
+  return { supervisor: signal, queue: signal, attendance: signal, overdue: signal, drift: signal };
 }
 
 /**
@@ -339,18 +556,42 @@ export function projectDocument(
   const deck = snapshot.backlog.records
     .filter((record) => record.state !== "done")
     .map(projectDeckItem);
+  // Second-mate work is rolled up separately from the backlog and survives the
+  // backlog being unreadable, so it is added after the `present` gate rather
+  // than inside it: a home this panel cannot read says nothing about a home it
+  // can, and dropping a second mate's landed work over the parent's backlog is
+  // exactly how a prior board lost it.
+  const landed = [
+    ...(snapshot.backlog.present
+      ? snapshot.backlog.records
+          .filter((record) => record.state === "done")
+          .map((record) => projectLandedHere(record, snapshot.fm_home))
+      : []),
+    ...projectLandedElsewhere(snapshot.secondmate_landed),
+  ];
+  const workers = snapshot.tasks.map(projectWorker);
 
   return {
     version: DOCUMENT_VERSION,
     generatedAt: options.clock.now(),
-    fleet: { content: snapshot.tasks.map(projectWorker), status: freshness(asOf, options) },
+    fleet: { content: workers, status: freshness(asOf, options) },
     deck: {
       content: snapshot.backlog.present ? deck : [],
       status: snapshot.backlog.present
         ? freshness(asOf, options)
         : unreadable("Upstream could not read the backlog.", options.clock),
     },
+    // The landed lens shares the snapshot's promise, so it shares the deck's
+    // status: both are dark when upstream could not read the backlog, and both
+    // are as fresh as the read that produced them.
+    landed: {
+      content: landed,
+      status: snapshot.backlog.present
+        ? freshness(asOf, options)
+        : unreadable("Upstream could not read the backlog.", options.clock),
+    },
     health: projectHealth(health, options),
+    omissions: omissionsOf(snapshot, workers),
   };
 }
 
@@ -379,6 +620,12 @@ export function withSnapshotUnreadable(
     generatedAt: options.clock.now(),
     fleet: { content: previous?.fleet.content ?? [], status },
     deck: { content: previous?.deck.content ?? [], status },
+    landed: { content: previous?.landed.content ?? [], status },
     health: projectHealth(health, options),
+    // The read that would have said what is missing is the read that failed, so
+    // the only honest list is the one the last good document carried. Inventing
+    // a fresh one from a snapshot there is no snapshot for would be the
+    // disclosure bar making a claim about a page it never saw.
+    omissions: previous?.omissions ?? [],
   };
 }

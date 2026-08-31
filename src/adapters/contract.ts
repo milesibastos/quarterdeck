@@ -11,8 +11,9 @@ import type { Runner } from "../providers/process.ts";
  * inspected, and anything unexpected throws rather than being coerced into
  * something renderable.
  *
- * The snapshot carries two of the panel's three lenses - the fleet (`tasks`)
- * and the deck (`backlog`). It does not carry health: that is read from files
+ * The snapshot carries three of the panel's four lenses - the fleet (`tasks`),
+ * the deck (`backlog`) and the landed lens (`backlog`'s completed rows and
+ * `secondmate_landed`). It does not carry health: that is read from files
  * with no compatibility promise, which is why it lives behind `health.ts` and
  * degrades rather than refusing. Two reliability promises, two readers, and one
  * document with a status per lens.
@@ -119,11 +120,46 @@ export interface SnapshotCurrentState {
 }
 
 /**
+ * What a run of a pull request's checks came out as. Computed by whatever read
+ * the forge, so it is a closed set and refused when it is not one of these.
+ */
+export type SnapshotCheckOutcome = "pending" | "passing" | "failing";
+
+/**
+ * A forge reading, as upstream would publish it once something reads the forge.
+ *
+ * Present with `read: "ok"` means it was asked and answered; present with
+ * `read: "unreadable"` means it was asked and could not answer. The field being
+ * absent altogether means nobody asked, which the projection turns into
+ * `not-looked-up` - the ordinary case, because the forge read is deliberately
+ * opt-in and off the first paint.
+ */
+export type SnapshotChecks =
+  | {
+      readonly read: "ok";
+      readonly outcome: SnapshotCheckOutcome;
+      readonly finished: number;
+      readonly total: number;
+      readonly as_of: string;
+    }
+  | { readonly read: "unreadable"; readonly detail: string };
+
+export type SnapshotReview =
+  | { readonly read: "ok"; readonly comments: number; readonly as_of: string }
+  | { readonly read: "unreadable"; readonly detail: string };
+
+/**
  * A worker's pull request. `url` is null when upstream found none, which it
  * reports as a present object rather than by leaving the field out.
+ *
+ * `checks` and `review` are `null` when the field was absent - nobody read the
+ * forge - which is every worker a live fleet reports today. See
+ * `docs/quality.md`.
  */
 export interface SnapshotPullRequest {
   readonly url: string | null;
+  readonly checks: SnapshotChecks | null;
+  readonly review: SnapshotReview | null;
 }
 
 export interface SnapshotTask {
@@ -139,8 +175,43 @@ export interface SnapshotTask {
    * dispatch record.
    */
   readonly kind: string;
+  /**
+   * What is running the worker - upstream's `harness`. Free text with the same
+   * promise `kind` has: copied from the worker's own dispatch record.
+   */
+  readonly harness: string | null;
+  /**
+   * The delivery contract the worker was dispatched under - upstream's `mode`.
+   * A live fleet writes `no-mistakes`, `direct-PR`, `local-only` and
+   * `secondmate`; the projection maps the three that are delivery contracts.
+   */
+  readonly mode: string | null;
+  /**
+   * The branch, the model and the effort the worker was dispatched with.
+   *
+   * A live fleet records all three when it dispatches a worker but publishes
+   * none of them in this snapshot, so all three are absent from every real read
+   * today and the fixture fleets are what exercise them. Accepted here rather
+   * than left out so that a finer upstream fills them without this parser
+   * changing - the same arrangement the finer lifecycle states already have.
+   * See `docs/quality.md` for the evidence.
+   */
+  readonly branch: string | null;
+  readonly model: string | null;
+  readonly effort: string | null;
+  /**
+   * The dispatch instructions' own text, summarised and in full.
+   *
+   * Both `null` for a live fleet, which publishes no brief text and no brief
+   * path - `paths.meta` points at the dispatch record, not at the brief. Same
+   * arrangement as the three fields above.
+   */
+  readonly brief: {
+    readonly summary: string | null;
+    readonly text: string | null;
+  };
   readonly paths: {
-    /** The instructions the worker was dispatched with. */
+    /** The dispatch record upstream points at for this worker. */
     readonly meta: SnapshotPath;
     /** The isolated copy of the repository it is working in. */
     readonly worktree: SnapshotPath;
@@ -184,6 +255,58 @@ export interface SnapshotRecord {
   readonly hold_reason: string | null;
   readonly hold_until: string | null;
   readonly captain_actionable: boolean;
+  /**
+   * The full address of the pull request the row landed as, or `null`.
+   *
+   * Read for the landed lens rather than the deck's: a `done` row is not a deck
+   * item, and the address is what turns "it finished" into something an
+   * operator can open.
+   */
+  readonly pr_url: string | null;
+  /**
+   * How the row closed and when - `{ verb, date }`, both prose. `null` when the
+   * row carries no completion block at all, which is every row still open.
+   */
+  readonly completion: SnapshotCompletion | null;
+}
+
+/** How a work item closed, in the hand-written record's own words. */
+export interface SnapshotCompletion {
+  readonly verb: string | null;
+  readonly date: string | null;
+}
+
+/**
+ * One piece of work a second mate landed in its own home.
+ *
+ * Upstream rolls these up per registered home; the home is stamped onto each
+ * record so a reader never has to know which list it came out of. There is no
+ * `repo` here - upstream's roll-up does not carry one - so a second mate's
+ * landed work names no project, honestly.
+ */
+export interface SnapshotSecondmateLandedRecord {
+  readonly id: string;
+  readonly title: string;
+  readonly home: string | null;
+  readonly pr_url: string | null;
+  readonly completion: SnapshotCompletion | null;
+}
+
+/**
+ * The second mates' landed work, and every reason a piece of it is not here.
+ *
+ * The three lists beside `records` are upstream telling the panel what it did
+ * not get, and each is a different reason: `truncated` is a bound upstream
+ * applied, `unreadable` is a home that did not answer, `partial` is a home that
+ * answered but not with something fully trusted. They become the document's
+ * `omissions`, which is the whole reason they are parsed - an absence upstream
+ * declared and the panel then dropped would be an absence nobody names.
+ */
+export interface SnapshotSecondmateLanded {
+  readonly records: readonly SnapshotSecondmateLandedRecord[];
+  readonly truncated: readonly string[];
+  readonly unreadable: readonly string[];
+  readonly partial: readonly string[];
 }
 
 /**
@@ -199,8 +322,17 @@ export interface FleetSnapshot {
   readonly schema: typeof SNAPSHOT_SCHEMA_ID;
   /** ISO-8601 instant upstream observed the fleet. Freshness is measured from it. */
   readonly generated: string;
+  /**
+   * The home this snapshot describes, or `null` when it did not say.
+   *
+   * The landed lens stamps it onto work that landed here, so that this home's
+   * work and a second mate's are told apart by the same field rather than by
+   * which list they arrived in.
+   */
+  readonly fm_home: string | null;
   readonly tasks: readonly SnapshotTask[];
   readonly backlog: SnapshotBacklog;
+  readonly secondmate_landed: SnapshotSecondmateLanded;
 }
 
 /** Base for every refusal at this boundary, so callers can catch the family. */
@@ -364,6 +496,113 @@ function requireStringArray(
   );
 }
 
+const CHECK_OUTCOMES: ReadonlySet<string> = new Set(["pending", "passing", "failing"]);
+
+function requireCount(value: unknown, path: string, source: string): number {
+  if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
+    throw new ContractParseError(`${path} must be a whole number of zero or more`, source);
+  }
+  return value;
+}
+
+/**
+ * A forge reading, when there is one.
+ *
+ * Absent is not an error and not a shape - it is nobody having read the forge,
+ * which the projection reports as `not-looked-up`. Present, though, is
+ * something upstream computed, so it is refused like any other computed field:
+ * a checks block that says `passing` with no count is a block whose meaning we
+ * would be guessing at.
+ */
+function parseForgeRead<T>(
+  value: unknown,
+  path: string,
+  source: string,
+  ok: (entry: Record<string, unknown>) => T,
+): T | { readonly read: "unreadable"; readonly detail: string } | null {
+  if (value === null || value === undefined) return null;
+  const entry = requireRecord(value, path, source);
+  const read = requireMember<"ok" | "unreadable">(
+    entry.read,
+    new Set(["ok", "unreadable"]),
+    `${path}.read`,
+    source,
+  );
+  if (read === "unreadable") {
+    return { read: "unreadable", detail: requireString(entry.detail, `${path}.detail`, source) };
+  }
+  return ok(entry);
+}
+
+function parseChecks(value: unknown, path: string, source: string): SnapshotChecks | null {
+  return parseForgeRead(value, path, source, (entry) => ({
+    read: "ok" as const,
+    outcome: requireMember<SnapshotCheckOutcome>(
+      entry.outcome,
+      CHECK_OUTCOMES,
+      `${path}.outcome`,
+      source,
+    ),
+    finished: requireCount(entry.finished, `${path}.finished`, source),
+    total: requireCount(entry.total, `${path}.total`, source),
+    as_of: requireInstant(entry.as_of, `${path}.as_of`, source),
+  }));
+}
+
+function parseReview(value: unknown, path: string, source: string): SnapshotReview | null {
+  return parseForgeRead(value, path, source, (entry) => ({
+    read: "ok" as const,
+    comments: requireCount(entry.comments, `${path}.comments`, source),
+    as_of: requireInstant(entry.as_of, `${path}.as_of`, source),
+  }));
+}
+
+/** `{ verb, date }`, both prose, or `null` for a row that carries no block. */
+function parseCompletion(
+  value: unknown,
+  path: string,
+  source: string,
+): SnapshotCompletion | null {
+  if (value === null || value === undefined) return null;
+  const entry = requireRecord(value, path, source);
+  return { verb: proseString(entry.verb), date: proseString(entry.date) };
+}
+
+/**
+ * The second mates' landed roll-up, or an empty one.
+ *
+ * Absent means this build is reading an upstream that does not publish the
+ * roll-up, which is a fleet with nothing to say about second mates rather than
+ * a snapshot to refuse - the same tolerance every other optional block here
+ * gets. Present, the four lists are structural and refused when they are not
+ * what they claim to be.
+ */
+function parseSecondmateLanded(
+  value: unknown,
+  source: string,
+): SnapshotSecondmateLanded {
+  const empty = { records: [], truncated: [], unreadable: [], partial: [] } as const;
+  if (value === null || value === undefined) return empty;
+  const at = "secondmate_landed";
+  const entry = requireRecord(value, at, source);
+  return {
+    records: requireArray(entry.records ?? [], `${at}.records`, source).map((row, i) => {
+      const path = `${at}.records[${i}]`;
+      const record = requireRecord(row, path, source);
+      return {
+        id: requireString(record.id, `${path}.id`, source),
+        title: proseString(record.title) ?? "",
+        home: proseString(record.home),
+        pr_url: proseString(record.pr_url),
+        completion: parseCompletion(record.completion, `${path}.completion`, source),
+      };
+    }),
+    truncated: requireStringArray(entry.truncated ?? [], `${at}.truncated`, source),
+    unreadable: requireStringArray(entry.unreadable ?? [], `${at}.unreadable`, source),
+    partial: requireStringArray(entry.partial ?? [], `${at}.partial`, source),
+  };
+}
+
 function parsePath(value: unknown, path: string, source: string): SnapshotPath {
   const entry = requireRecord(value, path, source);
   return {
@@ -385,6 +624,12 @@ function parseTask(value: unknown, at: string, source: string): SnapshotTask {
     // worker rather than a broken snapshot.
     project: proseString(entry.project) ?? "",
     kind: proseString(entry.kind) ?? "",
+    harness: proseString(entry.harness),
+    mode: proseString(entry.mode),
+    branch: proseString(entry.branch),
+    model: proseString(entry.model),
+    effort: proseString(entry.effort),
+    brief: parseBrief(entry.brief),
     paths: {
       meta: parsePath(paths.meta, `${at}.paths.meta`, source),
       worktree: parsePath(paths.worktree, `${at}.paths.worktree`, source),
@@ -403,9 +648,23 @@ function parseTask(value: unknown, at: string, source: string): SnapshotTask {
         source,
       ),
     },
-    pr: { url: optionalString(pr.url, `${at}.pr.url`, source) },
+    pr: {
+      url: optionalString(pr.url, `${at}.pr.url`, source),
+      checks: parseChecks(pr.checks, `${at}.pr.checks`, source),
+      review: parseReview(pr.review, `${at}.pr.review`, source),
+    },
     completion: parseTaskCompletion(entry.backlog, `${at}.backlog`, source),
   };
+}
+
+/**
+ * The brief's own words. Prose throughout and never a refusal: a worker with no
+ * brief block, an empty one, or one carrying only a summary are all workers
+ * whose instructions this panel simply does not have all of.
+ */
+function parseBrief(value: unknown): SnapshotTask["brief"] {
+  if (!isRecord(value)) return { summary: null, text: null };
+  return { summary: proseString(value.summary), text: proseString(value.text) };
 }
 
 /**
@@ -450,6 +709,8 @@ function parseRecord(value: unknown, at: string, source: string): SnapshotRecord
       `${at}.captain_actionable`,
       source,
     ),
+    pr_url: proseString(entry.pr_url),
+    completion: parseCompletion(entry.completion, `${at}.completion`, source),
   };
 }
 
@@ -491,6 +752,8 @@ export function parseSnapshot(raw: string, source: string): FleetSnapshot {
   return {
     schema: SNAPSHOT_SCHEMA_ID,
     generated: requireInstant(top.generated, "generated", source),
+    fm_home: proseString(top.fm_home),
+    secondmate_landed: parseSecondmateLanded(top.secondmate_landed, source),
     tasks: requireArray(top.tasks, "tasks", source).map((entry, i) =>
       parseTask(entry, `tasks[${i}]`, source),
     ),

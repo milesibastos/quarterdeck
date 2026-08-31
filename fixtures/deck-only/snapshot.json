@@ -1,6 +1,7 @@
 {
   "schema": "fm-fleet-snapshot.v1",
   "generated": "2099-01-01T09:15:00.000Z",
+  "fm_home": "/anchorage/homes/tidewater",
   "tasks": [],
   "backlog": {
     "present": true,
@@ -85,7 +86,12 @@
         "hold_kind": null,
         "hold_reason": null,
         "hold_until": null,
-        "captain_actionable": false
+        "captain_actionable": false,
+        "pr_url": "https://forge.invalid/tidewater/pull/109",
+        "completion": {
+          "verb": "merged",
+          "date": "2099-01-01"
+        }
       },
       {
         "structured": true,

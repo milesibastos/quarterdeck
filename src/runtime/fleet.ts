@@ -16,6 +16,22 @@ import { consoleLogger, type Logger } from "../providers/logger.ts";
 import { childProcessRunner } from "../providers/process.ts";
 import type { PanelDocument } from "../types/document.ts";
 
+/** The document's lens-shaped fields, in the order they read best in a sentence. */
+const LENS_NAMES = ["fleet", "deck", "landed", "health"] as const;
+
+/** Which lenses a document is showing as unreadable, named rather than counted. */
+function unreadableLenses(document: PanelDocument): readonly string[] {
+  return LENS_NAMES.filter((name) => document[name].status.state === "unreadable");
+}
+
+/** "the fleet lens" / "the fleet and deck lenses" / "the fleet, deck and landed lenses". */
+function describeLenses(names: readonly string[]): string {
+  const noun = names.length === 1 ? "lens" : "lenses";
+  const list =
+    names.length <= 2 ? names.join(" and ") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  return `the ${list} ${noun}`;
+}
+
 /**
  * The refresh loop.
  *
@@ -113,11 +129,12 @@ export class FleetRuntime {
       if (error instanceof ContractIdentifierError) throw error;
 
       const detail = error instanceof Error ? error.message : String(error);
-      logger.warn("fleet read failed; showing the fleet and deck lenses as unreadable", {
+      const document = withSnapshotUnreadable(this.#lastKnownGood, detail, health, options);
+      logger.warn(`fleet read failed; showing ${describeLenses(unreadableLenses(document))} as unreadable`, {
         detail,
       });
       // Deliberately leaves `#stale` set, so the next render tries again.
-      return withSnapshotUnreadable(this.#lastKnownGood, detail, health, options);
+      return document;
     }
   }
 
