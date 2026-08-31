@@ -30,20 +30,27 @@ import { link, mkdir, rm, writeFile } from "node:fs/promises";
  * closed. The panel does not filter those out, because the panel's reading is
  * always older than the fleet's.
  *
- * See `docs/decisions/2026-08-30-answering-a-held-decision.md`.
+ * A merge order is the same shape of thing and rests on the same argument. It
+ * is the argument list for `bin/fm-pr-merge.sh`, which owns every rule about
+ * when a pull request may land and re-reads the forge live before it acts. This
+ * file merges nothing, and could not: a panel that merged directly would be a
+ * second authority beside that command, and every refusal that command enforces
+ * would be void for the one channel that skipped it.
+ *
+ * See `docs/decisions/2026-08-30-answering-a-held-decision.md` and
+ * `docs/decisions/2026-08-31-ordering-a-merge.md`.
  */
 
 /**
  * What an operator can ask the fleet to do.
  *
- * One kind today. A second - a merge order - is coming, and the shape below is
- * arranged so that adding it is adding a member to a union and a row to one
- * table, rather than redefining what an answer is or growing a second writer.
- * That matters more than it sounds: the safety argument for this panel is that
- * there is exactly one file that writes, and a second intent kind arriving as a
- * second file would end that argument quietly.
+ * Two kinds. The second arrived the way the first was shaped for: a member on
+ * this union and a row in one table, with no field of an answer redefined and
+ * no second file that writes. That matters more than it sounds - the safety
+ * argument for this panel is that there is exactly one file that writes, and a
+ * second intent kind arriving as a second file would end that argument quietly.
  */
-export type IntentKind = "answer-decision";
+export type IntentKind = "answer-decision" | "merge-pull-request";
 
 /**
  * How the fleet should close the call once it has recorded the answer.
@@ -106,14 +113,39 @@ export interface AnswerDecisionIntent extends IntentBase {
 }
 
 /**
- * Everything an operator can ask for. A union of one, on purpose.
+ * An order to merge a pull request the fleet opened.
  *
- * `kind` is the discriminant and every member carries it, so a second kind
- * added here makes every `switch` over it a compile error until it is handled -
- * which is the point. A single interface with optional fields would let a new
- * kind be added and silently written with the old kind's format.
+ * Two fields, and they are exactly the two arguments the fleet's guarded merge
+ * command takes. That is deliberate: this record is not a description of a
+ * merge, it is the argument list for the one command that owns every rule about
+ * whether a merge may happen. Nothing about the checks, the review, the branch
+ * or the operator's confidence travels with it, because none of that is
+ * something the command would be entitled to trust from here.
  */
-export type Intent = AnswerDecisionIntent;
+export interface MergeIntent extends IntentBase {
+  readonly kind: "merge-pull-request";
+  /** The work item whose pull request this is. Upstream's id, verbatim. */
+  readonly taskId: string;
+  /**
+   * The full address of the pull request. Never a bare number.
+   *
+   * A number would have to be resolved against a repository this panel would
+   * have to guess at, and guessing which repository to merge in is the single
+   * worst mistake available on this page. The address the document carries is
+   * the whole of what is passed on.
+   */
+  readonly url: string;
+}
+
+/**
+ * Everything an operator can ask for.
+ *
+ * `kind` is the discriminant and every member carries it, so a kind added here
+ * makes every `switch` over it a compile error until it is handled - which is
+ * the point. A single interface with optional fields would let a new kind be
+ * added and silently written with the old kind's format.
+ */
+export type Intent = AnswerDecisionIntent | MergeIntent;
 
 /**
  * How one kind of intent becomes a file: its extension, and the bytes inside.
@@ -128,6 +160,18 @@ interface RecordFormat<T extends Intent> {
   readonly suffix: string;
   /** The bytes, or why they cannot be written. Format only. */
   readonly line: (intent: T) => Refusal & { readonly line?: string };
+  /**
+   * What this record is called when the writer speaks to the operator, with and
+   * without its article.
+   *
+   * Both spelled out rather than derived, because a rule that puts "an" in
+   * front of a word beginning with a vowel is wrong often enough that it would
+   * eventually put it in front of a kind added later. The writer below composes
+   * every line it says out of these, so a kind cannot arrive and be reported as
+   * the other one's noun.
+   */
+  readonly noun: string;
+  readonly aNoun: string;
 }
 
 export interface IntentResult {
@@ -176,6 +220,33 @@ export function requestIdFor(parts: {
 }
 
 /**
+ * The identity of a merge order, as a name a filesystem can hold.
+ *
+ * The task and the address, and deliberately nothing else. Everything else a
+ * merge order could be digested against moves: the checks' `asOf` moves every
+ * minute the forge is read, and a head commit is not something this document
+ * carries at all. Any of them in the digest would mint a fresh identity for the
+ * same order and quietly cost it the replay protection that is the whole reason
+ * the identity is derived rather than minted.
+ *
+ * The cost is stated rather than hidden: a second press after the fleet has
+ * already taken this order is a duplicate, and the panel says so instead of
+ * ordering the merge again. Re-ordering after a refusal is the fleet's to
+ * offer, not this panel's to force by minting a new name - see
+ * `docs/decisions/2026-08-31-ordering-a-merge.md`.
+ */
+export function mergeRequestIdFor(parts: {
+  readonly taskId: string;
+  readonly url: string;
+}): string {
+  const digest = createHash("sha256");
+  for (const field of [parts.taskId, parts.url]) {
+    digest.update(`${Buffer.byteLength(field)}:${field}`);
+  }
+  return digest.digest("hex").slice(0, 32);
+}
+
+/**
  * The file extension every record carries, and the shape it promises.
  *
  * A record is one intake line and nothing else: `<task-id>\t<answer>\t<label>
@@ -186,6 +257,18 @@ export function requestIdFor(parts: {
 export const RECORD_SUFFIX = ".keyed-answer-v1";
 
 /**
+ * The file extension a merge order carries, and the shape it promises.
+ *
+ * `<task-id>\t<pr-url>`, newline-terminated: exactly the two arguments the
+ * fleet's guarded merge command takes, in that order. A distinct extension
+ * rather than a field inside the answer format, because the fleet's sources
+ * watch for the shapes they can read - an order arriving as a keyed answer
+ * would be handed to the answer intake, which would read the address as an
+ * answer to a decision nobody asked.
+ */
+export const MERGE_RECORD_SUFFIX = ".merge-order-v1";
+
+/**
  * The format each kind of intent is written in.
  *
  * The one table a second kind of intent extends. Nothing below reads a kind's
@@ -193,7 +276,18 @@ export const RECORD_SUFFIX = ".keyed-answer-v1";
  * it looks the format up, checks it, and links the bytes into place.
  */
 const FORMATS: { readonly [K in IntentKind]: RecordFormat<Extract<Intent, { kind: K }>> } = {
-  "answer-decision": { suffix: RECORD_SUFFIX, line: (intent) => keyedAnswerLine(intent) },
+  "answer-decision": {
+    suffix: RECORD_SUFFIX,
+    line: (intent) => keyedAnswerLine(intent),
+    noun: "answer",
+    aNoun: "an answer",
+  },
+  "merge-pull-request": {
+    suffix: MERGE_RECORD_SUFFIX,
+    line: (intent) => mergeOrderLine(intent),
+    noun: "merge order",
+    aNoun: "a merge order",
+  },
 };
 
 /** Everything a record is refused for. Format only; never "is this still open". */
@@ -237,13 +331,55 @@ export function keyedAnswerLine(
       detail: `The answer is longer than the ${MAX_ANSWER_BYTES} bytes the fleet will record.`,
     };
   }
-  if (!/^[A-Za-z0-9._-]+$/.test(intent.requestId)) {
-    return { ok: false, detail: "The request identity is not a name this panel will write." };
-  }
   return {
     ok: true,
     line: `${intent.taskId}\t${intent.answer}\t${intent.label}\t${intent.mode}\n`,
   };
+}
+
+/**
+ * The one line a merge order holds, or why it cannot be written.
+ *
+ * Format only, and a deliberately short list, because almost nothing about a
+ * merge is this file's to judge. Whether the checks are green, whether the
+ * pull request is still open, whether the branch has moved, whether a review is
+ * outstanding - every one of those belongs to the fleet's guarded merge
+ * command, which re-reads them live at merge time. Restating any of them here
+ * would make this panel a second authority on when a merge is allowed, and a
+ * second authority is one that can disagree.
+ *
+ * What is checked is that the line will parse and that the address is an
+ * address. A bare number, a relative path or anything that is not an absolute
+ * http(s) URL is refused rather than passed on: the command resolves the owner
+ * and repository out of the address it is given, so an address that is not one
+ * is a merge aimed at a repository nobody named.
+ */
+export function mergeOrderLine(intent: MergeIntent): Refusal & { readonly line?: string } {
+  for (const [name, value] of [
+    ["task id", intent.taskId],
+    ["pull request address", intent.url],
+  ] as const) {
+    if (/[\t\n\r]/.test(value)) {
+      return { ok: false, detail: `The ${name} may not contain a tab or a line break.` };
+    }
+    if (value.trim() === "") return { ok: false, detail: `The ${name} is empty.` };
+  }
+  let parsed: URL;
+  try {
+    parsed = new URL(intent.url);
+  } catch {
+    return {
+      ok: false,
+      detail: "The pull request address is not a full address, and this panel will not guess one.",
+    };
+  }
+  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+    return {
+      ok: false,
+      detail: `"${parsed.protocol}" is not a scheme a pull request is addressed by.`,
+    };
+  }
+  return { ok: true, line: `${intent.taskId}\t${intent.url}\n` };
 }
 
 export interface SpoolOptions {
@@ -270,14 +406,25 @@ export async function submitIntent(
   intent: Intent,
   options: SpoolOptions,
 ): Promise<IntentResult> {
+  const format = FORMATS[intent.kind] as RecordFormat<Intent>;
+
   if (options.intentDir === null) {
     return refused(
       intent.requestId,
-      "This panel has nowhere to record an answer; no answer spool is configured.",
+      `This panel has nowhere to record ${format.aNoun}; no answer spool is configured.`,
     );
   }
 
-  const format = FORMATS[intent.kind] as RecordFormat<Intent>;
+  // Checked here rather than in each format, so that a kind added to the table
+  // above cannot be the one that forgets it. The identity becomes a filename,
+  // and a filename is the one field where a stray character is a path.
+  if (!/^[A-Za-z0-9._-]+$/.test(intent.requestId)) {
+    return refused(
+      intent.requestId,
+      "The request identity is not a name this panel will write.",
+    );
+  }
+
   const check = format.line(intent);
   if (!check.ok) return refused(intent.requestId, check.detail);
   const line = check.line as string;
@@ -304,7 +451,7 @@ export async function submitIntent(
         duplicate: true,
         // Says what is true and no more. Whether the fleet has acted on the
         // earlier record is not something this panel has read.
-        detail: "This answer was already recorded; nothing was written again.",
+        detail: `This ${format.noun} was already recorded; nothing was written again.`,
       };
     } finally {
       await rm(staged, { force: true });
@@ -312,7 +459,7 @@ export async function submitIntent(
   } catch (error) {
     return refused(
       intent.requestId,
-      `The answer could not be recorded: ${(error as Error).message}`,
+      `The ${format.noun} could not be recorded: ${(error as Error).message}`,
     );
   }
 
@@ -320,6 +467,6 @@ export async function submitIntent(
     requestId: intent.requestId,
     accepted: true,
     duplicate: false,
-    detail: "The answer was recorded.",
+    detail: `The ${format.noun} was recorded.`,
   };
 }

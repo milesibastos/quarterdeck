@@ -64,7 +64,7 @@ describe("the healthy fleet", () => {
 
   test("hands each lens the part of the document it reads", async () => {
     const html = await body(panel);
-    assert.equal(workerCards(html), 11);
+    assert.equal(workerCards(html), 12);
     assert.ok(html.includes("Settle the hold vocabulary"), "a deck item the document carries");
   });
 
@@ -192,7 +192,7 @@ describe("a snapshot that stops parsing", () => {
       fixtureRoot,
     });
     try {
-      assert.equal(workerCards(await body(panel)), 11);
+      assert.equal(workerCards(await body(panel)), 12);
 
       // Truncate the snapshot under the running panel.
       await writeFile(
@@ -205,7 +205,7 @@ describe("a snapshot that stops parsing", () => {
         (text) => lensStatus(text, "fleet") === "unreadable",
       );
       assert.equal(lensStatus(html, "deck"), "unreadable");
-      assert.equal(workerCards(html), 11, "the fleet is still on screen");
+      assert.equal(workerCards(html), 12, "the fleet is still on screen");
       assert.equal(
         lensStatus(html, "shipshape"),
         "fresh",

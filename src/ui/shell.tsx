@@ -1,5 +1,6 @@
 import type { PanelDocument } from "@/types/document.ts";
 import type { AnsweringSession } from "@/ui/deck/answer-control";
+import type { MergeSession } from "@/ui/needs-you/merge-card";
 import { DeckLens } from "@/ui/deck/deck-lens";
 import { DisclosureBar } from "@/ui/disclosure-bar";
 import { FleetLens } from "@/ui/fleet/fleet-lens";
@@ -86,6 +87,7 @@ export function Shell({
   nowMs,
   terminal,
   session = null,
+  merging = null,
   rebuild = null,
 }: {
   document: PanelDocument;
@@ -109,6 +111,14 @@ export function Shell({
    * is what keeps the panel replaceable, and the secret lives in the runtime.
    */
   session?: AnsweringSession | null;
+  /**
+   * How a merge order reaches the server, for the band's merge-ready work.
+   *
+   * Its own address rather than a second use of `session`: the two orders reach
+   * two different intents and each card posts to the one it is about. Gated on
+   * the same spool, so a fleet with nowhere to record has neither.
+   */
+  merging?: MergeSession | null;
   /**
    * How the operator makes a newer snapshot than the one on screen, or `null`
    * when nothing this panel knows of would.
@@ -148,6 +158,7 @@ export function Shell({
         fleet={document.fleet.content}
         nowMs={nowMs}
         session={session}
+        merging={merging}
         className="md:min-h-[62svh]"
       />
 

@@ -269,27 +269,39 @@ anything behind it to protect:
 - A session secret minted at start. Everything under `/api/act` requires it;
   reading requires none of it. The guard went in before the acting route, so no
   build ever shipped an acting route without it. The secret reaches the page
-  that carries an answer control, and only such a page.
+  that carries a control that acts - an answer control or a merge card - and
+  only such a page.
 - No cross-origin sharing headers, so another page cannot read a response.
-- An `Intent` carries a `requestId`, derived from the question and the answer,
-  so a retry or a double click cannot act twice.
+- An `Intent` carries a `requestId`, derived from what the intent is about - the
+  question and the answer, or the work item and its pull request - so a retry or
+  a double click cannot act twice.
 
 ## Acting
 
-There is one acting endpoint, `POST /api/act/answer-decision`, and it executes
-nothing. It records a durable intent through `src/adapters/intent.ts` - one file,
-one line, the shape the fleet's keyed-answer intake reads - and the fleet picks
-that up on its next check and re-verifies the decision is still open before
-acting on it. A web request is never the thing that spawns a fleet command, and
-invariant 3 is what makes that structural rather than careful: no file in
-`src/` may reach `child_process` at all except the dedicated spawn door, and
-that ban holds inside the permitted writer too - it may write a file and
-nothing more.
+There are two acting endpoints, `POST /api/act/answer-decision` and `POST
+/api/act/merge-pull-request`, and neither executes anything. Each records a
+durable intent through `src/adapters/intent.ts` - one file, one line, the shape
+the fleet command that consumes it takes its input in - and the fleet picks that
+up on its next check and decides for itself whether to act. A web request is
+never the thing that spawns a fleet command, and invariant 3 is what makes that
+structural rather than careful: no file in `src/` may reach `child_process` at
+all except the dedicated spawn door, and that ban holds inside the permitted
+writer too - it may write a file and nothing more.
+
+The two intents are one union with a per-kind format table, not two writers.
+Adding a kind is a member and a row; a second file that writes would end the
+safety argument quietly, which is why invariant 3 fails the build on one.
 
 That is also why nothing here filters a stale answer out. The panel's reading is
 always older than the fleet's, so whether a decision is still open is not a
-question it can answer, and it does not pretend to. See
-`docs/decisions/2026-08-30-answering-a-held-decision.md`.
+question it can answer, and it does not pretend to. The keyed-answer intake
+re-verifies it, and `bin/fm-pr-merge.sh` re-reads the forge live before it
+merges. A merge order does get one check the answer does not - the fleet is
+re-read at submit and an order whose pull request has moved, gone red or landed
+since the render is refused - and that is the panel declining to carry an order
+whose premise has expired, not the panel deciding a merge is allowed. See
+`docs/decisions/2026-08-30-answering-a-held-decision.md` and
+`docs/decisions/2026-08-31-ordering-a-merge.md`.
 
 ## The terminal, on demand
 

@@ -10,6 +10,7 @@ import { FleetPicker } from "@/ui/fleet-picker";
 import { Shell } from "@/ui/shell";
 import { LiveRefresh } from "@/ui/live-refresh";
 import type { AnsweringSession } from "@/ui/deck/answer-control";
+import type { MergeSession } from "@/ui/needs-you/merge-card";
 import type { TerminalReader } from "@/ui/fleet/worker-terminal";
 import type { Rebuild } from "@/ui/snapshot-badge";
 
@@ -89,6 +90,24 @@ function answering(fleet: FleetRef): AnsweringSession | null {
 }
 
 /**
+ * How the page orders a merge, or `null` when it may not.
+ *
+ * The same gate, the same secret and the same argument as `answering` above:
+ * both write through the one permitted writer into the one spool, so a fleet
+ * with nowhere to record has neither control and hands out no secret. Only the
+ * address differs, because the two orders are two intents and each card posts
+ * to the one it is about.
+ */
+function merging(fleet: FleetRef): MergeSession | null {
+  if (fleet.intentDir === null) return null;
+  return {
+    header: SESSION_HEADER,
+    secret: sessionSecret(),
+    endpoint: "/api/act/merge-pull-request",
+  };
+}
+
+/**
  * Where a card reads its worker's session, with the fleet already named.
  *
  * Named on the address rather than left to the selection cookie: a card asks
@@ -159,6 +178,7 @@ export default async function Page() {
           nowMs={clockFor(config).nowMs()}
           terminal={terminalReader(fleet)}
           session={answering(fleet)}
+          merging={merging(fleet)}
           rebuild={rebuilding(fleet)}
         />
       )}

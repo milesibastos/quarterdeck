@@ -26,11 +26,41 @@ import { groupDeck, isAnswerable, type DeckGroups, type DeckRow } from "@/ui/dec
  * `isAnswerable` is the panel's existing test for that and this reuses it
  * rather than restating it.
  *
- * Work that is ready to merge belongs here too and is not built yet; it is a
- * task of its own. When it lands it becomes a second field beside `decisions`
- * and a second group in the band, and the count below becomes the sum. See
- * `src/ui/needs-you/needs-you-band.tsx` for the place kept for it.
+ * Work that is ready to merge belongs here too, and is the second field below.
+ * A pull request nobody presses sits green for days, which is the same silence
+ * a held decision is, so it needs the operator exactly as personally.
  */
+
+/**
+ * Work whose pull request is ready to land.
+ *
+ * The whole rule, and deliberately three clauses rather than a judgement: there
+ * is a pull request, it is open, and somebody has read its checks and they
+ * passed.
+ *
+ * Nothing about the lifecycle stage, the delivery contract or the review is in
+ * here. Those are the fleet's semantics, and the guarded merge command reads
+ * every one of them live before it acts - restating any of them here would make
+ * the panel a second opinion on when a merge is allowed, which is the failure
+ * `docs/decisions/2026-08-30-answering-a-held-decision.md` names for answers and
+ * that applies unchanged to this.
+ *
+ * What IS here is the promise that the panel never offers what cannot be done.
+ * `not-looked-up` and `unreadable` checks are not "probably fine": nobody has
+ * looked, and a button offered over a reading nobody took is the panel implying
+ * a fact it has not established. Failing checks are not merge-ready either, and
+ * neither is a pull request already landed.
+ */
+export function isMergeReady(worker: Worker): boolean {
+  const pr = worker.pullRequest;
+  return (
+    pr !== null &&
+    pr.state === "open" &&
+    pr.checks.read === "ok" &&
+    pr.checks.outcome === "passing"
+  );
+}
+
 export interface NeedsYou {
   /**
    * Decisions held for a person. The ones the fleet says can be answered right
@@ -40,6 +70,14 @@ export interface NeedsYou {
   readonly decisions: readonly DeckRow[];
   /** How many of `decisions` the fleet says can be answered right now. */
   readonly actionable: number;
+  /**
+   * Work whose pull request is ready to land, in the fleet's own order.
+   *
+   * Folded here beside the decisions rather than counted in the component, for
+   * the reason the whole file exists: one fold, so the band's count and the
+   * band's cards cannot come from two different rules.
+   */
+  readonly merges: readonly Worker[];
   /**
    * The four piles the fleet is handling by itself, with everything in
    * `decisions` removed from the held one.
@@ -58,6 +96,7 @@ export function needsYou(items: readonly DeckItem[], fleet: readonly Worker[]): 
   return {
     decisions,
     actionable: decisions.filter((row) => row.item.actionable).length,
+    merges: fleet.filter(isMergeReady),
     rest: {
       ...groups,
       held: groups.held.filter((row) => !isAnswerable(row.item)),

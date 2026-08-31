@@ -48,9 +48,14 @@ the first paint on purpose -
 adding anything else a card opens, because it settles where an on-demand read
 lives and why it is not a field.
 
-Two things the layout has kept a place for and deliberately not built: the
-ready-to-merge card, which is the needs-you band's second group, and the thin
-shipshape strip the wireframe draws in the masthead. Both are named in
+The needs-you band's second group has since been built: the ready-to-merge card,
+the panel's second and last write path -
+`docs/decisions/2026-08-31-ordering-a-merge.md`. It is worth reading before
+adding anything else that acts, because it settles what a panel that borrows
+authority may and may not check for itself.
+
+One thing the layout still keeps a place for and has deliberately not built: the
+thin shipshape strip the wireframe draws in the masthead, named in
 `docs/decisions/2026-08-31-what-needs-you-owns-the-first-screen.md`.
 
 What remains beyond those is in `docs/quality.md` under known gaps, and the
