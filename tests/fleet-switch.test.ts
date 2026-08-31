@@ -26,6 +26,13 @@ import {
  * calls a fleet when there is no real one - see fixtures/README.md. Two of them
  * are marked before the panel starts, so "this is the other fleet's content"
  * is a string that can only have come from one file on disk.
+ *
+ * The ports are taken from the 40s deliberately. `node --test` runs test files
+ * in parallel and `testPort` derives from the worktree plus this offset, so two
+ * files sharing an offset get the same port - and the second panel then answers
+ * the first suite's requests, which is a wrong-fleet assertion rather than an
+ * honest failure. Several suites had independently reached for the 30s. Check
+ * what is already taken before picking a range here.
  */
 
 /** The two fleets under test, and the mark planted in each. */
@@ -153,7 +160,7 @@ function assertAttributedTo(rendered: Rendered, expected: { set: string; mark: s
 
 describe("a panel that can see more than one fleet", () => {
   let panel: Panel;
-  const port = testPort(30);
+  const port = testPort(40);
 
   before(async () => {
     const fixtureRoot = await copyFixtures();
@@ -229,7 +236,7 @@ describe("a panel that can see more than one fleet", () => {
 
 describe("a fleet that cannot be read", () => {
   let panel: Panel;
-  const port = testPort(31);
+  const port = testPort(41);
 
   before(async () => {
     const fixtureRoot = await copyFixtures();
@@ -278,7 +285,7 @@ describe("a fleet that cannot be read", () => {
 
 describe("a panel that can see exactly one fleet", () => {
   let panel: Panel;
-  const port = testPort(32);
+  const port = testPort(42);
 
   before(async () => {
     panel = await startPanel({ port, fixtureSet: ONE.set });
@@ -297,7 +304,7 @@ describe("a panel that can see exactly one fleet", () => {
 });
 
 describe("a selection outlives the panel that was told it", () => {
-  const port = testPort(33);
+  const port = testPort(43);
 
   test("a restarted panel is still pointed where it was left", async () => {
     const fixtureRoot = await copyFixtures();
