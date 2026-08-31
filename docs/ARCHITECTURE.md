@@ -356,7 +356,8 @@ React's reconciliation contract; that nothing overflows the page sideways at a
 narrow width; that the theme follows the operator's system setting in both
 directions; that an expanded terminal is still expanded, with both its scroll
 offsets unchanged, after an update lands under it; and that a line far wider
-than its column scrolls inside its own box rather than pushing the page. What markup *can* carry - the pinned headers, the live regions, the
-focusable scroll bodies, the served stylesheet's two blocks - is in
+than its column scrolls inside its own box rather than pushing the page. What
+markup *can* carry - the heading outline, the live regions, each body named by
+its own heading, the served stylesheet's two blocks - is in
 `tests/shell.test.ts`. See `docs/plans/done/` and the two dated decisions of
 2026-08-31.
