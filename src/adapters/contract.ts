@@ -11,8 +11,9 @@ import type { Runner } from "../providers/process.ts";
  * inspected, and anything unexpected throws rather than being coerced into
  * something renderable.
  *
- * The snapshot carries two of the panel's three lenses - the fleet (`tasks`)
- * and the deck (`backlog`). It does not carry health: that is read from files
+ * The snapshot carries three of the panel's four lenses - the fleet (`tasks`),
+ * the deck (`backlog`) and the landed lens (`backlog`'s completed rows and
+ * `secondmate_landed`). It does not carry health: that is read from files
  * with no compatibility promise, which is why it lives behind `health.ts` and
  * degrades rather than refusing. Two reliability promises, two readers, and one
  * document with a status per lens.

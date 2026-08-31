@@ -103,7 +103,7 @@ Per-signal `Unreadable` and a lens-wide `unreadable` status are both kept, and
 they are not redundant. The lens status is "the health reading as a whole failed";
 a per-signal value is "the supervisor was readable and the drift check was not".
 The `health-unread` fixture set is that second case: a lens reporting `fresh`
-whose three signals all say they could not be read.
+whose signals all say they could not be read.
 
 ## Lens placeholders own their directories
 

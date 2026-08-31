@@ -26,7 +26,7 @@ import type {
  * throw.** A path that has moved must produce an unreadable reading, never an
  * exception that takes the panel down. That is also why the shipshape lens gets
  * its own status in the document: the fleet snapshot either parses or refuses,
- * but health can simply go dark while the other two lenses keep working.
+ * but health can simply go dark while the other lenses keep working.
  *
  * The health file's shape is the panel's own, not upstream's - nothing upstream
  * publishes these signals, so there is no contract to pin and nothing to guess.
@@ -234,8 +234,8 @@ export async function readHealth(dir: string, signal: AbortSignal): Promise<Heal
  * than an exception when what it expected is not there.
  *
  * Each signal is read independently. The beacon having moved says nothing about
- * whether the backlog can still be parsed, so one of the three going dark
- * leaves the other two working.
+ * whether the backlog can still be parsed, so one signal going dark leaves the
+ * other four working.
  */
 
 /** The fleet's state directory, and the files inside it this reads. */
@@ -680,7 +680,7 @@ async function readDrift(
  *
  * The whole reading is unreadable only when the home itself is not there - the
  * one failure that says nothing about any individual signal. Everything past
- * that point degrades per signal, so a moved beacon leaves the other two
+ * that point degrades per signal, so a moved beacon leaves the other four
  * working. Nothing thrown from inside here escapes: a quarantined module that
  * can take the panel down is not quarantined.
  */

@@ -12,9 +12,9 @@ Seven positions, one direction. Dependencies point right, and only right.
 
     types -> config -> adapters -> domain -> runtime -> ui
 
-- `src/types/` - the document the UI renders, and its version. Three lenses read
-  it, and each carries its own freshness; see
-  `docs/decisions/2026-08-30-the-document-seam.md`. Imports nothing, which is
+- `src/types/` - the document the UI renders, and its version. Four lenses read
+  it, each carrying its own freshness, plus a document-wide `omissions` list;
+  see `docs/decisions/2026-08-30-the-document-seam.md`. Imports nothing, which is
   also why `selection.ts` is here: the name of the cookie a fleet choice is
   remembered in is needed by `src/ui/`, which sets it, and by `src/app/`, which
   reads it off the request, and this is the one layer both may see.
@@ -133,10 +133,10 @@ health file at all, and the suite asserts the panel still renders three lenses.
 The module has two sources: the fixture health file, and a running fleet's own
 files when `QUARTERDECK_FLEET_HOME` names a home. The second is the reason the
 quarantine exists - every path and both policy thresholds it needs are inside
-that one file, and each of the three signals degrades on its own, so a beacon
-that moved leaves the other two working. `docs/contract.md` records where each
-signal comes from; `fixtures/homes/` holds synthetic homes for the suite to
-break, including one where upstream has restructured entirely.
+that one file, and each signal degrades on its own, so a beacon that moved
+leaves the other four working. `docs/contract.md` records where each signal
+comes from; `fixtures/homes/` holds synthetic homes for the suite to break,
+including one where upstream has restructured entirely.
 
 ### invariant 5
 
@@ -182,7 +182,7 @@ Rules that come with the pipe, all in `src/runtime/fleet.ts`:
   error - except for a schema mismatch, which is never survivable.
 - Health is read on every pass and independently of the snapshot, so a snapshot
   that will not parse leaves the shipshape lens current rather than dragging it
-  down with the other two.
+  down with the other three.
 - `EventSource` reconnects on its own, so a restarted server heals without a
   reload.
 
