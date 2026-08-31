@@ -3,10 +3,11 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, test } from "node:test";
-import { PORT_RANGE_START } from "../src/config/port.ts";
+import { derivePort, PORT_RANGE_START } from "../src/config/port.ts";
 import { BLOCK_SIZE, allocate, portAt, portsFor, testFiles } from "./lib/ports.ts";
+import { checkHandPickedPorts } from "./lib/port-usage.ts";
 import { REPO_ROOT, stopChild } from "./lib/server.ts";
-import { formatViolation } from "./lib/violation.ts";
+import { formatViolation, formatViolations } from "./lib/violation.ts";
 
 /**
  * The test harness itself, where the suite's own failure modes live.
@@ -56,6 +57,7 @@ describe("no two test files can claim the same panel ports", () => {
     assert.equal(blocks.size, files.length);
 
     const owner = new Map<number, string>();
+    const panelPort = derivePort(REPO_ROOT);
     for (const block of blocks.values()) {
       for (let i = 0; i < block.size; i += 1) {
         const port = portAt(block.firstOffset + i);
@@ -65,6 +67,11 @@ describe("no two test files can claim the same panel ports", () => {
 
         assert.ok(port >= PORT_RANGE_START, `${port} is below the range`);
         assert.ok(port < 49152, "the kernel hands out 49152+ as ephemeral ports");
+        assert.notEqual(
+          port,
+          panelPort,
+          `${block.file}'s port collides with the panel's own derived port ${panelPort}`,
+        );
       }
     }
   });
@@ -89,40 +96,69 @@ describe("no two test files can claim the same panel ports", () => {
  *
  * The contract is only worth as much as its coverage: one hand-written number
  * is enough to bring back the race it exists to prevent, and nothing else in
- * the suite would notice.
+ * the suite would notice. Checked by parsing and walking the AST, the same
+ * way `tests/lib/invariants.ts` checks `src/` - not by matching source text,
+ * which a renamed binding or a string that merely looks like a violation
+ * would defeat either way.
  */
-test("no test file picks a panel port by hand", () => {
-  for (const file of testFiles()) {
-    const path = `tests/${file}`;
-    const text = readFileSync(join(REPO_ROOT, path), "utf8");
-    if (!text.includes("startPanel(")) continue;
+describe("no test file picks a panel port by hand", () => {
+  const sourceFileOf = (path: string) => {
+    const text = readFileSync(join(REPO_ROOT, "tests", path), "utf8");
+    return { path, text, lines: text.split("\n") };
+  };
+  const planted = (text: string) => [{ path: "planted.test.ts", text, lines: text.split("\n") }];
 
-    const literal = /port:\s*\d+/.exec(text);
-    const violation = (line: number, what: string) =>
-      `\n\n${formatViolation({
-        slug: "hand-picked-port",
-        file: path,
-        line,
-        what,
-        why: "node --test runs test files in parallel, and two files on one port do not fail cleanly: the second panel answers the first file's requests, and the stop waits on a child that is not the one holding the port.",
-        fix: "Declare `const nextPort = portsFor(import.meta.filename);` once at the top of the file and pass `nextPort()` for every panel.",
-        doc: "tests/lib/ports.ts - one block per test file",
-      })}\n`;
+  test("the real suite draws every panel port from the allocator", () => {
+    const violations = checkHandPickedPorts(testFiles().map(sourceFileOf));
+    assert.deepEqual(violations, [], `\n\n${formatViolations(violations)}\n`);
+  });
 
+  test("a literal port fails the check, naming the file and line", () => {
+    const source = [
+      `const nextPort = portsFor(import.meta.filename);`,
+      `startPanel({ port: 45231 });`,
+    ].join("\n");
+    const found = checkHandPickedPorts(planted(source));
+    assert.equal(found.length, 1);
+    assert.match(found[0].what, /chosen by hand/);
+    assert.match(formatViolation(found[0]), /planted\.test\.ts:2/);
+  });
+
+  test("a name assigned from a literal is still a literal", () => {
+    const source = [
+      `const nextPort = portsFor(import.meta.filename);`,
+      `const PORT = 45231;`,
+      `startPanel({ port: PORT });`,
+    ].join("\n");
+    const found = checkHandPickedPorts(planted(source));
+    assert.equal(found.length, 1, "a numeric constant referenced by name must not defeat the check");
+    assert.match(found[0].what, /chosen by hand/);
+  });
+
+  test("a file that starts a panel without claiming a block is refused", () => {
+    const found = checkHandPickedPorts(planted(`startPanel({ port: nextPort() });`));
     assert.ok(
-      !literal,
-      literal
-        ? violation(
-            text.slice(0, literal.index).split("\n").length,
-            `"${literal[0]}" is a port chosen by hand. Panel ports come from portsFor().`,
-          )
-        : "",
+      found.some((v) => /without claiming a port block/.test(v.what)),
+      "a file with no portsFor(import.meta.filename) claim must be refused",
     );
-    assert.ok(
-      text.includes("portsFor(import.meta.filename)"),
-      violation(1, "This file starts a panel without claiming a port block of its own."),
-    );
-  }
+  });
+
+  test("a port drawn directly from the allocator passes", () => {
+    const source = [
+      `const nextPort = portsFor(import.meta.filename);`,
+      `startPanel({ port: nextPort() });`,
+    ].join("\n");
+    assert.deepEqual(checkHandPickedPorts(planted(source)), []);
+  });
+
+  test("a port drawn from a local variable passes", () => {
+    const source = [
+      `const nextPort = portsFor(import.meta.filename);`,
+      `const port = nextPort();`,
+      `startPanel({ port, fixtureSet: "healthy" });`,
+    ].join("\n");
+    assert.deepEqual(checkHandPickedPorts(planted(source)), []);
+  });
 });
 
 const OBEDIENT = "setInterval(() => {}, 1000);";

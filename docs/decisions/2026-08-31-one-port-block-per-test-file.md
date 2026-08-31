@@ -30,9 +30,10 @@ port number, so no file can state one that is already taken.
 **The claim is checked rather than assumed.** `allocate` refuses a claim list
 in which two files land on the same block and names both, and refuses more
 files than the range holds. A test in `tests/harness.test.ts` proves the
-refusal, walks the real suite asserting every file's ports are disjoint and
-below the ephemeral range, and fails any file that starts a panel with a port
-written by hand.
+refusal, walks the real suite asserting every file's ports are disjoint, below
+the ephemeral range, and clear of the port the panel itself would bind, and
+fails any file whose `startPanel` calls do not trace back to the allocator -
+checked by parsing the file, not by matching its source text.
 
 **Stopping is bounded.** `stopChild` sends SIGTERM, waits ten seconds, then
 sends SIGKILL and throws, naming the panel, the pid and the bound. A healthy

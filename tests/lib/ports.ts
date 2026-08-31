@@ -100,15 +100,22 @@ export function allocate(claimed: readonly Claim[] = claims()): Map<string, Bloc
   return blocks;
 }
 
+/** The port the panel itself would bind for this worktree - an author may well have one running while the suite runs. */
+const PANEL_PORT = derivePort(REPO_ROOT);
+
 /**
  * The port at one offset.
  *
  * Derived from the worktree like the panel's own, so two checkouts can run the
- * suite at once, then shifted clear of the port the panel itself would bind -
- * an author may well have one running while the suite runs.
+ * suite at once. The window is exactly as wide as the offsets it maps, so
+ * every value in it is reachable by some offset - including PANEL_PORT itself,
+ * once the suite is big enough. The one offset that would land there is pushed
+ * a full window clear instead: a jump too large for any other offset's port to
+ * follow it to, so it cannot land on a port some other file already holds.
  */
 export function portAt(offset: number): number {
-  return ((derivePort(REPO_ROOT) - PORT_RANGE_START + offset + 100) % WINDOW) + PORT_RANGE_START + 50;
+  const port = ((PANEL_PORT - PORT_RANGE_START + offset + 100) % WINDOW) + PORT_RANGE_START + 50;
+  return port === PANEL_PORT ? port + WINDOW : port;
 }
 
 const claimedHere = new Set<string>();
