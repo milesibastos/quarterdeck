@@ -67,7 +67,11 @@ see `docs/decisions/2026-08-31-reading-the-forge.md`.
 eslint nor the test suite measures; `qlty metrics --all -d` prints the totals per
 directory. Nothing gates on either, no plugins and no formatter are enabled, and
 qlty never runs eslint - see
-`docs/decisions/2026-08-31-measuring-duplication-and-complexity.md`.
+`docs/decisions/2026-08-31-measuring-duplication-and-complexity.md`. Four paths
+are excluded and two findings are deliberately left standing, each with its
+reason beside it in `.qlty/qlty.toml` and at length in
+`docs/decisions/2026-08-31-what-the-parallel-lens-build-duplicated.md`; read that
+before adding a fifth.
 
 ## Read before changing anything
 
