@@ -7,7 +7,7 @@ import { DisclosureBar } from "@/ui/disclosure-bar";
 import { FleetLens } from "@/ui/fleet/fleet-lens";
 import { LandedLens } from "@/ui/landed/landed-lens";
 import type { TerminalReader } from "@/ui/fleet/worker-terminal";
-import { FRAME_MENU, KeyboardHelp } from "@/ui/keyboard-help";
+import { KeyboardHelp } from "@/ui/keyboard-help";
 import { ago } from "@/ui/lib/age";
 import { QUARTERDECK_MARK } from "@/ui/mark.ts";
 import { NeedsYouBand } from "@/ui/needs-you/needs-you-band";
@@ -163,7 +163,10 @@ export function Shell({
           version={`document v${document.version}`}
           headline={null}
           subhead={`assembled ${ago(document.generatedAt, nowMs)}`}
-          menu={FRAME_MENU}
+          // No start menu: grok's launch card lists what its keys do, and so
+          // does the help panel in the slot two lines below; drawing both cost
+          // 75 pixels of first screen to say one thing twice.
+          menu={[]}
           aside={
             <div className="flex min-w-0 flex-col items-start gap-2">
               {/* Not a footnote in the corner: everything below is drawn as

@@ -252,7 +252,12 @@ export function GrokHeader({
             </ul>
           ) : null}
         </div>
-        {aside ? <div className="min-w-0 shrink-0">{aside}</div> : null}
+        {/* Full width below `sm`, where it wraps under the name and a fixed
+            width would push the card sideways; capped above it, so a wide
+            monitor does not stretch one badge across the masthead. */}
+        {aside ? (
+          <div className="w-full min-w-0 sm:w-auto sm:max-w-lg">{aside}</div>
+        ) : null}
       </div>
     </div>
   );

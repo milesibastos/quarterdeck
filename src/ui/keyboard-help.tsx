@@ -19,8 +19,8 @@ import {
  * screen listing a key that does nothing is worse than no help screen, because
  * it is the one surface an operator is entitled to trust completely.
  *
- * The same list feeds the masthead's legend rows, so the two cannot disagree
- * about what the panel answers to.
+ * The list is the one place these are written down: the bindings below read
+ * from it, so the help cannot describe a key the page does not answer to.
  *
  * ## Why the modal is inline rather than floating
  *
@@ -32,8 +32,15 @@ import {
  * the better trade anyway.
  */
 
-/** Where focus goes when the operator asks for the fleet chooser. */
+/**
+ * Where focus goes when the operator asks for the fleet chooser, and how to
+ * get there when it is shut. The chooser is a disclosure - see
+ * `src/ui/fleet-picker.tsx` for why - so `f` opens it first and lands in it
+ * second; its own trigger is what does the focusing, so there is one answer to
+ * "where does opening it put you" rather than two.
+ */
 const CURRENT_FLEET_CHOICE = '[data-fleet-choice][aria-current="true"]';
+const FLEET_DISCLOSURE = "[data-fleet-open]";
 
 export const FRAME_SHORTCUTS: GrokShortcutGroup[] = [
   {
@@ -42,7 +49,7 @@ export const FRAME_SHORTCUTS: GrokShortcutGroup[] = [
     items: [
       { action: "Keyboard shortcuts", keys: "?" },
       { action: "Close this", keys: "Esc" },
-      { action: "Go to the fleet chooser", keys: "f" },
+      { action: "Open the fleet chooser", keys: "f" },
     ],
   },
   {
@@ -56,7 +63,14 @@ export const FRAME_SHORTCUTS: GrokShortcutGroup[] = [
   },
 ];
 
-/** The same three keys, as the masthead's legend. No handlers: the keys are. */
+/**
+ * The same three keys, shaped as a `GrokHeader` start menu.
+ *
+ * Nothing draws it today: the masthead used to and the rows only repeated what
+ * is one click away here, at 75 pixels of first screen. It stays because it is
+ * the honest shape of that menu if the card ever wants one, and it is derived
+ * rather than typed twice.
+ */
 export const FRAME_MENU: GrokMenuItem[] = FRAME_SHORTCUTS[0].items.map(
   ({ action, keys }) => ({ label: action, key: keys }),
 );
@@ -98,10 +112,14 @@ export function KeyboardHelp() {
         event.preventDefault();
         setOpen((wasOpen) => !wasOpen);
       } else if (event.key === "f") {
-        const choice = document.querySelector<HTMLElement>(CURRENT_FLEET_CHOICE);
-        if (!choice) return;
+        const chooser = document.querySelector<HTMLElement>(FLEET_DISCLOSURE);
+        if (!chooser) return;
         event.preventDefault();
-        choice.focus();
+        if (chooser.getAttribute("aria-expanded") === "true") {
+          document.querySelector<HTMLElement>(CURRENT_FLEET_CHOICE)?.focus();
+        } else {
+          chooser.click();
+        }
       }
     }
     window.addEventListener("keydown", onKeyDown);
