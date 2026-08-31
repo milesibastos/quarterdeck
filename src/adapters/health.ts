@@ -116,21 +116,42 @@ function parseSupervisor(value: unknown): SupervisorSignal {
   );
 }
 
-function parseOverdue(value: unknown): OverdueSignal {
-  const entry = record(value, "overdue");
-  const dark = unreadableSignal(entry, "overdue");
+/**
+ * The shape `overdue` and `drift` share: a signal that is either unreadable, or
+ * ok with one array of rows under a name of its own. Only the signal's name,
+ * the array's field and the row's two fields differ, so the walk - record,
+ * unreadable check, indexed path per row - is written once. Written twice, the
+ * two drift apart, and the path strings in the failure messages are exactly
+ * where that would not be noticed.
+ */
+function rowsSignal<T>(
+  value: unknown,
+  name: string,
+  field: string,
+  row: (entry: Record<string, unknown>, at: string) => T,
+): Unreadable | { readonly read: "ok"; readonly rows: readonly T[] } {
+  const entry = record(value, name);
+  const dark = unreadableSignal(entry, name);
   if (dark) return dark;
-  const overdue = list(entry.overdue, "overdue.overdue").map(
-    (item, i): Overdue => {
-      const at = `overdue.overdue[${i}]`;
-      const row = record(item, at);
-      return {
-        id: text(row.id, `${at}.id`),
-        waitingSince: instant(row.waitingSince, `${at}.waitingSince`),
-      };
-    },
+  const path = `${name}.${field}`;
+  const rows = list(entry[field], path).map((item, i): T => {
+    const at = `${path}[${i}]`;
+    return row(record(item, at), at);
+  });
+  return { read: "ok", rows };
+}
+
+function parseOverdue(value: unknown): OverdueSignal {
+  const signal = rowsSignal(
+    value,
+    "overdue",
+    "overdue",
+    (row, at): Overdue => ({
+      id: text(row.id, `${at}.id`),
+      waitingSince: instant(row.waitingSince, `${at}.waitingSince`),
+    }),
   );
-  return { read: "ok", overdue };
+  return signal.read === "ok" ? { read: "ok", overdue: signal.rows } : signal;
 }
 
 function parseQueue(value: unknown): QueueSignal {
@@ -182,20 +203,18 @@ function orAbsent<T>(
 }
 
 function parseDrift(value: unknown): DriftSignal {
-  const entry = record(value, "drift");
-  const dark = unreadableSignal(entry, "drift");
-  if (dark) return dark;
-  const disagreements = list(entry.disagreements, "drift.disagreements").map(
-    (item, i): Disagreement => {
-      const at = `drift.disagreements[${i}]`;
-      const row = record(item, at);
-      return {
-        record: text(row.record, `${at}.record`),
-        detail: text(row.detail, `${at}.detail`),
-      };
-    },
+  const signal = rowsSignal(
+    value,
+    "drift",
+    "disagreements",
+    (row, at): Disagreement => ({
+      record: text(row.record, `${at}.record`),
+      detail: text(row.detail, `${at}.detail`),
+    }),
   );
-  return { read: "ok", disagreements };
+  return signal.read === "ok"
+    ? { read: "ok", disagreements: signal.rows }
+    : signal;
 }
 
 function parseHealth(raw: string): HealthReading {
