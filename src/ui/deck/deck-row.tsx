@@ -95,6 +95,21 @@ function BlockerLine({ blocker }: { blocker: Blocker }) {
  * page's outline may not skip. There is one surface and one level: the row used
  * to carry a `card` tone for the needs-you band, and the band draws its own
  * `DecisionCard` now.
+ *
+ * ## Why there is no answer control here
+ *
+ * This row cannot receive an answerable item, and the argument is worth stating
+ * because it is what a second copy of the answer control used to rest on. The
+ * only caller is `DeckLens`, which draws `needsYou(...).rest`: `rest.held` is
+ * every hold the band did not take, the band takes every `isAnswerable` one,
+ * and the other three piles are all `hold === null`. So no row arriving here
+ * satisfies both `hold !== null` and `isAnswerable`.
+ *
+ * That held while the deck carried a control anyway - it was dead code for as
+ * long as it existed. If a future change gives this component a second caller,
+ * or lets an answerable row into any pile, the argument lapses and the question
+ * of who offers the control has to be answered again rather than assumed. See
+ * `docs/decisions/2026-08-31-what-the-parallel-lens-build-duplicated.md`.
  */
 export function DeckItemRow({
   row,
