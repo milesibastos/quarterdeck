@@ -252,6 +252,21 @@ function dark(detail: string): Unreadable {
   return { read: "unreadable", detail };
 }
 
+/**
+ * Bounds `promise` by `signal`, the same deadline `readFile` already honours
+ * natively. `stat` and `readdir` do not: in this runtime they resolve even
+ * when handed an already-aborted signal, so every call to either below is
+ * wrapped here rather than passed the signal directly.
+ */
+function withDeadline<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+  if (signal.aborted) return Promise.reject(signal.reason);
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = (): void => reject(signal.reason);
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(resolve, reject).finally(() => signal.removeEventListener("abort", onAbort));
+  });
+}
+
 /** The last line with anything on it, or `null` for an empty or absent log. */
 function lastLine(text: string): string | null {
   const lines = text.split("\n").filter((line) => line.trim().length > 0);
@@ -342,10 +357,14 @@ async function readMaybe(file: string, signal: AbortSignal): Promise<string | nu
  * the file having moved and the cycle having stopped look identical from here,
  * and reporting the wrong one of those two is worse than saying so.
  */
-async function readSupervisor(stateDir: string, clock: Clock): Promise<SupervisorSignal> {
+async function readSupervisor(
+  stateDir: string,
+  clock: Clock,
+  signal: AbortSignal,
+): Promise<SupervisorSignal> {
   const beacon = join(stateDir, BEACON_FILE);
   try {
-    const { mtimeMs } = await stat(beacon);
+    const { mtimeMs } = await withDeadline(stat(beacon), signal);
     return {
       read: "ok",
       alive: clock.nowMs() - mtimeMs < BEACON_GRACE_MS,
@@ -357,8 +376,8 @@ async function readSupervisor(stateDir: string, clock: Clock): Promise<Superviso
 }
 
 /** The ids of the workers the fleet currently has out, from `state/*.meta`. */
-async function liveWorkerIds(stateDir: string): Promise<readonly string[]> {
-  const entries = await readdir(stateDir);
+async function liveWorkerIds(stateDir: string, signal: AbortSignal): Promise<readonly string[]> {
+  const entries = await withDeadline(readdir(stateDir), signal);
   return entries
     .filter((name) => name.endsWith(META_SUFFIX))
     .map((name) => name.slice(0, -META_SUFFIX.length))
@@ -436,7 +455,7 @@ async function readOverdue(
 ): Promise<OverdueSignal> {
   let ids: readonly string[];
   try {
-    ids = await liveWorkerIds(stateDir);
+    ids = await liveWorkerIds(stateDir, signal);
   } catch (error) {
     return dark(`Could not list the fleet's workers in ${STATE_DIR}/: ${why(error)}`);
   }
@@ -503,7 +522,7 @@ async function readDrift(
 
   let workers: ReadonlySet<string>;
   try {
-    workers = new Set(await liveWorkerIds(stateDir));
+    workers = new Set(await liveWorkerIds(stateDir, signal));
   } catch (error) {
     return dark(`Could not list the fleet's workers in ${STATE_DIR}/: ${why(error)}`);
   }
@@ -547,7 +566,7 @@ export async function readFleetHomeHealth(
   signal: AbortSignal,
 ): Promise<HealthReading> {
   try {
-    const entry = await stat(home);
+    const entry = await withDeadline(stat(home), signal);
     if (!entry.isDirectory()) return dark(`The fleet home is not a directory: ${home}`);
   } catch (error) {
     return dark(`Could not read the fleet home: ${why(error)}`);
@@ -555,7 +574,7 @@ export async function readFleetHomeHealth(
 
   const stateDir = join(home, STATE_DIR);
   const [supervisor, overdue, drift] = await Promise.all([
-    readSupervisor(stateDir, clock),
+    readSupervisor(stateDir, clock, signal),
     readOverdue(stateDir, clock, signal),
     readDrift(home, stateDir, signal),
   ]);

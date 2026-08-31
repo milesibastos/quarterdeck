@@ -262,6 +262,23 @@ describe("a fleet that has moved underneath the panel", () => {
   });
 });
 
+describe("a deadline that has already passed", () => {
+  /**
+   * `stat` and `readdir` - unlike `readFile` - resolve in this runtime even
+   * when handed an already-aborted signal, so honouring the deadline here
+   * takes an explicit check rather than the signal alone. A home that reads
+   * perfectly well proves the module is looking at the signal and not just at
+   * whether the files are there.
+   */
+  test("darkens the whole reading rather than reading straight through it", async () => {
+    const home = await copyHome("steady");
+    await beacon(home, 30_000);
+
+    const reading = await readFleetHomeHealth(home, CLOCK, AbortSignal.abort());
+    assert.equal(reading.read, "unreadable");
+  });
+});
+
 describe("the health lens going dark", () => {
   /**
    * The point of the whole module, and the reason health has its own status in
