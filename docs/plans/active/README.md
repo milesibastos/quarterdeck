@@ -15,21 +15,19 @@ nobody can reconstruct from the code.
 
 The fleet and deck parts of the document now come from a real fleet home, or
 from fixtures when none is configured - see `docs/contract.md` and
-`docs/quality.md`. What is left, each item owning files nobody else touches:
+`docs/quality.md`. Every lens has landed, and so has the pass that made them one
+panel rather than three components sharing a page:
 
-1. **The fleet lens** - `src/ui/fleet/` - has its worker card and lifecycle
-   rail; lanes and filters remain. The first to ask real questions of the theme
-   and the layering.
+- The deck lens - `docs/plans/done/2026-08-30-deck-lens.md`.
+- The shipshape lens - `docs/plans/done/2026-08-30-shipshape-lens.md`.
+- The write path - `docs/decisions/2026-08-30-answering-a-held-decision.md`.
+- Choosing which fleet the panel is looking at, which settled where a per-viewer
+  choice lives and is worth reading before adding a second one -
+  `docs/decisions/2026-08-30-choosing-a-fleet.md`.
+- The shell's proportions and fold line, which needed real lens content before
+  they could be tuned - `docs/decisions/2026-08-31-the-fold-line.md`, and the
+  theme that went with it,
+  `docs/decisions/2026-08-31-the-theme-follows-the-system.md`.
 
-The deck lens has landed - see `docs/plans/done/2026-08-30-deck-lens.md`. The
-shipshape lens has landed too - see
-`docs/plans/done/2026-08-30-shipshape-lens.md`. The write path has landed too -
-see `docs/decisions/2026-08-30-answering-a-held-decision.md`. So has choosing
-which fleet the panel is looking at; that one settled where a per-viewer
-choice lives, which is worth reading before adding a second one - see
-`docs/decisions/2026-08-30-choosing-a-fleet.md`.
-
-Then, and not in parallel with those:
-
-2. **The shell's proportions and fold line**, which need real lens content
-   before they can be tuned.
+What remains is in `docs/quality.md` under known gaps, and the fleet lens's own
+lanes and filters, which nobody has asked for yet.
