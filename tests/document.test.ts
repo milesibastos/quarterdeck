@@ -104,7 +104,7 @@ const SHAPES: Readonly<Record<string, Shape>> = {
   healthy: { fleet: ["fresh", 11], deck: ["fresh", 6], landed: ["fresh", 4], health: "fresh", omissions: ["not-shown", "unreadable", "unreadable"] },
   // The large end of the range the layout has to survive; see
   // docs/decisions/2026-08-31-the-fold-line.md.
-  crowded: { fleet: ["fresh", 30], deck: ["fresh", 15], landed: ["fresh", 3], health: "fresh", omissions: ["not-looked-up", "not-shown"] },
+  crowded: { fleet: ["fresh", 30], deck: ["fresh", 15], landed: ["fresh", 3], health: "fresh", omissions: ["not-looked-up", "not-looked-up", "not-shown"] },
   empty: { fleet: ["fresh", 0], deck: ["fresh", 0], landed: ["fresh", 0], health: "fresh", omissions: [] },
   stale: { fleet: ["stale", 2], deck: ["stale", 2], landed: ["stale", 0], health: "stale", omissions: [] },
   malformed: { fleet: ["unreadable", 0], deck: ["unreadable", 0], landed: ["unreadable", 0], health: "fresh", omissions: [] },
@@ -112,11 +112,11 @@ const SHAPES: Readonly<Record<string, Shape>> = {
   "health-unread": { fleet: ["fresh", 3], deck: ["fresh", 3], landed: ["fresh", 0], health: "fresh", omissions: [] },
   "deck-dark": { fleet: ["fresh", 3], deck: ["unreadable", 0], landed: ["unreadable", 1], health: "fresh", omissions: ["unreadable"] },
   "deck-only": { fleet: ["fresh", 0], deck: ["fresh", 6], landed: ["fresh", 1], health: "fresh", omissions: [] },
-  "fleet-only": { fleet: ["fresh", 12], deck: ["fresh", 0], landed: ["fresh", 0], health: "fresh", omissions: ["not-looked-up"] },
+  "fleet-only": { fleet: ["fresh", 12], deck: ["fresh", 0], landed: ["fresh", 0], health: "fresh", omissions: ["not-looked-up", "not-looked-up"] },
   "fleet-empty-stale": { fleet: ["stale", 0], deck: ["stale", 1], landed: ["stale", 0], health: "stale", omissions: [] },
   // The one set in upstream's real shape and real vocabulary; its projection is
   // asserted field by field in tests/fleet-source.test.ts.
-  "upstream-shape": { fleet: ["fresh", 8], deck: ["fresh", 5], landed: ["fresh", 1], health: "fresh", omissions: ["not-looked-up"] },
+  "upstream-shape": { fleet: ["fresh", 8], deck: ["fresh", 5], landed: ["fresh", 1], health: "fresh", omissions: ["not-looked-up", "not-looked-up"] },
   // A refusal quoting a 180-character token with no break opportunity in it.
   // The lens statuses are `malformed`'s; what this set is for is the width of
   // the sentence they carry.
@@ -562,9 +562,27 @@ describe("the omissions", () => {
     const { omissions } = await documentOf("upstream-shape");
     assert.deepEqual(
       omissions.map((omission) => omission.reason),
-      ["not-looked-up"],
+      ["not-looked-up", "not-looked-up"],
     );
     assert.match(omissions[0].what, /pull request checks/);
+    assert.match(omissions[1].what, /pull request review comments/);
+  });
+
+  test("checks read and a review not looked up are named as separate absences", async () => {
+    // wi-windlass-142's checks were read and failed - not looked up at all -
+    // while nothing ever read its review. The two forge readings are
+    // independent, so a check having been read must not hide the review that
+    // was not.
+    const { fleet, omissions } = await documentOf("crowded");
+    const windlass142 = fleet.content.find((worker) => worker.id === "wi-windlass-142");
+    assert.equal(windlass142?.pullRequest?.checks.read, "unreadable");
+    assert.equal(windlass142?.pullRequest?.review.read, "not-looked-up");
+
+    const checks = omissions.find((omission) => omission.what === "pull request checks");
+    const review = omissions.find((omission) => omission.what === "pull request review comments");
+    assert.ok(review, "the unread review is named even though its checks were read");
+    assert.match(checks!.detail, /1 pull request/, "a read-and-failed check does not count as not looked up");
+    assert.match(review!.detail, /2 pull requests/);
   });
 
   test("an unreadable backlog is named, and nothing is silently dropped", async () => {

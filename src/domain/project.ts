@@ -446,15 +446,27 @@ function omissionsOf(snapshot: FleetSnapshot, workers: readonly Worker[]): reado
     });
   }
 
-  const unread = workers.filter(
+  const unreadChecks = workers.filter(
     (worker) =>
       worker.pullRequest !== null && worker.pullRequest.checks.read === "not-looked-up",
   ).length;
-  if (unread > 0) {
+  if (unreadChecks > 0) {
     omissions.push({
-      what: "pull request checks and review comments",
+      what: "pull request checks",
       reason: "not-looked-up",
-      detail: `Nothing has read the forge for ${unread} pull request${unread === 1 ? "" : "s"}; that read is opt-in and off the first paint.`,
+      detail: `Nothing has read the checks for ${unreadChecks} pull request${unreadChecks === 1 ? "" : "s"}; that read is opt-in and off the first paint.`,
+    });
+  }
+
+  const unreadReview = workers.filter(
+    (worker) =>
+      worker.pullRequest !== null && worker.pullRequest.review.read === "not-looked-up",
+  ).length;
+  if (unreadReview > 0) {
+    omissions.push({
+      what: "pull request review comments",
+      reason: "not-looked-up",
+      detail: `Nothing has read the review comments for ${unreadReview} pull request${unreadReview === 1 ? "" : "s"}; that read is opt-in and off the first paint.`,
     });
   }
 
