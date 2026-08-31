@@ -18,9 +18,41 @@ copy. `src/ui/needs-you/answer-control.tsx` and `src/ui/deck/answer-control.tsx`
 were 26 lines identical because two people solved the same problem the same way
 a day apart. That is the cost of the fan-out, paid here.
 
-The baseline on `main` at c2d0aca was sixteen findings: five duplication pairs,
-one file-complexity, four function-complexity and eight function-with-many-
-returns. What follows is the disposition of each, on its merits.
+The baseline on `main` at c2d0aca was 25 printed entries, which is 21 distinct
+findings once each duplication pair is counted once rather than once per file:
+
+| Kind | Distinct | Printed |
+| --- | --- | --- |
+| duplication (`identical_code`, `similar_code`) | 6 pairs | 10 |
+| `function_complexity` | 4 | 4 |
+| `return_statements` | 10 | 10 |
+| `file_complexity` | 1 | 1 |
+
+### Four shapes the task brief did not carry
+
+The brief that commissioned this work named five duplication pairs and a
+complexity set, and the run found more than that. The difference is recorded
+here rather than absorbed silently, because it is worth knowing before the next
+fan-out:
+
+1. **`function_complexity` was never named as a category.** The brief filed
+   `fleet-picker.tsx`, `keyboard-help.tsx` and four grok components under
+   "function with many returns (count = 6)". Four of those actually fired on
+   `function_complexity`, a different smell at a different threshold:
+   `GrokProjectPicker` 34, `GrokSettings` 24, `KeyboardHelp` 33,
+   `FleetPicker` 19.
+2. **`FleetPicker` has no returns finding at all** - only the complexity one.
+3. **`KeyboardHelp` returns at 7, not 6**, so it would have survived the
+   threshold raise that clears the rest.
+4. **`AnswerControl` in `src/ui/needs-you/answer-control.tsx` returns at 6** and
+   was not on the brief's list.
+
+The dispositions are unchanged by this: the two grok components are covered by
+the vendored exclusion, `KeyboardHelp` and `FleetPicker` by the nested-closure
+exclusion, and `AnswerControl` by the `return_statements` raise. Only the
+accounting was short.
+
+What follows is the disposition of each finding, on its merits.
 
 ## Fixed
 
@@ -160,7 +192,8 @@ seventh branch nobody planned.
 
 ## Consequences
 
-`qlty smells --all` reports two findings, both named above with their reason.
+`qlty smells --all` prints four entries - the two kept pairs, each reported once
+per file - and both are named above with their reason.
 Everything else is fixed or excluded with the reason written where the exclusion
 is. That is the state `qd-qlty-complete-h1` needs in order to make this a gate.
 
