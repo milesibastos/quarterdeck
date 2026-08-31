@@ -53,11 +53,10 @@ import {
  * - `paused` is a worker deliberately idling on a wait it expects to clear -
  *   an upstream release, a rate limit - which is exactly `waiting`.
  * - `unknown` is upstream saying it could not tell: the worktree is gone, or no
- *   source of current state answered. It lands on `waiting` as the one halted
- *   stage that asserts no cause inside the fleet, and the detail carries
- *   upstream's own words for what it could not see. That is the least wrong
- *   position in the frozen vocabulary rather than a good one; see
- *   docs/contract.md - open assumptions.
+ *   source of current state answered. It lands on `unseen`, which is the
+ *   document's way of not answering either - it asserts no position on the
+ *   track and no reason for stopping, and the detail carries upstream's own
+ *   words for what it could not see.
  */
 const STAGE: Readonly<Record<SnapshotTaskState, Stage>> = {
   working: "working",
@@ -66,7 +65,7 @@ const STAGE: Readonly<Record<SnapshotTaskState, Stage>> = {
   done: "landed",
   failed: "failed",
   paused: "waiting",
-  unknown: "waiting",
+  unknown: "unseen",
   dispatched: "dispatched",
   validating: "validating",
   pr_open: "pr-open",
@@ -76,11 +75,16 @@ const STAGE: Readonly<Record<SnapshotTaskState, Stage>> = {
 };
 
 /**
- * A worker's kind is free text upstream copies from its dispatch record, so
- * this maps the one value that means research and treats everything else -
- * including a kind this build has never seen - as building. The alternative,
- * refusing a snapshot over a word in a dispatch record, would take the whole
- * fleet lens down for a worker the panel could otherwise draw.
+ * A kind is free text - upstream copies a worker's from its dispatch record and
+ * a deck row's from a `(kind: ...)` annotation - so this maps the one value
+ * that means research and treats everything else, including a kind this build
+ * has never seen, as building. A live fleet writes `ship`, `scout`, `task` and
+ * `docs`; only the second is research. The alternative, refusing a snapshot
+ * over a word somebody typed, would take a whole lens down for a row the panel
+ * could otherwise draw.
+ *
+ * Absence is the caller's to decide. A worker always has a kind, so its empty
+ * string reads as building; a deck row that named none says so instead.
  */
 const RESEARCH_KIND = "scout";
 
@@ -115,20 +119,21 @@ function priorityOf(priority: string | null): Priority {
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
- * A record's start, as an instant.
+ * A record's start, as an instant, or `null` when there is no start to give.
  *
  * Upstream reports it as the operator wrote it: usually a calendar date, which
- * widens to midnight UTC, occasionally a full instant, and sometimes nothing at
- * all. A row that did not say falls back to the moment upstream looked, which
- * reads as an age of zero - the honest shape of "this has not been waiting as
- * far as anyone can tell", and better than dropping the item off the deck.
+ * widens to midnight UTC, occasionally a full instant, and often nothing at
+ * all. A row that did not say, or said something that is not a date, gets
+ * `null` - not the moment upstream looked. The two are different facts, and
+ * dating a row from the read makes an item that has been queued for a month
+ * read as having just arrived.
  */
-function sinceOf(since: string | null, generated: string): string {
-  if (since === null) return generated;
+function sinceOf(since: string | null): string | null {
+  if (since === null) return null;
   if (ISO_DATE.test(since) && !Number.isNaN(Date.parse(since))) {
     return `${since}T00:00:00.000Z`;
   }
-  return isIsoInstant(since) ? since : generated;
+  return isIsoInstant(since) ? since : null;
 }
 
 /**
@@ -239,16 +244,25 @@ function projectWorker(task: SnapshotTask): Worker {
   };
 }
 
-function projectDeckItem(record: SnapshotRecord, generated: string): DeckItem {
+function projectDeckItem(record: SnapshotRecord): DeckItem {
   return {
     id: record.id,
     // Upstream cleans a row's prose down to its title, which can leave nothing
     // when the row was only an id. The id is then the only name it has.
     title: record.title || record.id,
+    // Upstream's `repo` is already a name rather than a path - it is copied out
+    // of a `(repo: ...)` annotation, not off disk - so it is carried as
+    // written. A worker's `project` needs reducing; this does not.
+    project: record.repo,
+    // The same rule a worker's kind gets, and deliberately the same function: a
+    // second reading of one upstream field would drift from the first. What
+    // differs is the absence - a row that named no kind says so, where a
+    // worker with no kind is still a worker doing something.
+    kind: record.kind === null ? null : kindOf(record.kind),
     // `done` is filtered out before this runs; the deck is what is still coming.
     state: DECK_STATE[record.state as Exclude<SnapshotRecordState, "done">],
     priority: priorityOf(record.priority),
-    since: sinceOf(record.since, generated),
+    since: sinceOf(record.since),
     blocked:
       record.blocked_by_ids.length === 0
         ? null
@@ -324,7 +338,7 @@ export function projectDocument(
   const asOf = snapshot.generated;
   const deck = snapshot.backlog.records
     .filter((record) => record.state !== "done")
-    .map((record) => projectDeckItem(record, asOf));
+    .map(projectDeckItem);
 
   return {
     version: DOCUMENT_VERSION,

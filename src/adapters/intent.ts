@@ -107,7 +107,10 @@ export interface IntentResult {
  * still arrives at the same identity.
  *
  * `since` is in the digest because a task re-held after an earlier answer is a
- * new question, and answering it must not collide with the old record.
+ * new question, and answering it must not collide with the old record. It is
+ * the empty string for a record that carries no start date - a stable name for
+ * "no point in its hold was recorded", which is what makes the same answer to
+ * such a record collide rather than pile up a record per read.
  */
 export function requestIdFor(parts: {
   readonly taskId: string;

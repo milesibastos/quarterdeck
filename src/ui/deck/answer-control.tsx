@@ -64,7 +64,15 @@ export function AnswerControl({
   session,
 }: {
   taskId: string;
-  /** Part of the request identity: a re-held task is a new question. */
+  /**
+   * Part of the request identity: a re-held task is a new question.
+   *
+   * The empty string is how "the row recorded no start date" is carried, and it
+   * is unambiguous - upstream's prose reader never yields an empty `since`, and
+   * the digest is length-prefixed. It is also a stable name, where the moment
+   * upstream looked was not: an item with no start date used to mint a fresh
+   * request id on every read, which quietly cost it its replay protection.
+   */
   since: string;
   /** `null` when nothing is configured to carry an answer to the fleet. */
   session: AnsweringSession | null;

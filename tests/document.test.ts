@@ -101,7 +101,7 @@ const SHAPES: Readonly<Record<string, Shape>> = {
   "health-unread": { fleet: ["fresh", 3], deck: ["fresh", 3], health: "fresh" },
   "deck-dark": { fleet: ["fresh", 3], deck: ["unreadable", 0], health: "fresh" },
   "deck-only": { fleet: ["fresh", 0], deck: ["fresh", 6], health: "fresh" },
-  "fleet-only": { fleet: ["fresh", 11], deck: ["fresh", 0], health: "fresh" },
+  "fleet-only": { fleet: ["fresh", 12], deck: ["fresh", 0], health: "fresh" },
   "fleet-empty-stale": { fleet: ["stale", 0], deck: ["stale", 1], health: "stale" },
   // The one set in upstream's real shape and real vocabulary; its projection is
   // asserted field by field in tests/fleet-source.test.ts.
@@ -116,7 +116,7 @@ describe("every fixture set produces the document it should", () => {
   for (const [set, shape] of Object.entries(SHAPES)) {
     test(set, async () => {
       const document = await documentOf(set);
-      assert.equal(document.version, 2);
+      assert.equal(document.version, 3);
       assert.deepEqual(
         {
           fleet: [document.fleet.status.state, document.fleet.content.length],
@@ -154,6 +154,21 @@ describe("the fleet part", () => {
         "wi-saltmarsh-309 failed lint",
       ],
     );
+  });
+
+  test("a worker the panel cannot see is unseen, not waiting", async () => {
+    const { content } = (await documentOf("fleet-only")).fleet;
+    const lost = content.find((worker) => worker.id === "wi-brackish-288")!;
+    assert.equal(lost.lifecycle.stage, "unseen");
+    // The stage the panel used to give it, and the reason this version exists:
+    // `waiting` states a position - stopped, on something outside the fleet -
+    // that nothing established.
+    assert.notEqual(lost.lifecycle.stage, "waiting");
+    // Its detail names a pipeline step, and no step is read from it: the words
+    // are upstream's account of what it could not see, not a report from a
+    // pipeline that ran. Nothing may infer a position from them.
+    assert.equal(lost.lifecycle.step, null);
+    assert.equal(lost.lifecycle.detail, "no state source answered; its last line said review");
   });
 
   test("a worker is the whole shape, not a subset of it", async () => {
@@ -201,6 +216,33 @@ describe("the deck part", () => {
         "wi-brackish-277 queued later",
       ],
     );
+  });
+
+  test("says what project an item belongs to and whether it is research", async () => {
+    const { content } = (await documentOf("healthy")).deck;
+    assert.deepEqual(
+      content.map((item) => `${item.id} ${item.project ?? "-"} ${item.kind ?? "-"}`),
+      [
+        "wi-lamplight-231 lamplight build",
+        "wi-cordage-412 cordage build",
+        "wi-tidewater-126 tidewater research",
+        // A kind this build has never seen is building, the same rule a
+        // worker's kind gets and from the same function.
+        "wi-saltmarsh-318 saltmarsh build",
+        "wi-driftwood-540 driftwood build",
+        // The row said neither, and the document says so rather than guessing.
+        "wi-brackish-277 - -",
+      ],
+    );
+  });
+
+  test("a record with no start date carries none", async () => {
+    const { content } = (await documentOf("healthy")).deck;
+    const undated = content.find((item) => item.id === "wi-brackish-277")!;
+    // Not the moment upstream looked, which is what it used to be: an item
+    // queued a month ago would have read as having just arrived.
+    assert.equal(undated.since, null);
+    assert.equal(content[0].since, "2099-01-01T09:10:00.000Z", "a row that did say still says");
   });
 
   test("says what an item is blocked by", async () => {

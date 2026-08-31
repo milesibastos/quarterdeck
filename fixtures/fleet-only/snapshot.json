@@ -265,6 +265,31 @@
         "url": null,
         "source": "absent"
       }
+    },
+    {
+      "id": "wi-brackish-288",
+      "project": "brackish",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-brackish-288.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-brackish-288",
+          "present": false
+        }
+      },
+      "current_state": {
+        "state": "unknown",
+        "source": "pane",
+        "detail": "no state source answered; its last line said review",
+        "observed_at": "2099-01-01T08:57:40.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
     }
   ],
   "backlog": {

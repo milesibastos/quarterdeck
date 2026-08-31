@@ -32,6 +32,8 @@ interface StageLook {
  * four different tones on purpose: held wants a person, waiting wants nothing
  * from anybody, blocked wants another work item, and only failed is a fault.
  * One alarming colour for all four would hide the only one that is an alarm.
+ * `unseen` is a fifth thing again and is toned as such - it says nothing about
+ * the work, only that the panel cannot see it.
  *
  * Their edge is dashed as well as tinted. Hue alone has to carry ten stages
  * across six tokens, so on-track and off-track are told apart by the shape of
@@ -108,6 +110,20 @@ const STAGE: Readonly<Record<Stage, StageLook>> = {
     accent: "border-l-danger border-dashed",
     pip: "bg-danger",
   },
+  /*
+    Not a position on the rail and not a reason for stopping: the panel could
+    not see this worker at all. Drawn in the muted tone rather than an alarming
+    one, because losing sight of a worker is not the same as that worker being
+    in trouble - and the whole rail stays unlit, because a stage nobody can read
+    has got nowhere as far as this panel knows.
+  */
+  unseen: {
+    label: "Unseen",
+    position: null,
+    chip: "bg-muted text-muted-foreground",
+    accent: "border-l-muted-foreground/40 border-dashed",
+    pip: "bg-muted-foreground",
+  },
 };
 
 /** The pipeline's steps in the order they run, so a step can say how far in. */
@@ -161,6 +177,11 @@ export function StageChip({ stage }: { stage: Stage }) {
  * pipeline step, and the steps only run inside validation - so a halted worker
  * naming one was validating when it stopped. A halted worker naming none gets
  * no position rather than a guessed one; see the note in fleet-lens.tsx.
+ *
+ * An unseen worker never reaches that deduction: the projection reads no step
+ * for it, because the words it would read are upstream's account of what it
+ * could not see. So the rail stays unlit rather than placing a worker the panel
+ * has lost sight of somewhere on the track.
  */
 function reachedIndex(lifecycle: Lifecycle): number | null {
   const own = STAGE[lifecycle.stage].position;

@@ -539,10 +539,11 @@ describe("upstream's shape, projected", () => {
         // A finished run is the end of the on-track sequence.
         "wi-cordage-504 landed",
         "wi-tidewater-505 failed",
-        // Deliberately idling, and upstream unable to tell, both stop at
-        // `waiting` - the one halted stage that asserts no cause in the fleet.
+        // Deliberately idling is a wait. Upstream being unable to tell is not:
+        // it is the panel having lost sight of the worker, which is its own
+        // stage rather than a position on the track or a reason for stopping.
         "wi-lamplight-506 waiting",
-        "wi-saltmarsh-507 waiting",
+        "wi-saltmarsh-507 unseen",
         // Upstream says `done` for both a merged pull request and one whose
         // checks merely went green. They are different places to be.
         "wi-northreach-508 pr-open",
@@ -567,6 +568,8 @@ describe("upstream's shape, projected", () => {
   test("a worker upstream could not read says so in its own words", async () => {
     const { content } = (await fleetOf("upstream-shape")).fleet;
     const lost = content.find((worker) => worker.id === "wi-saltmarsh-507")!;
+    assert.equal(lost.lifecycle.stage, "unseen", "the panel cannot see it, and says that");
+    assert.equal(lost.lifecycle.step, null, "and claims no position inside the pipeline");
     assert.equal(lost.lifecycle.detail, "worktree gone (torn down?)");
     assert.equal(lost.worktree.present, false);
   });
@@ -618,10 +621,26 @@ describe("upstream's shape, projected", () => {
     assert.equal(content.length, 5, "one unstructured line and one done row dropped");
   });
 
-  test("a start date widens to an instant; a row that did not say gets the read", async () => {
+  test("a start date widens to an instant; a row that did not say carries none", async () => {
     const { content } = (await fleetOf("upstream-shape")).deck;
     assert.equal(content[0].since, "2099-01-01T00:00:00.000Z");
-    assert.equal(content[3].since, "2099-01-01T09:15:00.000Z", "when upstream looked");
+    assert.equal(content[3].since, null, "not the moment upstream happened to look");
+  });
+
+  test("a record carries the project and kind upstream published for it", async () => {
+    const { content } = (await fleetOf("upstream-shape")).deck;
+    assert.deepEqual(
+      content.map((item) => `${item.id} ${item.project ?? "-"} ${item.kind ?? "-"}`),
+      [
+        "wi-tidewater-501 tidewater build",
+        "wi-cordage-512 cordage build",
+        "wi-lamplight-513 lamplight research",
+        // The row that was cleaned down to nothing named neither, and neither
+        // is invented for it.
+        "wi-saltmarsh-514 - -",
+        "wi-northreach-508 northreach build",
+      ],
+    );
   });
 
   test("a deferral that is not a date is not carried as one", async () => {

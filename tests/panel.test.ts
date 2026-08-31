@@ -243,6 +243,43 @@ describe("the deck lens", () => {
     assert.ok(html.includes("2099-01-04"));
   });
 
+  /** One row's visible words, tags and React's SSR comments taken out. */
+  function rowText(html: string, id: string): string {
+    const row = new RegExp(`data-deck-item="${id}"(.*?)</li>`, "s").exec(html)?.[1] ?? "";
+    return row
+      .replace(/<!--.*?-->/g, "")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  test("a row says what project it belongs to and whether it is research", async () => {
+    const html = await body(panel);
+    // Enough identity to recognise a piece of work by: two rows with similar
+    // titles are different jobs, and the project is what tells them apart.
+    assert.ok(rowText(html, "wi-tidewater-126").includes("tidewater \u00b7 research"));
+    assert.ok(rowText(html, "wi-lamplight-231").includes("lamplight \u00b7 build"));
+    // A kind nobody recognised is building, and still has its project.
+    assert.ok(rowText(html, "wi-driftwood-540").includes("driftwood \u00b7 build"));
+  });
+
+  test("a row that named neither project nor kind invents neither", async () => {
+    const text = rowText(await body(panel), "wi-brackish-277");
+    assert.ok(text.length > 0, "the row is on screen");
+    assert.ok(
+      text.includes("queued \u00b7 wi-brackish-277"),
+      "the state runs straight into the id, with nothing guessed in between",
+    );
+    assert.ok(!text.includes("build") && !text.includes("research"), "no kind is claimed");
+  });
+
+  test("a row with no start date is not dated anyway", async () => {
+    const text = rowText(await body(panel), "wi-brackish-277");
+    assert.ok(text.includes("no start date"), "the absence, said in words");
+    assert.ok(!/\d+[smhdy] ago/.test(text), "and no age invented from the moment we read");
+    assert.ok(!text.includes("just now"), "nor the read's own moment dressed as an arrival");
+  });
+
   test("a blocker that has landed does not keep an item looking blocked", async () => {
     const html = await body(panel);
     // wi-cordage-401 is in the fleet and landed, so the item it blocked is
