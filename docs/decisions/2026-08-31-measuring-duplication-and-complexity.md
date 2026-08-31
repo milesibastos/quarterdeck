@@ -138,7 +138,7 @@ the repository root: `.qlty/configs/` was tried first and this CLI does not read
 it, which fails **silently** - the run reports exactly what it would with no
 config at all.
 
-**markdownlint.** 69 tracked `.md` files and nothing had ever read them. 212
+**markdownlint.** 70 tracked `.md` files and nothing had ever read them. 212
 findings, 201 of them MD013 against table cells and code blocks. `docs/quality.md`
 is one row per area with a sentence-heavy cell, the longest over 3,000
 characters, and markdown gives a cell no way to wrap; code blocks quote commands

@@ -125,7 +125,7 @@ file_patterns = [".agents/**"]
 # Each of these answers a question nothing else in this project answers. None
 # of them repeats eslint, the invariant checks or the test suite.
 
-# 69 tracked `.md` files - the architecture, the contract, the principles and
+# 70 tracked `.md` files - the architecture, the contract, the principles and
 # one dated record per settled decision - and until now nothing read any of
 # them. Configured in `.markdownlint.yaml` at the repository root, where the one
 # retuned rule carries its reason.
