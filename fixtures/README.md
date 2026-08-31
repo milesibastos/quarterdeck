@@ -27,22 +27,48 @@ Whether it reads fixture sets at all is a config value too. Set
 those homes' snapshot commands instead; leave it unset - which is every test
 run, and development on a machine with no fleet - and it reads the sets above.
 
-## Two files per set
+## Up to three files per set
 
-The panel has two readers, with two different promises, so a set has two files.
+The panel has three readers, with three different promises, so a set has up to
+three files.
 
 - `snapshot.json` - the upstream contract, carrying the fleet and the deck. It
   parses or it refuses; the schema identifier is pinned.
 - `health.json` - the panel's own shape, read by the quarantined module. It may
   be absent, malformed or partly unreadable, and the module degrades rather than
   throwing.
+- `terminal.json` - the panel's own shape again, read only when an operator
+  expands a worker card. Optional: a set without one is a synthetic fleet that
+  records no sessions, and every card in it says so rather than failing.
 
 That is why a set can be dark in one lens and current in the others, and every
 combination below has somewhere to live.
 
+### `terminal.json`
+
+One entry per work item id, in the reading's own shape - the same arrangement
+`health.json` uses, and for the same reason: there is no upstream contract for a
+pane capture, so a synthetic fleet has to be able to state the failures as well
+as the text.
+
+```json
+{
+  "wi-tidewater-114": { "read": "ok", "text": "raw capture, escapes and all" },
+  "wi-saltmarsh-302": { "read": "unreadable", "detail": "..." },
+  "wi-saltmarsh-305": { "read": "no-session", "detail": "..." }
+}
+```
+
+An id the file does not name reads as `no-session`, which is what a fleet whose
+worker has no window looks like. An `ok` entry carries **raw** captured text -
+escape sequences, carriage returns, tabs, over-long lines - rather than clean
+lines, so a fixture goes through exactly the normalising a real capture does;
+one that normalises to nothing reads as `silent`. See
+`docs/decisions/2026-08-31-the-worker-terminal.md`.
+
 | Set | What it exercises |
 | --- | --- |
-| `healthy` | A worker in every coarse stage, on-track and off, plus both validating shapes - a detail that names a pipeline step and one that names none. A deck with something queued, something blocked by another item, something held for a person with a reason and a deferral date, another held for a person with no deferral so it can be answered outright, one held for something that is not a person and so cannot be answered at all, and one done record the projection drops. Its rows name a project and a kind - research, build, and a kind nobody recognised - except one that names neither and carries no start date. Health signals good, with a queue read empty and the home held with nobody away. Also the richest set for what was recorded at dispatch: a worker with a branch, runtime, model and effort and one with none of them, a third with only a branch, all three delivery contracts plus one nobody recognises plus a scout that has none, a brief carrying its summary and full text and another carrying only a summary. Its three pull requests carry a forge that was read - pending, failing and passing - with a review that found one comment, a review that found none, and a review that could not be read. Its landed lens carries this home's own merged work beside three things second mates landed in theirs, one with no address and no date and one whose home upstream did not name; its omissions name a bounded home, a home that did not answer, and one upstream does not fully trust. |
+| `healthy` | A worker in every coarse stage, on-track and off, plus both validating shapes - a detail that names a pipeline step and one that names none. A deck with something queued, something blocked by another item, something held for a person with a reason and a deferral date, another held for a person with no deferral so it can be answered outright, one held for something that is not a person and so cannot be answered at all, and one done record the projection drops. Its rows name a project and a kind - research, build, and a kind nobody recognised - except one that names neither and carries no start date. Health signals good, with a queue read empty and the home held with nobody away. Also the richest set for what was recorded at dispatch: a worker with a branch, runtime, model and effort and one with none of them, a third with only a branch, all three delivery contracts plus one nobody recognises plus a scout that has none, a brief carrying its summary and full text and another carrying only a summary. Its three pull requests carry a forge that was read - pending, failing and passing - with a review that found one comment, a review that found none, and a review that could not be read. Its landed lens carries this home's own merged work beside three things second mates landed in theirs, one with no address and no date and one whose home upstream did not name; its omissions name a bounded home, a home that did not answer, and one upstream does not fully trust. The one set with a `terminal.json`, carrying all four readings a card can draw: a plain tail, one full of escapes and a redrawn progress line and a line far wider than the column, a scrollback longer than fifteen lines, a session that answered with nothing, one that could not be read, one recorded as gone, and several workers it names no session for at all. |
 | `empty` | A clean read of all three lenses that reports nothing running and nothing queued - the definitive empty state, not a blank area. |
 | `stale` | Valid content generated long ago. Renders, with every lens marked stale. Its health signals read cleanly and have something to report: a supervision cycle last seen a while back, a notification queue that is not draining, an operator away with the home unlocked, one overdue item, one record that disagrees. |
 | `mismatched` | A schema identifier this build does not understand. The loud typed refusal, and no lens rendered at all. |

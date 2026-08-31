@@ -10,6 +10,7 @@ import { FleetPicker } from "@/ui/fleet-picker";
 import { Shell } from "@/ui/shell";
 import { LiveRefresh } from "@/ui/live-refresh";
 import type { AnsweringSession } from "@/ui/deck/answer-control";
+import type { TerminalReader } from "@/ui/fleet/worker-terminal";
 
 /**
  * The composition point.
@@ -87,6 +88,21 @@ function answering(fleet: FleetRef): AnsweringSession | null {
 }
 
 /**
+ * Where a card reads its worker's session, with the fleet already named.
+ *
+ * Named on the address rather than left to the selection cookie: a card asks
+ * about the fleet it was drawn from, and a switch that lands between the render
+ * and the click must not answer out of the other fleet's sessions - the same
+ * reason the change stream carries the fleet on its query.
+ *
+ * Nothing calls it on the first paint. It exists so that a card the operator
+ * expands has somewhere to ask.
+ */
+function terminalReader(fleet: FleetRef): TerminalReader {
+  return { endpoint: `/api/terminal?fleet=${encodeURIComponent(fleet.id)}` };
+}
+
+/**
  * Which fleet the operator last chose, or the first one configured.
  *
  * The selection is remembered in their browser rather than on this machine, so
@@ -123,6 +139,7 @@ export default async function Page() {
         <Shell
           document={outcome.document}
           nowMs={clockFor(config).nowMs()}
+          terminal={terminalReader(fleet)}
           session={answering(fleet)}
         />
       )}

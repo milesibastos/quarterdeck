@@ -1,0 +1,26 @@
+{
+  "wi-tidewater-114": {
+    "read": "ok",
+    "text": "$ npm test\n> quarterdeck@0.1.0 test\n\nchecking the invariants\n  forward-dependency   ok\n  domain-purity        ok\n  single-writer        ok\ndriving the built server\n  tests/panel.test.ts        18 passing\n  tests/fleet-lens.test.ts   11 passing\n\nwaiting on tests/deck.test.ts\n\n"
+  },
+  "wi-tidewater-118": {
+    "read": "ok",
+    "text": "\u001b]0;wi-tidewater-118\u0007\u001b[1;32m==>\u001b[0m rebasing onto main\n\u001b[2K\rfetching  10%\rfetching  64%\rfetching 100%\nstep\tstatus\tseconds\nlint\tok\t3\n\u001b[31mreview\tholding\t41\u001b[0m\ntrace: quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:quarterdeck/src/runtime/fleet.ts:\nwaiting for the reviewer"
+  },
+  "wi-lamplight-207": {
+    "read": "ok",
+    "text": "line 01 of the scrollback\nline 02 of the scrollback\nline 03 of the scrollback\nline 04 of the scrollback\nline 05 of the scrollback\nline 06 of the scrollback\nline 07 of the scrollback\nline 08 of the scrollback\nline 09 of the scrollback\nline 10 of the scrollback\nline 11 of the scrollback\nline 12 of the scrollback\nline 13 of the scrollback\nline 14 of the scrollback\nline 15 of the scrollback\nline 16 of the scrollback\nline 17 of the scrollback\nline 18 of the scrollback\nline 19 of the scrollback\nline 20 of the scrollback\nline 21 of the scrollback\nline 22 of the scrollback"
+  },
+  "wi-lamplight-211": {
+    "read": "ok",
+    "text": "\n   \n\n\n"
+  },
+  "wi-saltmarsh-302": {
+    "read": "unreadable",
+    "detail": "the session tool answered, but the pane for wi-saltmarsh-302 could not be captured."
+  },
+  "wi-saltmarsh-305": {
+    "read": "no-session",
+    "detail": "no session is recorded for wi-saltmarsh-305; its window was torn down."
+  }
+}

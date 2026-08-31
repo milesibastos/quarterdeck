@@ -9,6 +9,11 @@ import {
   type SnapshotSource,
 } from "../adapters/contract.ts";
 import { readFleetHomeHealth, readHealth } from "../adapters/health.ts";
+import {
+  fixtureTerminalSource,
+  fleetTerminalSource,
+  type TerminalSource,
+} from "../adapters/terminal.ts";
 import type { Config, FleetRef } from "../config/index.ts";
 import { projectDocument, withSnapshotUnreadable } from "../domain/project.ts";
 import { fixedClock, systemClock, type Clock } from "../providers/clock.ts";
@@ -234,6 +239,27 @@ export function fleetRuntime(config: Config, fleet: FleetRef): FleetRuntime {
   runtime.start();
   runtimes.set(fleet.id, runtime);
   return runtime;
+}
+
+/**
+ * Where one fleet's worker terminals are read from.
+ *
+ * A factory rather than a part of `FleetRuntime`, deliberately. The runtime is
+ * the refresh loop: it watches, coalesces, caches and holds a last-known-good,
+ * and none of that applies here. A terminal is read once, when somebody opens a
+ * card, and is never read again until they open another - so it has no cache to
+ * invalidate and nothing to watch. Hanging it off the runtime would suggest
+ * otherwise, and would put an on-demand read inside the thing the first paint
+ * waits on.
+ *
+ * It lives here rather than in the route because this is where the two source
+ * kinds are already told apart, and one file deciding "home or fixture" is what
+ * keeps a fixture fleet behaving exactly as a real one does.
+ */
+export function terminalSourceFor(config: Config, fleet: FleetRef): TerminalSource {
+  return fleet.source.kind === "home"
+    ? fleetTerminalSource(fleet.source.home, childProcessRunner, process.env)
+    : fixtureTerminalSource(config.fixtureRoot, fleet.source.set);
 }
 
 /** How one fleet's source, watchers and health reading are wired. */

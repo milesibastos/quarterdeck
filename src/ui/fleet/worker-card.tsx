@@ -1,6 +1,7 @@
 import type { PathRef, PullRequest, Worker } from "@/types/document.ts";
 import { Card, CardContent } from "@/ui/components/card";
 import { LifecycleRail, StageChip, stageAccent } from "@/ui/fleet/lifecycle-rail";
+import { WorkerTerminal, type TerminalReader } from "@/ui/fleet/worker-terminal";
 import { ago } from "@/ui/lib/age";
 import { cn } from "@/ui/lib/utils";
 
@@ -8,10 +9,11 @@ import { cn } from "@/ui/lib/utils";
  * One piece of work under way.
  *
  * The card answers four things without being clicked - what this is, whose
- * project, research or build, and whether it is fine - and holds one thing a
- * disclosure away. That one thing is the instructions it was dispatched with:
- * worth having when the operator is asking "what is this worker even doing",
- * noise on eleven cards at once.
+ * project, research or build, and whether it is fine - and holds two things a
+ * disclosure away. The first is the instructions it was dispatched with: worth
+ * having when the operator is asking "what is this worker even doing", noise on
+ * eleven cards at once. The second is the worker's own terminal, which is read
+ * only when it is opened and costs a closed card nothing at all.
  */
 
 const KIND_LABEL = { build: "build", research: "research" } as const;
@@ -74,7 +76,22 @@ function PullRequestLine({ pullRequest }: { pullRequest: PullRequest }) {
   );
 }
 
-export function WorkerCard({ worker, nowMs }: { worker: Worker; nowMs: number }) {
+export function WorkerCard({
+  worker,
+  nowMs,
+  terminal,
+}: {
+  worker: Worker;
+  nowMs: number;
+  /**
+   * How this card reads its worker's session, when somebody opens it.
+   *
+   * The one thing on the card that is not the document, and it arrives from the
+   * composition point for exactly that reason: `src/ui/` cannot read a fleet, so
+   * the read it offers has to be handed to it as an address.
+   */
+  terminal: TerminalReader;
+}) {
   const { lifecycle } = worker;
   return (
     <Card
@@ -134,6 +151,12 @@ export function WorkerCard({ worker, nowMs }: { worker: Worker; nowMs: number })
             <Pointer label="brief" path={worker.brief} />
           </div>
         </details>
+
+        {/*
+          The worker's own words, fetched only when this is opened. Nothing
+          about it touches the first paint; see `worker-terminal.tsx`.
+        */}
+        <WorkerTerminal worker={worker.id} reader={terminal} />
       </CardContent>
     </Card>
   );

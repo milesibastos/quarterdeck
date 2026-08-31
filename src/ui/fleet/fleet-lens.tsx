@@ -1,5 +1,6 @@
 import type { Lens, Worker } from "@/types/document.ts";
 import { WorkerCard } from "@/ui/fleet/worker-card";
+import type { TerminalReader } from "@/ui/fleet/worker-terminal";
 import { LensFrame } from "@/ui/lens-frame";
 import { ago } from "@/ui/lib/age";
 
@@ -88,10 +89,13 @@ function LastGoodPicture({
 export function FleetLens({
   lens,
   nowMs,
+  terminal,
 }: {
   lens: Lens<readonly Worker[]>;
   /** Chosen by the composition point, so the ages agree with the projection. */
   nowMs: number;
+  /** How a card reads its worker's session once the operator opens it. */
+  terminal: TerminalReader;
 }) {
   const workers = lens.content;
   const { status } = lens;
@@ -112,7 +116,7 @@ export function FleetLens({
         <ul className="flex flex-col gap-2">
           {workers.map((worker) => (
             <li key={worker.id}>
-              <WorkerCard worker={worker} nowMs={nowMs} />
+              <WorkerCard worker={worker} nowMs={nowMs} terminal={terminal} />
             </li>
           ))}
         </ul>
