@@ -20,19 +20,74 @@ config_version = "0"
 # offers us would either duplicate a check this project already runs or reach
 # the network. See the decision record.
 
-# Deliberately short. qlty already skips what `.gitignore` skips, so
-# node_modules, `.next/` and `dist/` need no entry here. What is left is the
-# tracked source that is not ours to measure.
+# qlty already skips what `.gitignore` skips, so node_modules, `.next/` and
+# `dist/` need no entry here. What is left is in two halves: source that is not
+# ours to measure, and four files where the finding is real but every edit that
+# would clear it is one this project has already refused in writing.
+#
+# This list is the only lever qlty gives for the second half. There is no
+# per-path threshold, and its inline `qlty-ignore` comment applies to the
+# linter pipeline and not to smells; both were tried. A file named here leaves
+# `qlty smells` and `qlty metrics` alike, and that is the cost - accepted
+# because every alternative moves a global number to suit one file. Lifting
+# `file_complexity` from 50 to clear health.ts at 86 would let
+# `src/domain/project.ts`, at 46 today, nearly double in silence: the check
+# would stop working for all 83 files in order to excuse one.
 #
 # Note what is NOT here: qlty's generated default excluded `**/config/**`,
 # which would have silently swallowed `src/config/` - real quarterdeck source.
-# Anything added to this list must be checked against `src/` first.
+# Anything added to this list must be checked against `src/` first, and must
+# arrive with the reason written beside it. The long form of each reason below
+# is in `docs/decisions/2026-08-31-what-the-parallel-lens-build-duplicated.md`.
 exclude_patterns = [
   # Generated: Next writes `next-env.d.ts`, and `.d.ts` files carry no logic.
   "**/*.d.ts",
   # Deliberately broken source, read as text by the invariant checks. eslint
   # ignores it for the same reason - see `eslint.config.mjs`.
   "tests/violations/**",
+
+  # Vendored from the brainless registry and re-tokenised onto quarterdeck's
+  # palette, which is the whole of what this project did to them. qlty reports
+  # duplication inside `grok-write.tsx` and complexity in
+  # `grok-project-picker`, `grok-settings`, `grok-thinking` and `grok-working`;
+  # all four are upstream's to answer for. Editing them to quieten a report
+  # here would mean this project maintains a fork of somebody else's component,
+  # which costs more than the finding is worth. See
+  # `docs/decisions/2026-08-31-the-terminal-grammar.md`.
+  "src/ui/components/grok/**",
+
+  # THE QUARANTINED MODULE: file complexity 86 against a threshold of 50, and
+  # it cannot be split. Invariant 4 confines every fleet-internal path to this
+  # one file and `npm test` enforces that.
+  #
+  # Measured rather than assumed: split at the file's own seam - the
+  # health.json parser above, the fleet-home readers below - the parser half
+  # falls to 16 and the reader half stays at 71, still over. The half carrying
+  # the complexity is the half in which every function names a path, which is
+  # exactly the half the invariant forbids spreading. The only edit that clears
+  # this finding is the one the test suite refuses.
+  #
+  # This also silences `idleSinceMs`, which has six returns: six guard clauses
+  # parsing the fleet's busy-state contract, each naming a distinct way the
+  # record fails to mean what it claims. Same judgement as `return_statements`.
+  "src/adapters/health.ts",
+
+  # `KeyboardHelp` reports complexity 33 and seven returns; `FleetPicker`
+  # reports 19. Both numbers are qlty folding a nested closure into the
+  # component that declares it - the `keydown` dispatcher inside an effect, the
+  # callbacks inside JSX props - which is how React is written rather than a
+  # fact about these two files. `qlty metrics` measures the whole of
+  # `keyboard-help.tsx` at cyclomatic 21 across five functions, against the 33
+  # it attributes to one of them.
+  #
+  # Hoisting the handler to module scope would move the number without removing
+  # a branch, and would hand one caller an extraction. That is the contortion
+  # this file exists to refuse, so the measurement is switched off for these
+  # two rather than the code bent to it. `function_complexity` stays at qlty's
+  # default of 18 for every other component, which is worth more than either
+  # exclusion costs.
+  "src/ui/keyboard-help.tsx",
+  "src/ui/fleet-picker.tsx",
 ]
 
 # `qlty smells` skips these unless asked for them with `--include-tests`.
@@ -44,7 +99,9 @@ test_patterns = [
 
 # Every smell qlty can find, with its threshold written out rather than left
 # implicit, so the next contributor can see what is measured and at what number
-# it fires. These are qlty's defaults as of CLI 0.644.0; none has been loosened.
+# it fires. These are qlty's defaults as of CLI 0.644.0 with one exception,
+# `return_statements`, which is raised by one and says below what it was
+# measured against. Nothing else has been loosened.
 [smells]
 
 # Duplication: the reason this tool is here. `identical_code` is copy-paste,
@@ -85,9 +142,27 @@ threshold = 5
 enabled = true
 threshold = 6
 
+# Raised from qlty's default of 6, deliberately and by one.
+#
+# A smell fires at the threshold, not past it, so 6 flagged every function with
+# exactly six returns - and in this codebase that is the shape of a validator,
+# not the shape of a problem. Measured against these six:
+#
+#   `keyedAnswerLine` and `submitIntent`  src/adapters/intent.ts
+#   `read`                                src/adapters/terminal.ts
+#   `recheck`                             src/app/api/act/[...intent]/route.ts
+#   `ago`                                 src/ui/lib/age.ts
+#   `AnswerControl`                       src/ui/needs-you/answer-control.tsx
+#
+# Four of them are refusal ladders: one early return per distinct reason to
+# refuse, each carrying the sentence an operator reads. `ago` is a ladder of
+# units. Nesting any of them to reach five returns would hide which refusal a
+# reader is looking at, which is the one thing these functions exist to make
+# obvious. Seven is the smallest number that clears the six and still fires on
+# a seventh branch nobody planned.
 [smells.return_statements]
 enabled = true
-threshold = 6
+threshold = 7
 
 [[source]]
 name = "default"

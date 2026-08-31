@@ -1,5 +1,5 @@
 import type { PanelDocument } from "@/types/document.ts";
-import type { AnsweringSession } from "@/ui/deck/answer-control";
+import type { AnsweringSession } from "@/ui/lib/answering";
 import type { MergeSession } from "@/ui/needs-you/merge-card";
 import { GrokHeader, GrokLogo } from "@/ui/components/grok/grok-header";
 import { DeckLens } from "@/ui/deck/deck-lens";
@@ -107,7 +107,7 @@ export function Shell({
    */
   terminal: TerminalReader;
   /**
-   * How an answer reaches the server, for the deck's answerable items.
+   * How an answer reaches the server, for the band's held decisions.
    *
    * One of the two things on this page that are not the document. It has to
    * come from the composition point: `src/ui/` cannot read the runtime, which
@@ -203,12 +203,7 @@ export function Shell({
           started. It draws what the band above did not - the same fold, called
           once in `src/ui/needs-you/needs-you.ts`, so no row can fall between
           the two. */}
-      <DeckLens
-        lens={document.deck}
-        fleet={document.fleet.content}
-        nowMs={nowMs}
-        session={session}
-      />
+      <DeckLens lens={document.deck} fleet={document.fleet.content} nowMs={nowMs} />
 
       {/* What finished. Below the fold and drawn at ordinary weight: it is a
           record rather than a call for attention, and the first screen belongs

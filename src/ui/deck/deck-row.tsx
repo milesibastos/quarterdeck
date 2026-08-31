@@ -1,10 +1,8 @@
-import type { DeckItem, Priority } from "@/types/document.ts";
+import type { Priority } from "@/types/document.ts";
 import { GrokTool } from "@/ui/components/grok/grok-tool";
-import { agoAtPrecision } from "@/ui/lib/age";
+import { ItemIdentity } from "@/ui/lib/item-identity";
 import { cn } from "@/ui/lib/utils";
 import type { Blocker, DeckRow as Row } from "@/ui/deck/deck-groups";
-import { isAnswerable } from "@/ui/deck/deck-groups";
-import { AnswerControl, type AnsweringSession } from "@/ui/deck/answer-control";
 
 /**
  * One line of the deck: what the work is, and whatever is in its way.
@@ -36,17 +34,6 @@ const PRIORITY_TONE: Readonly<Record<Priority, string>> = {
   now: "text-term-accent",
   next: "text-term-fg",
   later: "text-term-faint",
-};
-
-const STATE_WORDS: Readonly<Record<DeckItem["state"], string>> = {
-  queued: "queued",
-  "in-flight": "in flight",
-};
-
-/** The same two words the fleet's cards use, so one job reads the same in both. */
-const KIND_WORDS: Readonly<Record<NonNullable<DeckItem["kind"]>, string>> = {
-  build: "build",
-  research: "research",
 };
 
 /**
@@ -101,56 +88,38 @@ function BlockerLine({ blocker }: { blocker: Blocker }) {
 }
 
 /**
- * The two surfaces this row is drawn on.
+ * One line in a pile: a rail down the left edge and nothing else, so a deck of
+ * fifteen reads as a list rather than as fifteen competing objects.
  *
- * `row` is a line in a pile: a rail down the left edge and nothing else, so a
- * deck of fifteen reads as a list rather than as fifteen competing objects.
- * `card` is the same content in a box of its own, which is what the needs-you
- * band draws its decisions as - a thing that is waiting on a person is not a
- * line item, and the band's grid needs cells with edges. Same component either
- * way, because a decision an operator answers in the band and the same decision
- * seen in the deck must not read as two different pieces of work.
- */
-export type DeckRowTone = "row" | "card";
-
-const TONE: Readonly<Record<DeckRowTone, string>> = {
-  row: "py-1.5 pl-3",
-  card: "rounded-sm border border-term-rule-soft bg-term-bg p-3",
-};
-
-/**
- * The heading level each surface sits at, so the page's outline never skips.
+ * The heading is an `h4` because a pile has its own `h3` above it, and the
+ * page's outline may not skip. There is one surface and one level: the row used
+ * to carry a `card` tone for the needs-you band, and the band draws its own
+ * `DecisionCard` now.
  *
- * A pile in the deck has its own `h3` above it and its rows are `h4`. A card in
- * the needs-you band sits straight under the band's `h2` with no pile heading
- * in between, so it is an `h3`. The level is a fact about where the row was
- * drawn, which is exactly what `tone` already says - a second prop for it would
- * be a second chance to disagree.
+ * ## Why there is no answer control here
+ *
+ * This row cannot receive an answerable item, and the argument is worth stating
+ * because it is what a second copy of the answer control used to rest on. The
+ * only caller is `DeckLens`, which draws `needsYou(...).rest`: `rest.held` is
+ * every hold the band did not take, the band takes every `isAnswerable` one,
+ * and the other three piles are all `hold === null`. So no row arriving here
+ * satisfies both `hold !== null` and `isAnswerable`.
+ *
+ * That held while the deck carried a control anyway - it was dead code for as
+ * long as it existed. If a future change gives this component a second caller,
+ * or lets an answerable row into any pile, the argument lapses and the question
+ * of who offers the control has to be answered again rather than assumed. See
+ * `docs/decisions/2026-08-31-what-the-parallel-lens-build-duplicated.md`.
  */
-const HEADING: Readonly<Record<DeckRowTone, "h3" | "h4">> = {
-  row: "h4",
-  card: "h3",
-};
-
 export function DeckItemRow({
   row,
   nowMs,
-  session,
-  tone = "row",
 }: {
   row: Row;
   nowMs: number;
-  /**
-   * How an answer reaches the server, for the items that can be answered.
-   * `null` when nothing is configured to carry one.
-   */
-  session?: AnsweringSession | null;
-  /** Which surface it is drawn on. See `DeckRowTone`. */
-  tone?: DeckRowTone;
 }) {
   const { item, blocking, cleared } = row;
   const hold = item.hold;
-  const Heading = HEADING[tone];
   const accent = accentOf(row);
 
   return (
@@ -158,52 +127,28 @@ export function DeckItemRow({
       data-deck-item={item.id}
       data-actionable={item.actionable}
       className={cn(
-        "min-w-0 border-l-2 font-mono text-[13px] leading-[1.55]",
-        TONE[tone],
+        "min-w-0 border-l-2 py-1.5 pl-3 font-mono text-[13px] leading-[1.55]",
         accent.rail,
       )}
     >
-      {/*
-        Title and priority sit on one row with the priority pushed to the end.
-        The control that answers a held decision belongs beside it, and this
-        layout has the space for it - which is the whole reason it is a flex row
-        today rather than a heading with a badge after it.
-      */}
+      {/* Title and priority on one row, with the priority pushed to the end:
+          the rank is what the eye scans down, so it wants a column of its
+          own rather than a badge trailing a title of unpredictable length. */}
       <div className="flex items-baseline justify-between gap-2">
-        <Heading className="flex min-w-0 items-baseline gap-2 font-normal text-term-fg-bright">
+        <h4 className="flex min-w-0 items-baseline gap-2 font-normal text-term-fg-bright">
           <span aria-hidden className={cn("shrink-0", accent.mark)}>
             ◆
           </span>
           <span className="min-w-0 wrap-anywhere">{item.title}</span>
-        </Heading>
+        </h4>
         <span className={cn("shrink-0", PRIORITY_TONE[item.priority])}>
           [{item.priority}]
         </span>
       </div>
 
-      {/*
-        What this is and how long it has been: enough identity to recognise a
-        piece of work by. Project and kind are shown only when the row said -
-        a hand-written backlog line often names neither, and a guessed project
-        is worse than an absent one. The date is the same: a row with no start
-        says so rather than being stamped with the moment upstream looked, and a
-        row whose start is a day reads as a day rather than as an hour count
-        measured from a midnight the record never stated.
-      */}
-      <p className="mt-0.5 pl-4 text-[12px] wrap-anywhere text-term-faint">
-        <span className={item.since === null ? undefined : "text-term-fg"}>
-          {item.since === null ? "no start date" : agoAtPrecision(item.since, nowMs)}
-        </span>
-        {` · ${STATE_WORDS[item.state]}`}
-        {item.project !== null && (
-          <>
-            {" · "}
-            <span className="text-term-fg">{item.project}</span>
-          </>
-        )}
-        {item.kind !== null && ` · ${KIND_WORDS[item.kind]}`}
-        {` · ${item.id}`}
-      </p>
+      {/* Enough identity to recognise a piece of work by, in the one sentence
+          the band's cards also carry. See `ItemIdentity`. */}
+      <ItemIdentity item={item} nowMs={nowMs} emphasis="text-term-fg" className="pl-4" />
 
       {hold !== null && (
         <div className="mt-1.5 space-y-0.5 pl-4">
@@ -219,16 +164,6 @@ export function DeckItemRow({
             <p className="text-[12px] text-term-faint">
               deferred until <time dateTime={hold.deferredTo}>{hold.deferredTo}</time>
             </p>
-          )}
-          {/* Only a hold that waits on a person gets the control. A queue or a
-              date cannot be answered, and offering a text box against one
-              would promise something pressing it could never deliver. */}
-          {isAnswerable(item) && (
-            <AnswerControl
-              taskId={item.id}
-              since={item.since ?? ""}
-              session={session ?? null}
-            />
           )}
         </div>
       )}
