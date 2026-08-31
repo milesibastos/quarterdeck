@@ -1,6 +1,6 @@
-import type { DeckItem, Priority } from "@/types/document.ts";
+import type { Priority } from "@/types/document.ts";
 import { GrokTool } from "@/ui/components/grok/grok-tool";
-import { agoAtPrecision } from "@/ui/lib/age";
+import { ItemIdentity } from "@/ui/lib/item-identity";
 import { cn } from "@/ui/lib/utils";
 import type { Blocker, DeckRow as Row } from "@/ui/deck/deck-groups";
 
@@ -34,17 +34,6 @@ const PRIORITY_TONE: Readonly<Record<Priority, string>> = {
   now: "text-term-accent",
   next: "text-term-fg",
   later: "text-term-faint",
-};
-
-const STATE_WORDS: Readonly<Record<DeckItem["state"], string>> = {
-  queued: "queued",
-  "in-flight": "in flight",
-};
-
-/** The same two words the fleet's cards use, so one job reads the same in both. */
-const KIND_WORDS: Readonly<Record<NonNullable<DeckItem["kind"]>, string>> = {
-  build: "build",
-  research: "research",
 };
 
 /**
@@ -142,29 +131,9 @@ export function DeckItemRow({
         </span>
       </div>
 
-      {/*
-        What this is and how long it has been: enough identity to recognise a
-        piece of work by. Project and kind are shown only when the row said -
-        a hand-written backlog line often names neither, and a guessed project
-        is worse than an absent one. The date is the same: a row with no start
-        says so rather than being stamped with the moment upstream looked, and a
-        row whose start is a day reads as a day rather than as an hour count
-        measured from a midnight the record never stated.
-      */}
-      <p className="mt-0.5 pl-4 text-[12px] wrap-anywhere text-term-faint">
-        <span className={item.since === null ? undefined : "text-term-fg"}>
-          {item.since === null ? "no start date" : agoAtPrecision(item.since, nowMs)}
-        </span>
-        {` · ${STATE_WORDS[item.state]}`}
-        {item.project !== null && (
-          <>
-            {" · "}
-            <span className="text-term-fg">{item.project}</span>
-          </>
-        )}
-        {item.kind !== null && ` · ${KIND_WORDS[item.kind]}`}
-        {` · ${item.id}`}
-      </p>
+      {/* Enough identity to recognise a piece of work by, in the one sentence
+          the band's cards also carry. See `ItemIdentity`. */}
+      <ItemIdentity item={item} nowMs={nowMs} emphasis="text-term-fg" className="pl-4" />
 
       {hold !== null && (
         <div className="mt-1.5 space-y-0.5 pl-4">
