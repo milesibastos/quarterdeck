@@ -1,5 +1,5 @@
 import type { Lens, Omission, OmissionReason } from "@/types/document.ts";
-import { Card } from "@/ui/components/card";
+import { GrokEvent } from "@/ui/components/grok/grok-event";
 import { ago } from "@/ui/lib/age";
 
 /**
@@ -36,6 +36,15 @@ import { ago } from "@/ui/lib/age";
  * was never built, and with a page that forgot to render it. So it says so
  * plainly instead - and only when it is entitled to, which is the subtlety
  * below.
+ *
+ * ## The grammar
+ *
+ * grok's, per `docs/decisions/2026-08-31-the-terminal-grammar.md`. The frame is
+ * `grok-plan`'s box - a rule with the surface's name in its top edge - kept
+ * dashed, because a box drawn around what is *not* here should not be the same
+ * box the lenses draw around what is. Each absence sits behind the `┃` gutter
+ * `grok-write` uses, which is the grammar's mark for a detail hanging off a
+ * line above it, and every line the bar writes about itself is a `◆` event.
  */
 
 /** The three reasons, in the order they are drawn. */
@@ -81,26 +90,30 @@ function tally(omissions: readonly Omission[], snapshot: Lens<unknown>["status"]
 function Group({ reason, omissions }: { reason: OmissionReason; omissions: readonly Omission[] }) {
   if (omissions.length === 0) return null;
   return (
-    <section data-omission-group={reason} className="flex min-w-0 flex-col gap-1">
-      <h3 className="font-display text-sm tracking-wide text-foreground">
-        {REASON[reason]}
-        <span className="ml-2 font-mono text-[0.6875rem] tracking-wide text-muted-foreground uppercase">
-          {omissions.length}
+    <section
+      data-omission-group={reason}
+      className="flex min-w-0 flex-col gap-1 font-mono text-[13px] leading-[1.55]"
+    >
+      <h3 className="flex flex-wrap items-baseline gap-2 font-normal text-term-fg">
+        <span aria-hidden className="shrink-0 text-term-dim">
+          ◆
         </span>
+        <span className="min-w-0">{REASON[reason]}</span>
+        <span className="shrink-0 tabular-nums text-term-faint">[{omissions.length}]</span>
       </h3>
-      <p className="text-xs text-muted-foreground">{MEANING[reason]}</p>
-      <ul className="mt-0.5 flex min-w-0 flex-col gap-1.5">
+      <p className="pl-4 text-[12px] wrap-anywhere text-term-muted">{MEANING[reason]}</p>
+      <ul className="mt-0.5 flex min-w-0 flex-col gap-1.5 pl-4">
         {omissions.map((omission) => (
           <li
             key={`${omission.reason}:${omission.what}`}
             data-omission-reason={omission.reason}
-            className="min-w-0 border-l-2 border-border pl-2.5"
+            className="min-w-0 border-l-2 border-term-rule pl-2.5"
           >
-            <p className="min-w-0 wrap-anywhere text-sm text-foreground">{omission.what}</p>
+            <p className="min-w-0 wrap-anywhere text-term-fg">{omission.what}</p>
             {/* Upstream's own account of the absence, or the panel's own, as
                 written. A paraphrase here would be the bar restating a fact it
                 did not establish. */}
-            <p className="min-w-0 wrap-anywhere text-xs text-muted-foreground">{omission.detail}</p>
+            <p className="min-w-0 text-[12px] wrap-anywhere text-term-faint">{omission.detail}</p>
           </li>
         ))}
       </ul>
@@ -131,16 +144,17 @@ function NothingOmitted({
 }) {
   if (snapshot.state === "unreadable") {
     return (
-      <p data-disclosure-empty="unknown" className="text-sm wrap-anywhere text-foreground">
-        {`The read that would say what is missing is the read that failed, ${ago(snapshot.observedAt, nowMs)}. This page cannot account for what it is not showing.`}
-      </p>
+      <div data-disclosure-empty="unknown" className="min-w-0">
+        <GrokEvent
+          label={`The read that would say what is missing is the read that failed, ${ago(snapshot.observedAt, nowMs)}. This page cannot account for what it is not showing.`}
+        />
+      </div>
     );
   }
   return (
-    <p data-disclosure-empty="none" className="text-sm text-foreground">
-      Nothing is missing. Everything this page draws from was read, and every read was
-      complete.
-    </p>
+    <div data-disclosure-empty="none" className="min-w-0">
+      <GrokEvent label="Nothing is missing. Everything this page draws from was read, and every read was complete." />
+    </div>
   );
 }
 
@@ -169,53 +183,60 @@ export function DisclosureBar({
       aria-labelledby="disclosure-title"
       className="flex min-w-0 flex-col"
     >
-      <Card className="flex min-w-0 flex-col gap-3 border-dashed px-4 py-3.5">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <h2
-            id="disclosure-title"
-            className="font-display text-lg tracking-wide text-foreground"
-          >
+      <div className="flex min-w-0 flex-col overflow-hidden rounded-sm border border-dashed border-term-rule bg-term-bg">
+        {/*
+          The box's top edge carries the surface's name, which is the shape
+          `grok-plan` frames a file in. The rule that runs into the heading is
+          the grammar's; the words are the page's own.
+        */}
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-dashed border-term-rule px-4 py-2 font-mono text-[13px]">
+          <h2 id="disclosure-title" className="min-w-0 font-normal text-term-fg-bright">
+            <span aria-hidden className="text-term-dim">
+              {"─ "}
+            </span>
             What is not on this page
           </h2>
-          <p className="font-mono text-[0.6875rem] tracking-wide text-muted-foreground uppercase">
+          <p className="min-w-0 text-[12px] tracking-wide text-term-faint uppercase">
             {tally(omissions, snapshot)}
           </p>
         </div>
 
-        {omissions.length === 0 ? (
-          <NothingOmitted snapshot={snapshot} nowMs={nowMs} />
-        ) : (
-          <>
-            {/* A list carried over from the last clean read is still the best
-                account there is, and it is still worth drawing - but it is an
-                account of a page other than this one, and saying so is the
-                same honesty the list itself is for. */}
-            {snapshot.state === "unreadable" && (
-              <p className="font-mono text-[0.6875rem] wrap-anywhere text-muted-foreground">
-                {`The read failed ${ago(snapshot.observedAt, nowMs)}; this account is the last one that read cleanly, and absences raised since are not in it.`}
-              </p>
-            )}
-            {/*
-              As many columns as there are reasons to draw, and one of them per
-              column on a wide screen. `auto-fit` rather than a fixed three:
-              with one reason present a three-column track would leave two
-              thirds of the bar empty, and an absence list padded out with
-              whitespace reads as though something belongs there. Below the
-              minimum it stacks, in the same order - a bound, then a read
-              nobody did, then a read that failed.
-            */}
-            <div className="grid min-w-0 gap-x-6 gap-y-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr))]">
-              {ORDER.map((reason) => (
-                <Group
-                  key={reason}
-                  reason={reason}
-                  omissions={omissions.filter((omission) => omission.reason === reason)}
+        <div className="flex min-w-0 flex-col gap-3 px-4 py-3">
+          {omissions.length === 0 ? (
+            <NothingOmitted snapshot={snapshot} nowMs={nowMs} />
+          ) : (
+            <>
+              {/* A list carried over from the last clean read is still the best
+                  account there is, and it is still worth drawing - but it is an
+                  account of a page other than this one, and saying so is the
+                  same honesty the list itself is for. */}
+              {snapshot.state === "unreadable" && (
+                <GrokEvent
+                  label={`The read failed ${ago(snapshot.observedAt, nowMs)}; this account is the last one that read cleanly, and absences raised since are not in it.`}
                 />
-              ))}
-            </div>
-          </>
-        )}
-      </Card>
+              )}
+              {/*
+                As many columns as there are reasons to draw, and one of them per
+                column on a wide screen. `auto-fit` rather than a fixed three:
+                with one reason present a three-column track would leave two
+                thirds of the bar empty, and an absence list padded out with
+                whitespace reads as though something belongs there. Below the
+                minimum it stacks, in the same order - a bound, then a read
+                nobody did, then a read that failed.
+              */}
+              <div className="grid min-w-0 gap-x-6 gap-y-4 [grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr))]">
+                {ORDER.map((reason) => (
+                  <Group
+                    key={reason}
+                    reason={reason}
+                    omissions={omissions.filter((omission) => omission.reason === reason)}
+                  />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </section>
   );
 }

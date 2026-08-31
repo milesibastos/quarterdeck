@@ -1,7 +1,6 @@
 "use client";
 
 import { useId, useState } from "react";
-import { Button } from "@/ui/components/button";
 
 /**
  * The control that answers a held decision, and the only place the panel writes.
@@ -36,19 +35,24 @@ export interface AnsweringSession {
  * fleet's durable decision can say what was on screen and not only what was
  * typed. `note` is the consequence, said plainly, because the difference
  * between them is the one thing a hurried reader must not get wrong.
+ *
+ * `tone` is the only thing that tells the two presses apart on screen, and it
+ * is one step of emphasis rather than a second colour: both are ordinary
+ * bracketed terminal buttons, and the close that completes the item takes the
+ * accent because it is the one that cannot be walked back by resuming.
  */
 const CLOSES = [
   {
     mode: "done",
     label: "Answer and close",
     note: "records the answer and completes this item",
-    variant: "default",
+    tone: "text-term-accent",
   },
   {
     mode: "release",
     label: "Answer and resume",
     note: "records the answer and lifts the hold so the work resumes",
-    variant: "outline",
+    tone: "text-term-fg",
   },
 ] as const;
 
@@ -85,7 +89,7 @@ export function AnswerControl({
     return (
       <p
         data-answer-unavailable={taskId}
-        className="mt-2 font-mono text-[0.6875rem] text-muted-foreground"
+        className="mt-2 font-mono text-[12px] text-term-faint"
       >
         No answer spool is configured, so this decision cannot be answered here.
       </p>
@@ -125,13 +129,20 @@ export function AnswerControl({
 
   if (outcome.state === "recorded") {
     return (
-      <div role="status" data-answered={taskId} className="mt-2 space-y-0.5">
+      <div
+        role="status"
+        data-answered={taskId}
+        className="mt-2 space-y-0.5 font-mono text-[13px] leading-[1.55]"
+      >
         {/* Exactly what is true, and not one word past it. The fleet has not
             been asked yet, and this panel has read nothing since. */}
-        <p className="text-sm wrap-anywhere text-foreground">
+        <p className="wrap-anywhere text-term-fg">
+          <span aria-hidden className="text-term-success">
+            {"\u2713 "}
+          </span>
           {outcome.detail} The fleet will act on it at its next check.
         </p>
-        <p className="font-mono text-[0.6875rem] text-muted-foreground">
+        <p className="text-[12px] text-term-faint">
           This panel cannot say the decision is closed until a later reading shows it.
         </p>
       </div>
@@ -142,8 +153,14 @@ export function AnswerControl({
   const empty = answer.trim() === "";
 
   return (
-    <div data-answer-control={taskId} className="mt-2 space-y-1.5">
-      <label htmlFor={fieldId} className="block text-xs tracking-wide text-muted-foreground uppercase">
+    <div
+      data-answer-control={taskId}
+      className="mt-2 space-y-1.5 font-mono text-[13px] leading-[1.55]"
+    >
+      <label
+        htmlFor={fieldId}
+        className="block text-[12px] tracking-wide text-term-muted uppercase"
+      >
         Your answer
       </label>
       <textarea
@@ -153,29 +170,29 @@ export function AnswerControl({
         disabled={sending}
         onChange={(event) => setAnswer(event.target.value)}
         placeholder="In your own words. Recorded verbatim."
-        className="w-full resize-y rounded-lg border border-border bg-background px-2 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50"
+        className="w-full resize-y rounded-sm border border-term-rule bg-term-bg px-2 py-1.5 font-mono text-[13px] text-term-fg outline-none placeholder:text-term-faint focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
       />
       {/* Wraps rather than crowds: at a narrow width the two closes stack, and
           each keeps the line that says what it does. */}
       <div className="flex flex-wrap gap-1.5">
         {CLOSES.map((close) => (
-          <Button
+          <button
             key={close.mode}
-            size="xs"
-            variant={close.variant}
+            type="button"
             disabled={sending || empty}
             data-close-mode={close.mode}
             title={close.note}
             onClick={() => void send(close.mode, close.label)}
+            className={`rounded-sm border border-term-rule px-2 py-0.5 font-mono text-[13px] outline-none hover:bg-term-selected focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 ${close.tone}`}
           >
-            {close.label}
-          </Button>
+            [ {close.label} ]
+          </button>
         ))}
       </div>
       {/* The consequence of each close, spelled out rather than left to a
           tooltip: a pointer is not available to every reader, and choosing the
           wrong close is the one mistake here that is awkward to undo. */}
-      <ul className="space-y-0.5 font-mono text-[0.6875rem] text-muted-foreground">
+      <ul className="space-y-0.5 text-[12px] text-term-faint">
         {CLOSES.map((close) => (
           <li key={close.mode}>{`${close.label} — ${close.note}.`}</li>
         ))}
@@ -184,7 +201,10 @@ export function AnswerControl({
           operator has to do something, and it lands while their attention is
           on the button they just pressed. */}
       {outcome.state === "refused" && (
-        <p role="alert" className="text-sm wrap-anywhere text-destructive">
+        <p role="alert" className="wrap-anywhere text-term-danger">
+          <span aria-hidden className="text-term-danger">
+            {"\u2717 "}
+          </span>
           {outcome.detail}
         </p>
       )}
