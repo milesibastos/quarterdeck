@@ -112,6 +112,13 @@ paint, so `not-looked-up` is the ordinary answer rather than the exceptional one
 - which is exactly why it is worth being able to state plainly, and why it also
 appears in `omissions`.
 
+The panel can now fill both, through `gh`, when the operator sets
+`QUARTERDECK_READ_FORGE`. It reads only where upstream published nothing, never
+before a render has been served, and never more than once a minute per pull
+request. A read that failed comes back `unreadable` with the line it failed
+with, never as `not-looked-up`: saying nobody asked would be a lie about what
+the panel just did. See `docs/decisions/2026-08-31-reading-the-forge.md`.
+
 ### The lifecycle stage model
 
 Three things, not one.

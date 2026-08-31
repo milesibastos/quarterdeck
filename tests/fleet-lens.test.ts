@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
 import { portsFor } from "./lib/ports.ts";
@@ -321,6 +322,111 @@ describe("a fleet that cannot be trusted", () => {
       assert.ok(!html.includes("read cleanly"), "a stale read is not a clean one");
     } finally {
       await panel.stop();
+    }
+  });
+});
+
+/**
+ * The forge read, driven through the built server against a `gh` that is a
+ * shell script on the panel's own `PATH`.
+ *
+ * `tests/forge.test.ts` proves the cost rule against a stub. This proves the
+ * part a stub cannot: that the panel really starts the command, really reads
+ * what it prints, and - the claim the whole feature turns on - really starts
+ * nothing at all until the operator has asked for it.
+ *
+ * The clock is not pinned here on purpose. The floor is a minute of real time,
+ * the whole file runs in a fraction of it, and that is exactly what makes "the
+ * count did not move" a statement about the floor rather than about a fixture.
+ */
+describe("reading the forge", () => {
+  /** A `gh` that records the address it was asked about and answers the query. */
+  async function fakeForge(): Promise<{ dir: string; log: string }> {
+    const dir = await mkdtemp(join(tmpdir(), "quarterdeck-forge-"));
+    const log = join(dir, "asked.log");
+    const command = join(dir, "gh");
+    await writeFile(
+      command,
+      [
+        "#!/bin/sh",
+        // One line per address asked about, which is what the floor is counted in.
+        'for arg in "$@"; do',
+        '  case "$arg" in url=*) echo "${arg#url=}" >> "$QUARTERDECK_TEST_FORGE_LOG" ;; esac',
+        "done",
+        "cat <<'JSON'",
+        '{"data":{"resource":{',
+        '  "comments":{"totalCount":1,"nodes":[{"author":{"__typename":"User"}}]},',
+        '  "reviews":{"totalCount":0,"nodes":[]},',
+        '  "commits":{"nodes":[{"commit":{"statusCheckRollup":',
+        '    {"state":"SUCCESS","contexts":{"totalCount":4,"nodes":[]}}}}]}',
+        "}}}",
+        "JSON",
+        "",
+      ].join("\n"),
+    );
+    await chmod(command, 0o755);
+    return { dir, log };
+  }
+
+  /** How many addresses the fake forge has been asked about. */
+  async function asked(log: string): Promise<string[]> {
+    const text = await readFile(log, "utf8").catch(() => "");
+    return text.split("\n").filter((line) => line.length > 0);
+  }
+
+  function withForgeOnPath(dir: string): Record<string, string> {
+    return { PATH: `${dir}:${process.env.PATH ?? ""}`, QUARTERDECK_TEST_FORGE_LOG: join(dir, "asked.log") };
+  }
+
+  test("asks nothing, and says nobody asked, until the operator opts in", async () => {
+    const { dir, log } = await fakeForge();
+    const panel = await startPanel({
+      port: nextPort(),
+      fixtureSet: "fleet-only",
+      // The forge is right there on the path and reachable. What is missing is
+      // the operator having said so.
+      env: withForgeOnPath(dir),
+    });
+    try {
+      const html = await body(panel);
+      assert.ok(html.includes("checks not looked up"));
+      assert.ok(html.includes("comments not looked up"));
+      assert.deepEqual(await asked(log), [], "the first paint costs no network call");
+    } finally {
+      await panel.stop();
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("reads once per pull request, and no more than that in a minute", async () => {
+    const { dir, log } = await fakeForge();
+    const panel = await startPanel({
+      port: nextPort(),
+      fixtureSet: "fleet-only",
+      env: { ...withForgeOnPath(dir), QUARTERDECK_READ_FORGE: "1" },
+    });
+    try {
+      // The first render is served before anything is asked - the read is
+      // scheduled behind it - so the readings arrive on a later one.
+      const html = await until(
+        () => body(panel),
+        (text) => text.includes("4 of 4 checks · passing"),
+      );
+      assert.ok(html.includes("1 comment from a person"));
+
+      // The three pull requests this set carries, and nothing else: the nine
+      // workers without one are never asked about.
+      const first = await asked(log);
+      assert.equal(first.length, 3);
+      assert.equal(new Set(first).size, 3, "one call per address");
+
+      // Ten more renders inside the same minute. The floor is what stops each
+      // of them turning into another three calls.
+      for (let i = 0; i < 10; i++) await body(panel);
+      assert.deepEqual(await asked(log), first, "the floor held");
+    } finally {
+      await panel.stop();
+      await rm(dir, { recursive: true, force: true });
     }
   });
 });

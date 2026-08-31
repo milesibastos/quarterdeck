@@ -23,7 +23,7 @@ before touching that one.
 | --- | --- |
 | `src/types/` | The document the UI reads, the terminal tail beside it, and the fleet-selection cookie's name. Imports nothing. |
 | `src/config/` | Environment and defaults. The port derivation lives here. |
-| `src/adapters/` | The only I/O. Exactly four files, one per reliability promise. |
+| `src/adapters/` | The only I/O. Five files, and the forge is the only one that leaves this machine. |
 | `src/domain/` | The projection: snapshot to document. Pure. |
 | `src/runtime/` | Watch, coalesce, cache, publish the change signal. |
 | `src/ui/` | Server-rendered components. Reads the document, plus the terminal a card opens on demand. One directory per lens. |
@@ -44,6 +44,11 @@ npm test                       # lints, checks the invariants, drives the built 
 synthetic fixture sets picked by `QUARTERDECK_FIXTURE_SET`. Both take a
 colon-separated list, and the operator switches between them in the panel; the
 choice is remembered in their browser. See `fixtures/README.md`.
+
+`QUARTERDECK_READ_FORGE` is the one setting that turns on a network call: a pull
+request's checks and its review comments, read through `gh`. Off by default,
+never on the first paint, and never more than once a minute per pull request -
+see `docs/decisions/2026-08-31-reading-the-forge.md`.
 
 ## Read before changing anything
 

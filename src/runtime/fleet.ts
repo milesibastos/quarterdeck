@@ -8,6 +8,7 @@ import {
   readSnapshot,
   type SnapshotSource,
 } from "../adapters/contract.ts";
+import { ghForge } from "../adapters/forge.ts";
 import { readFleetHomeHealth, readHealth } from "../adapters/health.ts";
 import {
   fixtureTerminalSource,
@@ -20,6 +21,7 @@ import { fixedClock, systemClock, type Clock } from "../providers/clock.ts";
 import { consoleLogger, type Logger } from "../providers/logger.ts";
 import { childProcessRunner } from "../providers/process.ts";
 import type { PanelDocument } from "../types/document.ts";
+import { ForgeCache } from "./forge.ts";
 
 /** The document's lens-shaped fields, in the order they read best in a sentence. */
 const LENS_NAMES = ["fleet", "deck", "landed", "health"] as const;
@@ -75,6 +77,15 @@ export interface RuntimeDeps {
    * same list.
    */
   readonly fleetHome: string | null;
+  /**
+   * Where a pull request's checks and review comments come from, or `null` when
+   * the operator has not asked the panel to read the forge.
+   *
+   * Off the read path by construction: `#read` applies what this has already
+   * got and then schedules, so nothing here can ever be between an operator and
+   * their first paint. See `src/runtime/forge.ts`.
+   */
+  readonly forge: ForgeCache | null;
 }
 
 export class FleetRuntime {
@@ -108,7 +119,7 @@ export class FleetRuntime {
   }
 
   async #read(): Promise<PanelDocument> {
-    const { config, source, clock, logger, healthDir, fleetHome } = this.#deps;
+    const { config, source, clock, logger, healthDir, fleetHome, forge } = this.#deps;
     const options = { clock, staleAfterMs: config.staleAfterMs };
 
     // Read first and unconditionally: health never throws, and it is the one
@@ -123,9 +134,18 @@ export class FleetRuntime {
         source,
         AbortSignal.timeout(config.readTimeoutMs),
       );
-      const document = projectDocument(snapshot, health, options);
+      // Whatever the forge has already said, folded in before the projection so
+      // that the document - and with it the omissions list - is built once from
+      // one snapshot. A pull request nothing has read yet keeps upstream's
+      // absent block and reads as `not-looked-up`, which is what it is.
+      const document = projectDocument(forge?.applyTo(snapshot) ?? snapshot, health, options);
       this.#lastKnownGood = document;
       this.#stale = false;
+      // Last, and deliberately: this schedules network calls and returns, so
+      // the document above is already built and about to be handed back. A read
+      // that finds something new publishes a change, and the panel re-renders
+      // the way it does for any other change.
+      forge?.refresh(snapshot, () => this.publishChange());
       return document;
     } catch (error) {
       // A schema the panel does not understand is never survivable: rendering
@@ -263,8 +283,27 @@ export function terminalSourceFor(config: Config, fleet: FleetRef): TerminalSour
 }
 
 /** How one fleet's source, watchers and health reading are wired. */
+/**
+ * The forge reader, when the operator has asked for one.
+ *
+ * Per runtime rather than shared, so a fleet's cached readings are that fleet's
+ * - the same argument that gives each fleet its own last-known-good. The
+ * environment is passed through the way the snapshot command's is: `gh` needs a
+ * `PATH` to be found and its own credentials to answer.
+ */
+function forgeFor(config: Config, clock: Clock): ForgeCache | null {
+  if (!config.readForge) return null;
+  return new ForgeCache({
+    read: ghForge(childProcessRunner, clock, process.env),
+    clock,
+    logger: consoleLogger,
+    readTimeoutMs: config.readTimeoutMs,
+  });
+}
+
 function depsFor(config: Config, fleet: FleetRef): RuntimeDeps {
-  const common = { config, clock: clockFor(config), logger: consoleLogger };
+  const clock = clockFor(config);
+  const common = { config, clock, logger: consoleLogger, forge: forgeFor(config, clock) };
 
   if (fleet.source.kind === "home") {
     const { home } = fleet.source;

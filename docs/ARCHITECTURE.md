@@ -20,14 +20,18 @@ Seven positions, one direction. Dependencies point right, and only right.
   reads it off the request, and this is the one layer both may see.
 - `src/config/` - which fleets, which port, which policy. Environment and
   defaults only; parsing the environment is one of the three boundaries.
-- `src/adapters/` - the only I/O. Exactly four files, one per promise:
-  `contract.ts` (the upstream boundary and the fixture source), `health.ts`
-  (quarantined), `intent.ts` (the one permitted writer), and `terminal.ts` (the
-  on-demand read). Three of them read, and they fail independently - which is
-  why the document carries a status per lens. `terminal.ts` is the odd one and
-  deliberately so: it is not on the document at all, is asked only when an
-  operator expands a card, and degrades per worker rather than per lens. See
-  `docs/decisions/2026-08-31-the-worker-terminal.md`.
+- `src/adapters/` - the only I/O. Five files, one per promise: `contract.ts`
+  (the upstream boundary and the fixture source), `health.ts` (quarantined),
+  `intent.ts` (the one permitted writer), `terminal.ts` (the on-demand read),
+  and `forge.ts` (a pull request's checks and review comments, and the only one
+  that leaves this machine). Three of them - `contract.ts`, `health.ts` and
+  `forge.ts` - read and fail independently, which is why the document carries a
+  status per lens, and why the forge's own two readings each carry theirs.
+  `terminal.ts` is the odd one out and deliberately so: it is not on the
+  document at all, is asked only when an operator expands a card, and degrades
+  per worker rather than per lens. See
+  `docs/decisions/2026-08-31-the-worker-terminal.md` and
+  `docs/decisions/2026-08-31-reading-the-forge.md`.
 - `src/domain/` - the projection from snapshot and health reading to document.
   Pure.
 - `src/runtime/` - watch, debounce, coalesce, cache, publish the change signal.
@@ -175,6 +179,14 @@ Checked statically - no `next/font/google`, no remote URL literal in `src/` -
 and enforced at runtime by a Content-Security-Policy in which every directive
 resolves to `'self'`. Fonts are committed woff2 subsets under `src/ui/fonts/`.
 
+The rule is about the browser, and `src/adapters/forge.ts` is why that has to be
+said out loud. It runs `gh` on the server to read a pull request's checks, which
+is a network call - but the operator opted into it, it is never on the first
+paint, and its failure is a line on a card rather than a broken page. The page
+itself still loads nothing from anywhere, and the static check passes untouched
+because the address it asks about comes from the document rather than from a
+literal. See `docs/decisions/2026-08-31-reading-the-forge.md`.
+
 ## The refresh loop
 
 1. The runtime watches the source's directories - the fixture set, or the fleet
@@ -202,6 +214,11 @@ Rules that come with the pipe, all in `src/runtime/fleet.ts`:
   down with the other three.
 - `EventSource` reconnects on its own, so a restarted server heals without a
   reload.
+- The forge, when the operator has turned it on, is read *after* the document is
+  built and never before: `src/runtime/forge.ts` applies what it already has and
+  then schedules. A completed read publishes one signal, which lands back here
+  as one more render, and the once-a-minute floor is what stops that render
+  scheduling another read.
 
 There is one runtime per fleet, in a map hung off `globalThis`. Off `globalThis`
 because route modules can be evaluated more than once in a process and two
