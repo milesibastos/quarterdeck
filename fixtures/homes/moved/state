@@ -1,0 +1,5 @@
+The supervisor's state is no longer a directory here.
+
+This set is what "upstream moved" looks like from the panel: every path the
+quarantined module knows is gone or is something else now. Every signal reads
+unreadable and nothing throws.

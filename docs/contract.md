@@ -209,6 +209,32 @@ Every failure - a missing file, a moved directory, a shape that changed under us
 - comes back as an unreadable reading. Nothing escapes that function: a
 quarantined module that can take the panel down is not quarantined.
 
+## The fleet home
+
+The same three signals, read from a running fleet's own files when
+`QUARTERDECK_FLEET_HOME` names one. That is the source with no compatibility
+promise at all, which is why it lives in the quarantined module beside the
+fixture reader and why every read below has a stated "could not be read" answer
+rather than an assumption.
+
+| Signal | Where it comes from | What makes it unreadable |
+| --- | --- | --- |
+| `supervisor` | The liveness beacon in the state directory, touched on every supervision poll. It holds nothing; its modification time is the entire signal, and `alive` is that age against the fleet's own grace window. | No beacon. A file that has moved and a cycle that has stopped look identical from outside, and reporting the wrong one is worse than saying so. |
+| `overdue` | One entry per worker the fleet has out - a `.meta` file - whose one-line busy record says idle, for longer than the fleet's own wedge threshold, with no declared wait on the last line of its status log. | The state directory cannot be listed. A single worker's record that is missing, malformed or carrying a retired incarnation token is *unknown*, never idle: that is upstream's own rule, and inventing "idle" from a record we could not read would report a working fleet as stalled. |
+| `drift` | The work item record and the state directory, compared. A row in flight with no worker behind it; a row still held while its own status log records the decision answered. | Either record cannot be read. Whether a record disagrees with reality is a question about both halves, so one missing takes the signal rather than producing an answer from the half that is left. |
+
+Two things are deliberately not configuration. The paths, because they are the
+unstable dependency the quarantine exists to confine. And the two thresholds -
+the beacon's grace window and the point an idle worker becomes a possible wedge
+- because they are the fleet's own policy: a number that drifts out of step with
+upstream makes the lens wrong, not adjustable.
+
+A declared wait is not a problem. `paused:` and `captain-held:` are the fleet's
+two ways of saying an idle worker is idle on purpose, and reporting either as a
+stall would teach an operator to ignore the signal. `blocked:` and
+`needs-decision:` are not declared waits: a worker stopped for those is waiting
+on the machinery this lens watches.
+
 ## The pinned identifier
 
 `SNAPSHOT_SCHEMA_ID` is `"fm-fleet-snapshot.v1"`, compared on every parse before

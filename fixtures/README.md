@@ -47,6 +47,31 @@ combination below has somewhere to live.
 drift into looking stale as the repository ages. `stale` is fixed in the past on
 purpose.
 
+## Fleet homes
+
+`homes/` is not a fixture set: it holds synthetic **fleet homes**, the shape the
+quarantined health module reads. A fleet home is somebody else's directory
+layout with no compatibility promise attached, so these exist to be broken - the
+tests copy one, move or delete a path inside it, and assert the lens degrades
+instead of the panel falling over.
+
+| Home | What it exercises |
+| --- | --- |
+| `steady` | A fleet running normally: workers busy, one idle for an hour having declared why, and a work item record that agrees with what the workers are doing. |
+| `adrift` | A fleet with something wrong in it: one worker idle past the point that is normal with nothing declared, one whose busy record carries a retired incarnation token, one work item held after its decision was answered, and one in flight with no worker behind it. |
+| `moved` | Upstream restructured: the state directory is not a directory any more. Every signal reads unreadable and nothing throws. |
+
+None of them carries the liveness beacon, because the beacon holds nothing but
+its modification time and git does not carry those - a committed one would be as
+old as the checkout. Each test writes the beacon it means into its own copy.
+
+The panel reads a real fleet home when one is configured, and the fixture
+`health.json` above when one is not:
+
+```sh
+QUARTERDECK_FLEET_HOME=/path/to/a/fleet npm start
+```
+
 ## Adding a set
 
 Add the directory, then add its row to `SHAPES` in `tests/document.test.ts`.

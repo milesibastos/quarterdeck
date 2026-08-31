@@ -6,7 +6,7 @@ import {
   readSnapshot,
   type SnapshotSource,
 } from "../adapters/contract.ts";
-import { readHealth } from "../adapters/health.ts";
+import { readFleetHomeHealth, readHealth } from "../adapters/health.ts";
 import type { Config } from "../config/index.ts";
 import { projectDocument, withSnapshotUnreadable } from "../domain/project.ts";
 import { fixedClock, systemClock, type Clock } from "../providers/clock.ts";
@@ -33,6 +33,9 @@ export interface RuntimeDeps {
   /**
    * Where the health signals are read from. Passed through to the quarantined
    * module, which is the only file allowed to know what is inside it.
+   *
+   * A configured fleet home wins: it is a real fleet's own files, and the
+   * fixture health file is the stand-in for when there is no fleet to read.
    */
   readonly healthDir: string;
 }
@@ -73,7 +76,10 @@ export class FleetRuntime {
 
     // Read first and unconditionally: health never throws, and it is the one
     // lens that stays useful when the snapshot does not parse.
-    const health = await readHealth(healthDir, AbortSignal.timeout(config.readTimeoutMs));
+    const deadline = AbortSignal.timeout(config.readTimeoutMs);
+    const health = config.fleetHome
+      ? await readFleetHomeHealth(config.fleetHome, clock, deadline)
+      : await readHealth(healthDir, deadline);
 
     try {
       const snapshot = await readSnapshot(

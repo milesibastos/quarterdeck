@@ -15,11 +15,12 @@ Two sides of the document, able to be worked at the same time because the shape
 between them is frozen and the build enforces it: filling the document from the
 outside world, and drawing it. Each item below owns files nobody else touches.
 
-1. **A real fleet source.** The injected-source position in
-   `src/adapters/contract.ts` has exactly one implementation. Adding a second is
-   where `adapters/health.ts` gets tested for the behaviour it exists for:
-   degrading rather than throwing when a path moves. The open assumptions at the
-   end of `docs/contract.md` are this worker's list.
+1. **A real fleet source for the snapshot.** The injected-source position in
+   `src/adapters/contract.ts` has exactly one implementation; the fleet and deck
+   lenses still come only from the fixture loader. Health already reads a real
+   fleet home on its own path, outside this position - see
+   `docs/decisions/2026-08-30-reading-a-fleet-home.md`. The open assumptions at
+   the end of `docs/contract.md` are this worker's list.
 2. **The fleet lens** - `src/ui/fleet/` - has its worker card and lifecycle
    rail; lanes and filters remain. The first to ask real questions of the theme
    and the layering.

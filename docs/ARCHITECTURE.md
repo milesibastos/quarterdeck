@@ -104,6 +104,14 @@ rather than throwing when a path it names has moved. A quarantined module that
 can take the panel down is not quarantined. The `health-dark` fixture set has no
 health file at all, and the suite asserts the panel still renders three lenses.
 
+The module has two sources: the fixture health file, and a running fleet's own
+files when `QUARTERDECK_FLEET_HOME` names a home. The second is the reason the
+quarantine exists - every path and both policy thresholds it needs are inside
+that one file, and each of the three signals degrades on its own, so a beacon
+that moved leaves the other two working. `docs/contract.md` records where each
+signal comes from; `fixtures/homes/` holds synthetic homes for the suite to
+break, including one where upstream has restructured entirely.
+
 ### invariant 5
 
 Checked statically - `SNAPSHOT_SCHEMA_ID` must be declared as a literal and
