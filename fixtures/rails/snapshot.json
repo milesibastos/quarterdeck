@@ -1,0 +1,514 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2099-01-01T09:15:00.000Z",
+  "tasks": [
+    {
+      "id": "wi-tidewater-601",
+      "project": "tidewater",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-tidewater-601.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-tidewater-601",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "validating",
+        "detail": "validating: test suite running",
+        "observed_at": "2099-01-01T09:14:31.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Wire the reader to the new document field.",
+        "text": null
+      },
+      "mode": "no-mistakes"
+    },
+    {
+      "id": "wi-tidewater-602",
+      "project": "tidewater",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-tidewater-602.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-tidewater-602",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "parked",
+        "detail": "parked at review: 1 finding(s) (ask-user: authority decision)",
+        "observed_at": "2099-01-01T09:08:12.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Split the fold line out of the shell.",
+        "text": null
+      },
+      "mode": "no-mistakes"
+    },
+    {
+      "id": "wi-tidewater-603",
+      "project": "tidewater",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-tidewater-603.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-tidewater-603",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "landed",
+        "detail": "landed on the default branch",
+        "observed_at": "2099-01-01T09:02:11.000Z"
+      },
+      "pr": {
+        "url": "https://forge.invalid/tidewater/pull/603",
+        "source": "record"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Pin the freshness window to one place.",
+        "text": null
+      },
+      "mode": "no-mistakes"
+    },
+    {
+      "id": "wi-lamplight-604",
+      "project": "lamplight",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-lamplight-604.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-lamplight-604",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "in_review",
+        "detail": "waiting on a human reviewer",
+        "observed_at": "2099-01-01T09:11:05.000Z"
+      },
+      "pr": {
+        "url": "https://forge.invalid/lamplight/pull/604",
+        "source": "record"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Rename the two colour tokens that read alike.",
+        "text": null
+      },
+      "mode": "direct-PR"
+    },
+    {
+      "id": "wi-lamplight-605",
+      "project": "lamplight",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-lamplight-605.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-lamplight-605",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "blocked",
+        "detail": "blocked on wi-lamplight-604",
+        "observed_at": "2099-01-01T09:03:44.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Move the panel's port derivation into config.",
+        "text": null
+      },
+      "mode": "direct-PR"
+    },
+    {
+      "id": "wi-lamplight-606",
+      "project": "lamplight",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-lamplight-606.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-lamplight-606",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "landed",
+        "detail": "landed on the default branch",
+        "observed_at": "2099-01-01T08:52:19.000Z"
+      },
+      "pr": {
+        "url": "https://forge.invalid/lamplight/pull/606",
+        "source": "record"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Drop the unused age helper.",
+        "text": null
+      },
+      "mode": "direct-PR"
+    },
+    {
+      "id": "wi-saltmarsh-607",
+      "project": "saltmarsh",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-saltmarsh-607.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-saltmarsh-607",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "validating",
+        "detail": "validating: lint running",
+        "observed_at": "2099-01-01T09:13:02.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Tidy the fixture README table.",
+        "text": null
+      },
+      "mode": "local-only"
+    },
+    {
+      "id": "wi-saltmarsh-608",
+      "project": "saltmarsh",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-saltmarsh-608.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-saltmarsh-608",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "parked",
+        "detail": "parked at review: 2 finding(s) (ask-user: authority decision)",
+        "observed_at": "2099-01-01T08:59:40.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Fold the two empty states into one component.",
+        "text": null
+      },
+      "mode": "local-only"
+    },
+    {
+      "id": "wi-saltmarsh-609",
+      "project": "saltmarsh",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-saltmarsh-609.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-saltmarsh-609",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "landed",
+        "detail": "left ready on its branch",
+        "observed_at": "2099-01-01T08:44:07.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Trim the scratch notes out of the worktree.",
+        "text": null
+      },
+      "mode": "local-only"
+    },
+    {
+      "id": "wi-cordage-610",
+      "project": "cordage",
+      "kind": "scout",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-cordage-610.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-cordage-610",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "reading the upstream contract",
+        "observed_at": "2099-01-01T09:12:48.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Find out what a live fleet publishes for a worker's branch.",
+        "text": null
+      }
+    },
+    {
+      "id": "wi-cordage-611",
+      "project": "cordage",
+      "kind": "scout",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-cordage-611.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-cordage-611",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "waiting_external",
+        "detail": "waiting on an upstream release",
+        "observed_at": "2099-01-01T08:47:03.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Find out whether the forge reports draft pull requests.",
+        "text": null
+      }
+    },
+    {
+      "id": "wi-cordage-612",
+      "project": "cordage",
+      "kind": "scout",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-cordage-612.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-cordage-612",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "landed",
+        "detail": "report written to the anchorage",
+        "observed_at": "2099-01-01T08:30:55.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Find out which health signals a second mate's home publishes.",
+        "text": null
+      }
+    },
+    {
+      "id": "wi-windlass-613",
+      "project": "windlass",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-windlass-613.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-windlass-613",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "editing the projection",
+        "observed_at": "2099-01-01T09:14:40.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Carry the delivery contract through the projection.",
+        "text": null
+      }
+    },
+    {
+      "id": "wi-windlass-614",
+      "project": "windlass",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-windlass-614.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-windlass-614",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "parked",
+        "detail": "parked at review: 1 finding(s) (ask-user: authority decision)",
+        "observed_at": "2099-01-01T09:01:26.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Give the disclosure bar its own row.",
+        "text": null
+      }
+    },
+    {
+      "id": "wi-windlass-615",
+      "project": "windlass",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-windlass-615.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-windlass-615",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "landed",
+        "detail": "landed on the default branch",
+        "observed_at": "2099-01-01T08:38:14.000Z"
+      },
+      "pr": {
+        "url": "https://forge.invalid/windlass/pull/615",
+        "source": "record"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Pin the contract identifier in one literal.",
+        "text": null
+      }
+    },
+    {
+      "id": "wi-halyard-616",
+      "project": "halyard",
+      "kind": "scout",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-halyard-616.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-halyard-616",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "pr_open",
+        "detail": "pull request opened",
+        "observed_at": "2099-01-01T09:07:33.000Z"
+      },
+      "pr": {
+        "url": "https://forge.invalid/halyard/pull/616",
+        "source": "record"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Find out how many homes a second mate reports.",
+        "text": null
+      },
+      "mode": "local-only"
+    },
+    {
+      "id": "wi-halyard-617",
+      "project": "halyard",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-halyard-617.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-halyard-617",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "parked",
+        "detail": "parked at review: 1 finding(s) (ask-user: authority decision)",
+        "observed_at": "2099-01-01T08:55:11.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Give the terminal its own scroll container.",
+        "text": null
+      },
+      "mode": "direct-PR"
+    }
+  ],
+  "backlog": {
+    "present": true,
+    "records": []
+  }
+}

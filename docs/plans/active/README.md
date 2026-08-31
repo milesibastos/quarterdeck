@@ -58,5 +58,11 @@ One thing the layout still keeps a place for and has deliberately not built: the
 thin shipshape strip the wireframe draws in the masthead, named in
 `docs/decisions/2026-08-31-what-needs-you-owns-the-first-screen.md`.
 
+The rail those cards carry is no longer one fixed track: it is drawn from what
+was recorded when the worker was dispatched, so a shape a task can never reach
+is never on screen - `docs/decisions/2026-08-31-four-rails.md`. Read it before
+adding anything that reads a position off the rail, because it settles that a
+position is only ever meaningful against one worker's own rail.
+
 What remains beyond those is in `docs/quality.md` under known gaps, and the
 fleet lens's own lanes and filters, which nobody has asked for yet.

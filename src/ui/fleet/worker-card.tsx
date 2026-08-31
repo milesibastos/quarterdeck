@@ -350,7 +350,9 @@ export function WorkerCard({
           <span className="ms-auto font-mono">{ago(lifecycle.observedAt, nowMs)}</span>
         </p>
 
-        <LifecycleRail lifecycle={lifecycle} />
+        {/* The rail is drawn from what was recorded at dispatch, so a card
+            never shows a stage its work cannot reach. */}
+        <LifecycleRail lifecycle={lifecycle} worker={worker} />
 
         {/*
           Upstream's own words. Always shown: for a worker on the track it is
