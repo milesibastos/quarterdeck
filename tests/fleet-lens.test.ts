@@ -288,19 +288,43 @@ describe("the rail a worker's own work has", () => {
 
   test("does not frame a step as a pipeline the contract says was skipped", () => {
     // A word read out of prose must not overrule a contract that was written
-    // down: the rail stays the one that was recorded, and the panel simply
-    // declines to place the stop or to number the step out of nine.
+    // down: the rail stays the one that was recorded, and the panel declines to
+    // call the stop "in validation" or to number the step out of nine - both of
+    // those frame the nine-step pipeline that rail's contract says was skipped.
     const { shape, line } = rail("wi-halyard-617");
     assert.equal(shape, "direct-pr", "the recorded rail survives a prose step");
-    assert.equal(line, "Held", "no position claimed, and no validation claimed either");
     assert.ok(!line.includes("in validation"));
     assert.ok(!line.includes("step 3 of 9"));
     // Upstream's own words are on that card regardless, so nothing is lost.
-    // Scoped to the card: three workers in this set stopped with the same
+    // Scoped to the card: several workers in this set stopped with the same
     // detail, and the whole page would say yes whichever one dropped it.
     const start = html.indexOf('data-worker="wi-halyard-617"');
     const card = html.slice(start, html.indexOf('data-worker="', start + 1));
     assert.ok(card.includes("parked at review: 1 finding(s) (ask-user: authority decision)"));
+  });
+
+  test("anchors a stop on a rail with no validating stage to what its evidence supports", () => {
+    // The step still says the worker was doing its own work when it stopped,
+    // even on a rail with no validating stage to land it on: it falls back to
+    // that rail's working stage instead of leaving the stop unplaced.
+    assert.equal(rail("wi-halyard-617").line, "Held · stage 2 of 5", "direct-pr falls back to working");
+    assert.equal(rail("wi-halyard-618").line, "Held · stage 2 of 3", "research falls back to working");
+
+    // The fallback must never understate what the worker has demonstrably
+    // reached: a direct-pr worker whose pull request already opened is pinned
+    // there, not walked back to working.
+    assert.equal(
+      rail("wi-halyard-619").line,
+      "Held · stage 3 of 5",
+      "the pull request it already has, not the working fallback",
+    );
+  });
+
+  test("says a stopped worker's position is not known rather than showing none", () => {
+    // Nothing the pipeline produced, and no step named at all: there is no
+    // evidence to anchor a position to, and drawing nothing would read as a
+    // claim that it has none rather than the truth that the panel cannot tell.
+    assert.equal(rail("wi-cordage-611").line, "Waiting · position not known");
   });
 
   test("keeps the rail's meaning in words rather than only in shape and colour", () => {

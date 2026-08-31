@@ -1,7 +1,9 @@
 import type {
   ActiveStage,
   Delivery,
+  HaltedStage,
   Lifecycle,
+  PullRequest,
   Stage,
   ValidationStep,
   WorkerKind,
@@ -156,6 +158,9 @@ const STAGE: Readonly<Record<Stage, StageLook>> = {
 /** The stages a worker is standing on the track in, as a set to test against. */
 const ON_TRACK: ReadonlySet<string> = new Set<ActiveStage>(RAIL.validated);
 
+/** The stages a worker stops in, as a set to test against - `unseen` is not one. */
+const HALTED: ReadonlySet<string> = new Set<HaltedStage>(["blocked", "held", "waiting", "failed"]);
+
 /** The pipeline's steps in the order they run, so a step can say how far in. */
 const STEPS = [
   "intent",
@@ -203,6 +208,13 @@ export function StageChip({ stage }: { stage: Stage }) {
 export interface RailFor {
   readonly kind: WorkerKind;
   readonly delivery: Delivery | null;
+  /**
+   * Not part of the rail's shape - a pull request never changes which rail a
+   * worker is on - but a stop's anchor must never fall back behind a stage the
+   * worker has demonstrably reached, and a pull request is exactly that kind of
+   * evidence. See `reachedIndex`.
+   */
+  readonly pullRequest: PullRequest | null;
 }
 
 /**
@@ -231,8 +243,8 @@ function recordedShape({ kind, delivery }: RailFor): RailShape {
  * panel's own projection fished out of upstream's prose with a first-match
  * rule, and a weak inference must not be allowed to overrule a contract that
  * was written down. So a worker naming a pipeline step on a rail that has no
- * validating stage is drawn on its recorded rail with no position claimed - see
- * `reachedIndex` - rather than being called a mismatch.
+ * validating stage is drawn on its recorded rail rather than being called a
+ * mismatch - see `reachedIndex` for how its position is still anchored.
  *
  * When the stage itself is off the rail, the record and the reading disagree
  * and the record cannot be trusted for the shape. Drawing the recorded rail
@@ -269,16 +281,22 @@ function railOf(
  * An off-track stage has no position of its own, and the document does not
  * carry the stage a halted worker left the track in. What it does carry is the
  * pipeline step, and the steps only run inside validation - so a halted worker
- * naming one was validating when it stopped. A halted worker naming none gets
- * no position rather than a guessed one; see the note in fleet-lens.tsx.
- *
- * The deduction needs a validating stage to land on, so on a rail that has none
- * it does not run and the worker gets no position. That is the honest end of
- * it: a contract saying the pipeline is skipped is a better witness than a word
- * read out of prose, and there is no other stage the stop could be pinned to
- * without inventing one. Closing that gap needs the stage a halted worker left
- * the track in, which the document does not carry; see the note in
+ * naming one was doing validation-shaped work when it stopped. A halted worker
+ * naming none gets no position rather than a guessed one; see the note in
  * fleet-lens.tsx.
+ *
+ * The step lands on the rail's own validating stage when it has one, unchanged
+ * from before. A rail with none - direct-pr, research - has no validating stage
+ * to land on, but that is not a reason to give up on a position altogether: the
+ * step still says the worker was doing its work, and every rail has a `working`
+ * stage for that. So the anchor falls back to `working` there instead of to
+ * nothing.
+ *
+ * That fallback must never understate what the worker has actually reached. A
+ * worker whose document carries a pull request has demonstrably reached that
+ * rail's `pr-open` stage, so on a rail that has one the anchor takes whichever
+ * of the two is further along - never earlier than the evidence, and never
+ * later than it either.
  *
  * An unseen worker never reaches the deduction at all: the projection reads no
  * step for it, because the words it would read are upstream's account of what
@@ -289,12 +307,19 @@ function railOf(
  * stage of a validated rail and the third of a local one, and pull request open
  * is the fourth of the first and the third of a direct one.
  */
-function reachedIndex(stages: readonly ActiveStage[], lifecycle: Lifecycle): number | null {
+function reachedIndex(
+  stages: readonly ActiveStage[],
+  lifecycle: Lifecycle,
+  hasPullRequest: boolean,
+): number | null {
   const own = stages.indexOf(lifecycle.stage as ActiveStage);
   if (own !== -1) return own;
   if (lifecycle.step === null) return null;
   const validating = stages.indexOf("validating");
-  return validating === -1 ? null : validating;
+  if (validating !== -1) return validating;
+  const working = stages.indexOf("working");
+  const prOpen = hasPullRequest ? stages.indexOf("pr-open") : -1;
+  return prOpen > working ? prOpen : working;
 }
 
 /**
@@ -305,8 +330,8 @@ function reachedIndex(stages: readonly ActiveStage[], lifecycle: Lifecycle): num
  * stage it is standing on, and drawing that much is a statement about the past
  * rather than a promise about the future.
  */
-function reachedWithoutRail(lifecycle: Lifecycle): number | null {
-  return reachedIndex(RAIL.validated, lifecycle);
+function reachedWithoutRail(lifecycle: Lifecycle, hasPullRequest: boolean): number | null {
+  return reachedIndex(RAIL.validated, lifecycle, hasPullRequest);
 }
 
 /**
@@ -337,6 +362,12 @@ function stepClause(step: ValidationStep | null, validates: boolean): string {
  * "Validating" is the answer the operator already has from the track. The step,
  * and its place in the run, is the answer they came for - on the rails that
  * have a validation stage for it to be inside.
+ *
+ * `reached` is only ever `null` for a halted worker that named no step at all,
+ * or for the unseen stage, and the two must not read alike: a halted worker
+ * with nothing to go on says in words that its position is not known, which is
+ * the truth, while an unseen worker's bare label already says the panel has no
+ * standing to claim a position - see the note in fleet-lens.tsx.
  */
 function currentLine(
   lifecycle: Lifecycle,
@@ -351,7 +382,9 @@ function currentLine(
   const label = `${STAGE[stage].label}${where}`;
   const inside = stepClause(step, validates);
 
-  if (reached === null) return `${label}${inside}`;
+  if (reached === null) {
+    return HALTED.has(stage) ? `${label} · position not known${inside}` : `${label}${inside}`;
+  }
   if (stages === null) return `${label} · stage ${reached + 1}, of how many is not known${inside}`;
 
   const last = reached === stages.length - 1 && ON_TRACK.has(stage);
@@ -402,7 +435,11 @@ export function LifecycleRail({
   worker: RailFor;
 }) {
   const { shape, stages } = railOf(worker, lifecycle);
-  const reached = stages === null ? reachedWithoutRail(lifecycle) : reachedIndex(stages, lifecycle);
+  const hasPullRequest = worker.pullRequest !== null;
+  const reached =
+    stages === null
+      ? reachedWithoutRail(lifecycle, hasPullRequest)
+      : reachedIndex(stages, lifecycle, hasPullRequest);
   const look = STAGE[lifecycle.stage];
   const offTrack = !ON_TRACK.has(lifecycle.stage);
 

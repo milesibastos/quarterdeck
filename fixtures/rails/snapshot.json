@@ -505,6 +505,65 @@
         "text": null
       },
       "mode": "direct-PR"
+    },
+    {
+      "id": "wi-halyard-618",
+      "project": "halyard",
+      "kind": "scout",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-halyard-618.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-halyard-618",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "parked",
+        "detail": "parked at review: 1 finding(s) (ask-user: authority decision)",
+        "observed_at": "2099-01-01T08:50:00.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Find out whether a held investigation can still name a pipeline step.",
+        "text": null
+      }
+    },
+    {
+      "id": "wi-halyard-619",
+      "project": "halyard",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-halyard-619.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-halyard-619",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "parked",
+        "detail": "parked at review: 1 finding(s) (ask-user: authority decision)",
+        "observed_at": "2099-01-01T08:53:20.000Z"
+      },
+      "pr": {
+        "url": "https://forge.invalid/halyard/pull/619",
+        "source": "record"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Give the disclosure bar a keyboard shortcut.",
+        "text": null
+      },
+      "mode": "direct-PR"
     }
   ],
   "backlog": {
