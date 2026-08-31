@@ -1,14 +1,18 @@
 import type {
+  AttendanceSignal,
   DriftSignal,
   Health,
   Lens,
   OverdueSignal,
+  QueueSignal,
   SupervisorSignal,
 } from "@/types/document.ts";
 import { LensFrame } from "@/ui/lens-frame";
 import { ago } from "@/ui/lib/age";
 import { SignalBlock, Unread } from "@/ui/shipshape/signal-block";
 import {
+  QUEUE_BACKED_UP_AT,
+  QUEUE_BACKED_UP_AT_LABEL,
   SUPERVISION_SILENT_AFTER_LABEL,
   SUPERVISION_SILENT_AFTER_MS,
 } from "@/ui/shipshape/thresholds";
@@ -21,9 +25,9 @@ import {
  * quietly stopped, every other lens keeps drawing confident cards from a
  * picture nobody is refreshing, and this is the only place that says so.
  *
- * Three signals, and each one can independently say it could not be read - so
+ * Five signals, and each one can independently say it could not be read - so
  * each is drawn on its own terms rather than folded into a single verdict. A
- * document with one dark signal and two live ones renders as exactly that. An
+ * document with one dark signal and four live ones renders as exactly that. An
  * unreadable signal never renders as a healthy one, and never implies what it
  * would have said: it names what failed, and names what is therefore unknown.
  *
@@ -127,6 +131,165 @@ function Supervisor({ signal, nowMs }: { signal: SupervisorSignal; nowMs: number
     >
       <p className="text-xs text-foreground">
         {`Last seen ${seen}, inside the ${SUPERVISION_SILENT_AFTER_LABEL} this panel allows between sightings.`}
+      </p>
+    </SignalBlock>
+  );
+}
+
+/**
+ * Is the notification queue draining?
+ *
+ * The document carries a depth, not a verdict - and that is the whole shape of
+ * this signal. A queue with things in it is a queue doing its job; a queue that
+ * keeps holding them is a fleet that has stopped delivering, and the operator
+ * cannot tell those apart from anything else on the page. Where the line
+ * between them falls is this lens's call and lives in `thresholds.ts`, beside
+ * the words the copy below quotes for it.
+ *
+ * `queued: 0` is a queue that was read and found empty, which is a finding and
+ * is written as one. It is emphatically not the same fact as a queue that could
+ * not be read, and the two never share a rendering.
+ */
+function Queue({ signal }: { signal: QueueSignal }) {
+  if (signal.read === "unreadable") {
+    return (
+      <SignalBlock
+        name="queue"
+        question="Is the notification queue draining?"
+        verdict="unreadable"
+        label="Not read"
+        tone="dark"
+      >
+        <Unread
+          detail={signal.detail}
+          unknown="How much the notification queue is holding, and so whether it is draining, is unknown; this is not a report of a queue with nothing in it."
+        />
+      </SignalBlock>
+    );
+  }
+
+  const { queued } = signal;
+
+  if (queued === 0) {
+    return (
+      <SignalBlock
+        name="queue"
+        question="Is the notification queue draining?"
+        verdict="empty"
+        label="Nothing queued"
+        tone="good"
+      >
+        <p className="text-xs text-foreground">
+          {`The queue was read and found holding nothing, so everything the fleet has raised has already been delivered.`}
+        </p>
+      </SignalBlock>
+    );
+  }
+
+  const holding = queued === 1 ? "1 notification is" : `${queued} notifications are`;
+
+  if (queued < QUEUE_BACKED_UP_AT) {
+    return (
+      <SignalBlock
+        name="queue"
+        question="Is the notification queue draining?"
+        verdict="draining"
+        label={`${queued} queued`}
+        tone="good"
+      >
+        <p className="text-xs text-foreground">
+          {`${holding} waiting, under the ${QUEUE_BACKED_UP_AT_LABEL} this panel reads as a queue that has stopped draining. A queue with work passing through it is the queue working.`}
+        </p>
+      </SignalBlock>
+    );
+  }
+
+  return (
+    <SignalBlock
+      name="queue"
+      question="Is the notification queue draining?"
+      verdict="backed-up"
+      label={`${queued} queued`}
+      tone="watch"
+    >
+      <p className="text-xs text-foreground">
+        {`${holding} waiting, ${QUEUE_BACKED_UP_AT_LABEL} or more, which reads as events arriving faster than they are handled rather than as work passing through.`}
+      </p>
+    </SignalBlock>
+  );
+}
+
+/**
+ * Is away mode on, and is the home held by a session?
+ *
+ * Two facts under one question, because the document carries them as one
+ * signal: they are read from the same directory in the same pass and go dark
+ * together, so drawing them as two blocks would only be able to say the same
+ * failure twice. The wireframe asks them as two entries and they are drawn as
+ * two entries - inside one block, whose single verdict is the one thing that
+ * could honestly be said about both.
+ *
+ * Neither is a fault. This is the attendance question: away mode changes how
+ * what the fleet raises reaches the operator, and a held home means another
+ * session has the helm - both change what the operator should expect from
+ * everything else on screen, which is why the strip asks them at all. Away is
+ * drawn as something to look at rather than as a fault; a held home is the
+ * ordinary state of a fleet with a session running and is drawn as a fact.
+ *
+ * What it does not say is whether the session holding the lock is still alive.
+ * That is the fleet's own liveness policy, and the panel does not reimplement
+ * it - see `docs/quality.md`.
+ */
+function Attendance({ signal }: { signal: AttendanceSignal }) {
+  if (signal.read === "unreadable") {
+    return (
+      <SignalBlock
+        name="attendance"
+        question="Is away mode on, and is the home locked?"
+        verdict="unreadable"
+        label="Not read"
+        tone="dark"
+      >
+        <Unread
+          detail={signal.detail}
+          unknown="Whether away mode is on, and whether a session holds the home, are both unknown; this is not a report of an operator present at a home nobody holds."
+        />
+      </SignalBlock>
+    );
+  }
+
+  const { away, locked } = signal;
+  const attendance = away ? "Away" : "Present";
+
+  return (
+    <SignalBlock
+      name="attendance"
+      question="Is away mode on, and is the home locked?"
+      verdict={`${away ? "away" : "present"}${locked ? "-held" : ""}`}
+      label={locked ? `${attendance} · home held` : attendance}
+      tone={away ? "watch" : "good"}
+    >
+      <dl className="flex flex-col gap-1">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-xs">
+          <dt className="min-w-0 text-muted-foreground">away mode</dt>
+          <dd data-fact="away" className="font-mono text-foreground">
+            {away ? "on" : "off"}
+          </dd>
+        </div>
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3 text-xs">
+          <dt className="min-w-0 text-muted-foreground">home</dt>
+          <dd data-fact="locked" className="font-mono text-foreground">
+            {locked ? "held by a session" : "not held"}
+          </dd>
+        </div>
+      </dl>
+      <p className="text-xs text-foreground">
+        {away
+          ? `Away mode is on, so what the fleet raises reaches the operator by another route than this page.`
+          : `Away mode is off, so the fleet reaches the operator the usual way.`}
+        {locked
+          ? ` A lock is present, so a session holds the helm here; whether that session is still running is the fleet's own check and not this one.`
+          : ` No lock is present, so no session holds the helm here.`}
       </p>
     </SignalBlock>
   );
@@ -288,6 +451,8 @@ export function ShipshapeLens({
 
       <div className="flex flex-col gap-2">
         <Supervisor signal={content.supervisor} nowMs={nowMs} />
+        <Queue signal={content.queue} />
+        <Attendance signal={content.attendance} />
         <OverdueWork signal={content.overdue} nowMs={nowMs} />
         <Drift signal={content.drift} />
       </div>

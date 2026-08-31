@@ -1,13 +1,13 @@
 import { cn } from "@/ui/lib/utils";
 
 /**
- * One health signal, drawn the same way three times.
+ * One health signal, drawn the same way five times.
  *
- * The three signals answer three different questions but they are read as one
+ * The five signals answer five different questions but they are read as one
  * column, so they share a shape: the answer first, as a chip, then the question
  * it answers, then whatever detail the document actually carries. An operator
- * scanning the panel gets three verdicts without reading a word; one who has
- * stopped on this lens gets the sentence underneath each.
+ * scanning the panel gets five verdicts without reading a word; one who has
+ * stopped on this lens gets the detail underneath each.
  *
  * `data-signal`, `data-read` and `data-verdict` are how a test asserts that one
  * signal went dark while the others kept their verdicts.
