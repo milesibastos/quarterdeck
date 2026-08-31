@@ -33,9 +33,9 @@ import { ago } from "@/ui/lib/age";
 /** Nothing running. `stale` means that is only what the last good read found. */
 function EmptyFleet({ stale }: { stale: boolean }) {
   return (
-    <div className="rounded-lg border border-dashed border-border px-4 py-8 text-center">
-      <p className="text-sm font-medium text-foreground">No workers under way</p>
-      <p className="mt-1 text-xs text-muted-foreground">
+    <div className="rounded-sm border border-dashed border-term-rule px-4 py-8 text-center font-mono">
+      <p className="text-[13px] text-term-fg-bright">No workers under way</p>
+      <p className="mt-1 text-xs text-term-muted">
         {stale
           ? "The last good read reported nothing running."
           : "The fleet read cleanly and reported nothing running."}
@@ -47,9 +47,9 @@ function EmptyFleet({ stale }: { stale: boolean }) {
 /** Nothing running, and the document does not know whether that is true. */
 function NothingToShow() {
   return (
-    <div className="rounded-lg border border-dashed border-danger/40 px-4 py-8 text-center">
-      <p className="text-sm font-medium text-foreground">Nothing to show</p>
-      <p className="mt-1 text-xs text-muted-foreground">
+    <div className="rounded-sm border border-dashed border-term-danger/40 px-4 py-8 text-center font-mono">
+      <p className="text-[13px] text-term-fg-bright">Nothing to show</p>
+      <p className="mt-1 text-xs text-term-muted">
         The fleet could not be read, and the panel has no earlier picture of it.
       </p>
     </div>
@@ -88,7 +88,7 @@ function LastGoodPicture({
   nowMs: number;
 }) {
   return (
-    <p className="text-xs text-muted-foreground">
+    <p className="font-mono text-xs text-term-muted">
       {status.state === "stale"
         ? `Last good picture, taken ${ago(status.asOf, nowMs)}.`
         : `Last good picture, still on screen; the read failed ${ago(status.observedAt, nowMs)}.`}

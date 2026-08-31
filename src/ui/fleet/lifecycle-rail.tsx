@@ -52,8 +52,23 @@ type RailShape = keyof typeof RAIL | typeof UNKNOWN;
 
 interface StageLook {
   readonly label: string;
-  /** The chip, and the card's left edge. Full class strings, so Tailwind sees them. */
-  readonly chip: string;
+  /**
+   * The mark in front of the label, in the grammar's own alphabet.
+   *
+   * Five glyphs: `\u25c6` for a worker on the track, `\u25c7` for one that has not
+   * started or cannot be seen, `\u2713` for finished, `\u2717` for a fault, and `\u2759` for a
+   * worker that has stopped without failing. Four of the five are already drawn
+   * by the vendored components, so their rendering is not a new bet; the hollow
+   * diamond is this lens's own and was checked on screen in both themes, which
+   * is the check U+E0A0 failed when the frame was converted.
+   *
+   * It is decoration - the label beside it says the same thing in a word - but
+   * it is the part that survives a reader who cannot tell two hues apart.
+   */
+  readonly glyph: string;
+  /** The word and its mark, as text on the terminal ground. */
+  readonly tone: string;
+  /** The card's left edge. Full class strings, so Tailwind sees them. */
   readonly accent: string;
   /** The pip the worker is standing on. */
   readonly pip: string;
@@ -70,9 +85,26 @@ interface StageLook {
  * `unseen` is a fifth thing again and is toned as such - it says nothing about
  * the work, only that the panel cannot see it.
  *
- * Their edge is dashed as well as tinted. Hue alone has to carry ten stages
- * across six tokens, so on-track and off-track are told apart by the shape of
- * the edge - which survives both themes and does not depend on seeing colour.
+ * Their edge is dashed as well as tinted, and each carries a mark of its own.
+ * Hue alone has to carry ten stages across six tokens, so on-track and
+ * off-track are told apart by the shape of the edge and by the glyph in front
+ * of the word - both of which survive a reader who cannot tell two hues apart.
+ *
+ * The tones are the panel's own status tokens rather than the `--term-*` set,
+ * and that is the one place this lens does not take the grammar's palette. The
+ * reason is countable: the terminal set has four saturated stops and
+ * `--term-accent` is the same stop as `--term-danger`, so a stage vocabulary
+ * drawn from it has no fifth hue and would paint `blocked` exactly like
+ * `failed`. `--secondary` is navy, which the terminal set has no word for at
+ * all, and it measures 10.1:1 light and 12.5:1 dark as text on the page. See
+ * `docs/decisions/2026-08-31-the-fleet-lens-in-the-terminal-grammar.md`.
+ *
+ * The two obligations are split where the contrast rule needs them split: the
+ * word is drawn in a rank that passes as text, the edge and the pip in the
+ * status token, which carries no contrast obligation because nothing has to be
+ * read out of a four-pixel rule. `--warn` is gold-600 and measures 3.2:1 as
+ * text on the light page, so `held` reads in `--term-warning` - the same hue,
+ * one stop darker - and keeps `--warn` on its edge.
  *
  * Where a stage sits is deliberately not in here any more. A position is only
  * meaningful against a particular rail, and a stage that is third on one rail
@@ -81,61 +113,71 @@ interface StageLook {
 const STAGE: Readonly<Record<Stage, StageLook>> = {
   dispatched: {
     label: "Dispatched",
-    chip: "bg-muted text-muted-foreground",
+    glyph: "\u25c7",
+    tone: "text-term-faint",
     accent: "border-l-border",
     pip: "bg-muted-foreground",
   },
   working: {
     label: "Working",
-    chip: "bg-online text-online-foreground",
+    glyph: "\u25c6",
+    tone: "text-term-success",
     accent: "border-l-online",
     pip: "bg-online",
   },
   validating: {
     label: "Validating",
-    chip: "bg-online text-online-foreground",
+    glyph: "\u25c6",
+    tone: "text-term-success",
     accent: "border-l-online",
     pip: "bg-online",
   },
   "pr-open": {
     label: "Pull request open",
-    chip: "bg-info text-info-foreground",
+    glyph: "\u25c6",
+    tone: "text-term-info",
     accent: "border-l-info",
     pip: "bg-info",
   },
   "in-review": {
     label: "In review",
-    chip: "bg-info text-info-foreground",
+    glyph: "\u25c6",
+    tone: "text-term-info",
     accent: "border-l-info",
     pip: "bg-info",
   },
   landed: {
     label: "Landed",
-    chip: "bg-secondary text-secondary-foreground",
+    glyph: "\u2713",
+    tone: "text-secondary",
     accent: "border-l-secondary",
     pip: "bg-secondary",
   },
   blocked: {
     label: "Blocked",
-    chip: "bg-secondary text-secondary-foreground",
+    glyph: "\u2759",
+    tone: "text-secondary",
     accent: "border-l-secondary border-dashed",
     pip: "bg-secondary",
   },
   held: {
     label: "Held",
-    chip: "bg-warn text-warn-foreground",
+    glyph: "\u2759",
+    tone: "text-term-warning",
     accent: "border-l-warn border-dashed",
     pip: "bg-warn",
   },
   waiting: {
     label: "Waiting",
-    chip: "bg-info text-info-foreground",
+    glyph: "\u2759",
+    tone: "text-term-info",
     accent: "border-l-info border-dashed",
     pip: "bg-info",
   },
   failed: {
     label: "Failed",
-    chip: "bg-danger text-danger-foreground",
+    glyph: "\u2717",
+    tone: "text-term-danger",
     accent: "border-l-danger border-dashed",
     pip: "bg-danger",
   },
@@ -148,7 +190,8 @@ const STAGE: Readonly<Record<Stage, StageLook>> = {
   */
   unseen: {
     label: "Unseen",
-    chip: "bg-muted text-muted-foreground",
+    glyph: "\u25c7",
+    tone: "text-term-faint",
     accent: "border-l-muted-foreground/40 border-dashed",
     pip: "bg-muted-foreground",
   },
@@ -190,15 +233,27 @@ export function stageAccent(stage: Stage): string {
   return STAGE[stage].accent;
 }
 
+/**
+ * The stage, as a marked word rather than a filled pill.
+ *
+ * The grammar puts words on the terminal ground and reserves fills for nothing
+ * at all, so the chip lost its background. What replaced it is the mark: a
+ * glyph the transcript components already use, in the stage's own tone, which
+ * is the same two-channel signal the pill had - shape and hue - without a
+ * second ground for the contrast rule to be measured against.
+ */
 export function StageChip({ stage }: { stage: Stage }) {
+  const { glyph, label, tone } = STAGE[stage];
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center rounded-4xl px-2 py-0.5 font-mono text-[0.6875rem] tracking-wide uppercase",
-        STAGE[stage].chip,
+        "inline-flex shrink-0 items-baseline gap-1.5 font-mono text-[12px] tracking-wide uppercase",
+        tone,
       )}
     >
-      {STAGE[stage].label}
+      {/* Decoration: the word beside it is the whole of what this says. */}
+      <span aria-hidden="true">{glyph}</span>
+      {label}
     </span>
   );
 }
@@ -409,6 +464,18 @@ function unknownNote(recorded: RailShape): string {
   return `Recorded as ${SHAPE_LABEL[recorded]}, but that rail has no room for the stage observed, so how many stages this work has is not known.`;
 }
 
+/**
+ * The rail's own name, for the frame's header.
+ *
+ * The same table the sentence below uses, so a contract still has exactly one
+ * spelling in the panel. A rail whose length is not known says that here too
+ * rather than borrowing a name it has no claim to; the paragraph underneath is
+ * where the two reasons for not knowing are told apart.
+ */
+function railName(shape: RailShape): string {
+  return shape === UNKNOWN ? "rail not known" : SHAPE_LABEL[shape];
+}
+
 export function LifecycleRail({
   lifecycle,
   worker,
@@ -439,8 +506,28 @@ export function LifecycleRail({
   const drawn: readonly ActiveStage[] =
     stages ?? RAIL.validated.slice(0, reached === null ? 0 : reached + 1);
 
+  /*
+    A framed box with a named head, which is the grammar's shape for a thing the
+    session is working through. The frame is solid on purpose: dashed is this
+    rail's word for an end nobody promised, and a dashed box would say that
+    about every rail on the page. The list inside is horizontal rather than the
+    grammar's column of numbered steps - see the decision record; the card's
+    proportions are the wireframe's and a six-row rail would re-cut them.
+  */
   return (
-    <div className="flex flex-col gap-1.5" data-rail={shape} data-stages={stages?.length ?? "unknown"}>
+    <div
+      className="flex min-w-0 flex-col gap-1.5 rounded-sm border border-term-rule-soft px-2 py-1.5"
+      data-rail={shape}
+      data-stages={stages?.length ?? "unknown"}
+    >
+      {/* The head names the rail being drawn, which is a fact from dispatch and
+          was previously only said when it was missing. Decorative rule, real
+          word: the sentence below still carries the length. */}
+      <div className="flex min-w-0 items-baseline gap-1.5 font-mono text-[12px] text-term-faint">
+        <span aria-hidden="true">─</span>
+        <span className="min-w-0 truncate">{railName(shape)}</span>
+      </div>
+
       {/* Decorative: everything it says is in the lines below, in words. */}
       <div aria-hidden="true" className="flex items-center gap-1">
         {drawn.map((stage, index) => (
@@ -467,11 +554,13 @@ export function LifecycleRail({
           <span className="h-1.5 flex-1 rounded-full border border-dashed border-muted-foreground/40" />
         )}
       </div>
-      <p className="text-xs text-foreground">{currentLine(lifecycle, stages, reached)}</p>
+
+      {/* Literal class strings, not `cn`: `tests/fleet-lens.test.ts` reads these
+          two sentences out of the markup by matching a paragraph whose class
+          begins with the size, and every claim the rail makes is in them. */}
+      <p className="text-xs text-term-fg">{currentLine(lifecycle, stages, reached)}</p>
       {stages === null && (
-        <p className="text-xs text-muted-foreground italic">
-          {unknownNote(recordedShape(worker))}
-        </p>
+        <p className="text-xs text-term-muted italic">{unknownNote(recordedShape(worker))}</p>
       )}
     </div>
   );
