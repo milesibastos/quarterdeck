@@ -1,0 +1,94 @@
+# qlty configuration for quarterdeck.
+#
+# qlty is here for the two things nothing else in this project measures:
+# duplication and complexity. eslint already runs through `npm run lint`, and
+# `npm test` already checks the invariants - qlty does not repeat either.
+#
+# The reasoning behind every choice below, including the plugins that are
+# deliberately absent, is in
+# `docs/decisions/2026-08-31-measuring-duplication-and-complexity.md`.
+#
+# Run it:
+#   qlty smells --all     # duplication and complexity findings
+#   qlty metrics --all -d # per-directory size and complexity totals
+#
+# Reference: https://qlty.sh/d/qlty-toml
+
+config_version = "0"
+
+# No plugins. qlty computes duplication and complexity itself; every plugin it
+# offers us would either duplicate a check this project already runs or reach
+# the network. See the decision record.
+
+# Deliberately short. qlty already skips what `.gitignore` skips, so
+# node_modules, `.next/` and `dist/` need no entry here. What is left is the
+# tracked source that is not ours to measure.
+#
+# Note what is NOT here: qlty's generated default excluded `**/config/**`,
+# which would have silently swallowed `src/config/` - real quarterdeck source.
+# Anything added to this list must be checked against `src/` first.
+exclude_patterns = [
+  # Generated: Next writes `next-env.d.ts`, and `.d.ts` files carry no logic.
+  "**/*.d.ts",
+  # Deliberately broken source, read as text by the invariant checks. eslint
+  # ignores it for the same reason - see `eslint.config.mjs`.
+  "tests/violations/**",
+]
+
+# `qlty smells` skips these unless asked for them with `--include-tests`.
+# Behavioural tests repeat their setup on purpose; that is not a debt.
+test_patterns = [
+  "tests/**",
+  "**/*.test.*",
+]
+
+# Every smell qlty can find, with its threshold written out rather than left
+# implicit, so the next contributor can see what is measured and at what number
+# it fires. These are qlty's defaults as of CLI 0.644.0; none has been loosened.
+[smells]
+
+# Duplication: the reason this tool is here. `identical_code` is copy-paste,
+# `similar_code` is the same shape with the names changed. The threshold is a
+# mass of syntax nodes, not a line count.
+[smells.identical_code]
+enabled = true
+threshold = 15
+
+[smells.similar_code]
+enabled = true
+threshold = 15
+
+[smells.duplication]
+nodes_threshold = 64
+
+# Complexity: the other reason. `file_complexity` catches a file that has grown
+# past what one reader holds; `function_complexity` catches the one function
+# inside it that did the growing.
+[smells.file_complexity]
+enabled = true
+threshold = 50
+
+[smells.function_complexity]
+enabled = true
+threshold = 18
+
+# The shapes that make a function hard to follow, each measured on its own.
+[smells.boolean_logic]
+enabled = true
+threshold = 4
+
+[smells.nested_control_flow]
+enabled = true
+threshold = 5
+
+[smells.function_parameters]
+enabled = true
+threshold = 6
+
+[smells.return_statements]
+enabled = true
+threshold = 6
+
+[[source]]
+name = "default"
+default = true
