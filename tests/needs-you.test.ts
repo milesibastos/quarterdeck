@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
+import { writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
 import { portsFor } from "./lib/ports.ts";
-import { startPanel, type Panel } from "./lib/server.ts";
+import { copyFixtures, startPanel, until, type Panel } from "./lib/server.ts";
 
 /**
  * The band that owns the first screen.
@@ -176,6 +178,47 @@ describe("an empty deck and an unreadable one, side by side", () => {
       /data-needs-you-empty="([a-z]+)"/.exec(darkBand)?.[1],
       "an emptiness that might be ignorance has to be labelled as ignorance",
     );
+  });
+});
+
+describe("a deck that stops reading but still carries decisions from before", () => {
+  test("keeps the count and its header, under a caveat no reader can miss", async () => {
+    const fixtureRoot = await copyFixtures();
+    const panel = await startPanel({ port: nextPort(), fixtureSet: "healthy", fixtureRoot });
+    try {
+      const initial = items(await body(panel), "needs-you");
+      assert.deepEqual(initial.sort(), ["wi-driftwood-540", "wi-tidewater-126"]);
+
+      // Truncate the snapshot under the running panel, the same way
+      // tests/panel.test.ts does to take the fleet and deck lenses dark.
+      await writeFile(
+        join(fixtureRoot, "healthy", "snapshot.json"),
+        '{ "schema": "fm-fleet-snapshot.v1", "generated": "2099-01-01T09:15',
+      );
+
+      const html = await until(
+        () => body(panel),
+        (text) => /data-lens="needs-you" data-lens-status="unreadable"/.test(text),
+      );
+      const band = lens(html, "needs-you");
+
+      // The decisions from the last clean read are still drawn, and the header
+      // still counts them - a read failing does not erase what was last known,
+      // and this is not the "Unknown, not nothing" case.
+      assert.deepEqual(items(html, "needs-you").sort(), ["wi-driftwood-540", "wi-tidewater-126"]);
+      assert.ok(!band.includes("Unknown, not nothing"));
+      const header = /<header role="status" data-lens-headline[\s\S]*?<\/header>/.exec(band)?.[0];
+      assert.ok(header, "the band drew its pinned header");
+      assert.match(text(header), /2 decisions · 2 to answer/);
+
+      // The caveat that the count may be short is its own named element, not
+      // prose a scanning reader could skip past.
+      assert.ok(band.includes('data-needs-you-caveat="unreadable"'));
+      assert.ok(band.includes("The read failed"));
+      assert.ok(band.includes("may be short"));
+    } finally {
+      await panel.stop();
+    }
   });
 });
 

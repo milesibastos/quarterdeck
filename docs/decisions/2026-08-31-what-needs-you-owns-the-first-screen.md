@@ -49,10 +49,18 @@ upstream's `actionable`, carried and reported, never recomputed. A count taken
 off the rendered cards would agree with the render by construction, which is
 another way of saying it could not detect the bug above.
 
-**An emptiness that might be ignorance says so.** A deck that read cleanly and
-holds no decision draws "Nothing needs you", and names how many rows it counted
-to get there. A deck that could not be read draws "Unknown, not nothing". Those
-are different facts and only one of them lets an operator stop looking.
+**The band never reports a count it did not count.** `sizeOf` returns null
+whenever the count is zero, whatever the deck's status, so a read that never
+happened can never surface as the number zero - the one number that tells an
+operator to stop looking. That is not the same as going blank the moment a read
+fails. A deck that read cleanly and holds no decision draws "Nothing needs
+you", and names how many rows it counted to get there. A deck that could not be
+read and carries nothing behind it draws "Unknown, not nothing". A deck that
+could not be read but still carries decisions from the last clean read draws
+those decisions and their count, under a caveat naming when the read failed and
+that the count may be short - last-known-good, labelled, which is the same rule
+the deck and fleet lenses already follow rather than a special case invented
+here.
 
 **Underway comes next and peeks.** Its header and the top of its first row of
 cards sit above the fold. Deck and shipshape follow. The bands stack in one
@@ -138,6 +146,16 @@ retracts, `62svh` is measured against the smaller of the two states, so the band
 takes slightly less of a scrolled-down viewport than of a fresh one. The
 reserve only applies at `md` and up in any case, so this is a tablet-in-portrait
 concern rather than a phone one.
+
+**Suppressing the count on an unreadable deck was considered and rejected.**
+Blanking the header the moment a read fails would be a blank where information
+still exists, and it would make the needs-you band the one place on the page
+that behaves differently from the deck and fleet lenses, which already show a
+real count off last-known-good content when their own reads fail. An operator
+who learns the rule in one lens and finds it does not hold in the next has been
+misled by the inconsistency itself - and the danger this band guards against is
+a *silent* undercount; a count that announces the read failed and may be short
+is the opposite of silent.
 
 **Three focus stops went away with the scroll areas.** Each lens body carried
 `tabindex="0"` because it was the only route to the thirteenth worker card with

@@ -33,9 +33,16 @@ import { needsYou } from "@/ui/needs-you/needs-you";
  * a count that agrees with the render by construction, which is another way of
  * saying it cannot detect the bug above.
  *
- * And when the deck could not be read, the band says the number is unknown
- * rather than drawing a confident zero. Those are different facts, and only one
- * of them means an operator can stop looking.
+ * And the band never reports a count it did not count: `sizeOf` returns null
+ * whenever the count is zero, whatever the deck's status, so a read that never
+ * happened can never surface as the number zero - the one number that tells an
+ * operator to stop looking. That does not mean the band goes blank the moment a
+ * read fails: a deck that could not be read but still carries decisions from
+ * the last clean read draws those decisions and their count, under a caveat
+ * naming when the read failed and that the count may be short - the same
+ * last-known-good rule the deck and fleet lenses already follow. Only a deck
+ * that could not be read and carries nothing behind it draws "Unknown, not
+ * nothing".
  */
 
 /** How many decisions, for the pinned header. A count, never a verdict. */
@@ -136,8 +143,11 @@ export function NeedsYouBand({
         </p>
       )}
       {lens.status.state === "unreadable" && decisions.length > 0 && (
-        <p className="font-mono text-[0.6875rem] text-muted-foreground">
-          {`The read failed ${ago(lens.status.observedAt, nowMs)}; this is the last deck that read cleanly, and it may be short.`}
+        <p
+          data-needs-you-caveat="unreadable"
+          className="rounded-lg border border-dashed border-danger/50 px-4 py-3 text-sm wrap-anywhere text-foreground"
+        >
+          {`The read failed ${ago(lens.status.observedAt, nowMs)}. What follows is the last deck that read cleanly, and the count above may be short.`}
         </p>
       )}
 
