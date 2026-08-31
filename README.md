@@ -42,5 +42,5 @@ invariants, and why each one exists.
 The invariants are checked by `npm test`, not by convention: dependencies point
 one direction, the projection does no I/O, exactly one file may write anything,
 one file may name fleet-internal paths, the upstream contract is pinned and
-refuses loudly when it changes, components read only the document, and nothing
-is fetched from the network at runtime.
+refuses loudly when it changes, components read only the document, and the
+browser fetches nothing from the network at runtime.

@@ -282,7 +282,6 @@ export function terminalSourceFor(config: Config, fleet: FleetRef): TerminalSour
     : fixtureTerminalSource(config.fixtureRoot, fleet.source.set);
 }
 
-/** How one fleet's source, watchers and health reading are wired. */
 /**
  * The forge reader, when the operator has asked for one.
  *
@@ -301,6 +300,7 @@ function forgeFor(config: Config, clock: Clock): ForgeCache | null {
   });
 }
 
+/** How one fleet's source, watchers and health reading are wired. */
 function depsFor(config: Config, fleet: FleetRef): RuntimeDeps {
   const clock = clockFor(config);
   const common = { config, clock, logger: consoleLogger, forge: forgeFor(config, clock) };

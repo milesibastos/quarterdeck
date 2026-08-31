@@ -18,10 +18,13 @@ on a match.
 
 ## Parse at the boundary, and only at the boundary
 
-There are three boundaries: the snapshot parse, the config read, and the HTTP
-request. Validate there, exhaustively, and nowhere else. Code downstream of a
-boundary trusts what the boundary handed it - re-checking a value that was
-already checked adds a branch nobody can reach and a test nobody can write.
+There are four boundaries: the snapshot parse, the config read, the HTTP
+request, and the forge read. Validate there, exhaustively, and nowhere else.
+Code downstream of a boundary trusts what the boundary handed it - re-checking
+a value that was already checked adds a branch nobody can reach and a test
+nobody can write. The forge read degrades instead of refusing - see
+`docs/decisions/2026-08-31-reading-the-forge.md` - but it is still the one
+place its response is parsed.
 
 Never guess at a data shape. Parse it.
 

@@ -19,7 +19,8 @@ Seven positions, one direction. Dependencies point right, and only right.
   remembered in is needed by `src/ui/`, which sets it, and by `src/app/`, which
   reads it off the request, and this is the one layer both may see.
 - `src/config/` - which fleets, which port, which policy. Environment and
-  defaults only; parsing the environment is one of the three boundaries.
+  defaults only; parsing the environment is one of the boundaries - see
+  `docs/principles.md`.
 - `src/adapters/` - the only I/O. Five files, one per promise: `contract.ts`
   (the upstream boundary and the fixture source), `health.ts` (quarantined),
   `intent.ts` (the one permitted writer), `terminal.ts` (the on-demand read),
