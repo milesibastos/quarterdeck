@@ -94,6 +94,7 @@ const SHAPES: Readonly<Record<string, Shape>> = {
   "deck-dark": { fleet: ["fresh", 3], deck: ["unreadable", 0], health: "fresh" },
   "deck-only": { fleet: ["fresh", 0], deck: ["fresh", 4], health: "fresh" },
   "fleet-only": { fleet: ["fresh", 11], deck: ["fresh", 0], health: "fresh" },
+  "fleet-empty-stale": { fleet: ["stale", 0], deck: ["stale", 1], health: "stale" },
 };
 
 test("every fixture set on disk is walked here", () => {

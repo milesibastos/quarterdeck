@@ -2,9 +2,10 @@
 
 A local command panel giving its operator visibility into a running firstmate
 fleet: what is running (fleet), what is queued or held for a decision (deck),
-and whether the machinery is healthy (shipshape). Today all three lenses are
-placeholders over a frozen document shape, filled from synthetic fixtures rather
-than a real fleet.
+and whether the machinery is healthy (shipshape). The fleet lens draws a worker
+card and lifecycle rail; the deck and shipshape lenses are still placeholders.
+All three sit over a frozen document shape, filled from synthetic fixtures
+rather than a real fleet.
 
 ## Map
 

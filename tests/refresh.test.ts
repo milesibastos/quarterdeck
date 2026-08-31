@@ -90,11 +90,10 @@ describe("the refresh loop", () => {
   });
 
   test("the next render reflects the change", async () => {
-    // The fleet lens is a placeholder, so what a render can show of a new
-    // worker is that the document now carries one more.
+    // The worker added above is drawn by the fleet lens on the next render.
     const html = await until(
       async () => (await fetch(panel.url)).text(),
-      (text) => text.includes("12 workers in the document"),
+      (text) => text.includes('data-worker="wi-northreach-501"'),
     );
     assert.ok(html.includes('data-lens="fleet"'));
   });
