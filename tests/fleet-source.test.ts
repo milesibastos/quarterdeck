@@ -239,6 +239,35 @@ describe("a snapshot this build does not understand is refused, loudly", () => {
     assert.equal(parsed.backlog.records[0].priority, "extremely urgent");
     assert.equal(parsed.backlog.records[0].since, "last Tuesday");
   });
+
+  test("a task with no backlog row of its own is not a reason to refuse", () => {
+    const snapshot = JSON.parse(fixtureText("upstream-shape"));
+    assert.equal("backlog" in snapshot.tasks[0], false);
+    const parsed = parseSnapshot(JSON.stringify(snapshot), "fleet:test");
+    assert.equal(parsed.tasks[0].completion, null);
+  });
+
+  test("a task's joined backlog that is not an object names the path", () => {
+    const snapshot = JSON.parse(fixtureText("upstream-shape"));
+    snapshot.tasks[0].backlog = "wi-cordage-504";
+    assert.throws(
+      () => parseSnapshot(JSON.stringify(snapshot), "fleet:test"),
+      (error: unknown) =>
+        error instanceof ContractParseError && error.detail.includes("tasks[0].backlog"),
+    );
+  });
+
+  test("a joined backlog's completion that is not an object names the path", () => {
+    const snapshot = JSON.parse(fixtureText("upstream-shape"));
+    assert.ok(snapshot.tasks[3].backlog, "wi-cordage-504 carries a joined backlog row");
+    snapshot.tasks[3].backlog.completion = "merged";
+    assert.throws(
+      () => parseSnapshot(JSON.stringify(snapshot), "fleet:test"),
+      (error: unknown) =>
+        error instanceof ContractParseError &&
+        error.detail.includes("tasks[3].backlog.completion"),
+    );
+  });
 });
 
 describe("the read discipline the refresh loop runs on", () => {

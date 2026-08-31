@@ -398,12 +398,21 @@ function parseTask(value: unknown, at: string, source: string): SnapshotTask {
       ),
     },
     pr: { url: optionalString(pr.url, `${at}.pr.url`, source) },
-    // Absent for a worker with no backlog row of its own, which is a fact
-    // about the worker rather than a snapshot this build cannot read.
-    completion: isRecord(entry.backlog)
-      ? proseString(requireRecord(entry.backlog.completion ?? {}, `${at}.backlog.completion`, source).verb)
-      : null,
+    completion: parseTaskCompletion(entry.backlog, `${at}.backlog`, source),
   };
+}
+
+/**
+ * Absent for a worker with no backlog row of its own, which is a fact about
+ * the worker rather than a snapshot this build cannot read. A backlog row
+ * upstream did join in is its own computation, though, and its shape is
+ * refused like any other structural field; only the verb inside it is prose.
+ */
+function parseTaskCompletion(value: unknown, path: string, source: string): string | null {
+  if (value === null || value === undefined) return null;
+  const backlog = requireRecord(value, path, source);
+  const completion = requireRecord(backlog.completion, `${path}.completion`, source);
+  return proseString(completion.verb);
 }
 
 function parseRecord(value: unknown, at: string, source: string): SnapshotRecord {
