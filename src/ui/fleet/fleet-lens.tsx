@@ -46,6 +46,19 @@ function NothingToShow() {
 }
 
 /**
+ * How many workers, for the pinned header.
+ *
+ * A count and nothing else. Whether a fleet of thirty is healthy is the lens's
+ * question and it has the room below to answer it properly; what the header has
+ * to say is only whether the rows on screen are all of them. `null` at zero,
+ * because the empty state below already says it in a whole sentence.
+ */
+function sizeOf(count: number): string | null {
+  if (count === 0) return null;
+  return count === 1 ? "1 worker" : `${count} workers`;
+}
+
+/**
  * How old the picture on screen is, when it is not current.
  *
  * The frame above already says which policy was breached; what it cannot say is
@@ -84,7 +97,7 @@ export function FleetLens({
   const { status } = lens;
 
   return (
-    <LensFrame lens={lens} name="fleet" title="Fleet">
+    <LensFrame lens={lens} name="fleet" title="Fleet" summary={sizeOf(workers.length)}>
       {(status.state === "stale" || (workers.length > 0 && status.state === "unreadable")) && (
         <LastGoodPicture status={status} nowMs={nowMs} />
       )}

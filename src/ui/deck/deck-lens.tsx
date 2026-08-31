@@ -82,6 +82,16 @@ function EmptyDeck({ status, nowMs }: { status: Lens<unknown>["status"]; nowMs: 
   return <p className="text-sm text-muted-foreground">Nothing queued, blocked or held.</p>;
 }
 
+/**
+ * How many items, for the pinned header. The same rule the fleet's header
+ * follows, and for the same reason: a count says whether the piles on screen
+ * are all of them, and judging them is the lens's job below.
+ */
+function sizeOf(count: number): string | null {
+  if (count === 0) return null;
+  return count === 1 ? "1 item" : `${count} items`;
+}
+
 export function DeckLens({
   lens,
   fleet,
@@ -104,7 +114,7 @@ export function DeckLens({
   const actionable = groups.held.filter((row) => row.item.actionable).length;
 
   return (
-    <LensFrame lens={lens} name="deck" title="Deck">
+    <LensFrame lens={lens} name="deck" title="Deck" summary={sizeOf(lens.content.length)}>
       {/* How old the picture is, which the frame's one line deliberately does
           not say - it names the policy that was breached instead. */}
       {lens.status.state === "stale" && (

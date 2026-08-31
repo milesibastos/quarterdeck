@@ -125,10 +125,10 @@ export function AnswerControl({
 
   if (outcome.state === "recorded") {
     return (
-      <div data-answered={taskId} className="mt-2 space-y-0.5">
+      <div role="status" data-answered={taskId} className="mt-2 space-y-0.5">
         {/* Exactly what is true, and not one word past it. The fleet has not
             been asked yet, and this panel has read nothing since. */}
-        <p className="text-sm text-foreground">
+        <p className="text-sm wrap-anywhere text-foreground">
           {outcome.detail} The fleet will act on it at its next check.
         </p>
         <p className="font-mono text-[0.6875rem] text-muted-foreground">
@@ -180,8 +180,13 @@ export function AnswerControl({
           <li key={close.mode}>{`${close.label} — ${close.note}.`}</li>
         ))}
       </ul>
+      {/* An alert, not a status: a refusal is the one outcome here where the
+          operator has to do something, and it lands while their attention is
+          on the button they just pressed. */}
       {outcome.state === "refused" && (
-        <p className="text-sm text-destructive">{outcome.detail}</p>
+        <p role="alert" className="text-sm wrap-anywhere text-destructive">
+          {outcome.detail}
+        </p>
       )}
     </div>
   );

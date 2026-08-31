@@ -92,7 +92,7 @@ export function SignalBlock({
 export function Unread({ detail, unknown }: { detail: string; unknown: string }) {
   return (
     <>
-      <p className="text-xs break-words text-foreground">{detail}</p>
+      <p className="text-xs wrap-anywhere text-foreground">{detail}</p>
       <p className="text-xs text-muted-foreground">{unknown}</p>
     </>
   );

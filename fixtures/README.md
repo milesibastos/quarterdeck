@@ -53,11 +53,22 @@ combination below has somewhere to live.
 | `deck-only` | An empty fleet with a non-empty deck. |
 | `fleet-only` | A non-empty fleet with an empty deck. Every stage the document can carry, including a worker the panel cannot see - whose detail names a pipeline step, so that nothing may quietly place it on the track from words upstream wrote about its own blindness. |
 | `fleet-empty-stale` | A stale read that found nothing running, with a non-empty backlog. The last good picture is empty, but it still shows its age rather than reading as a clean current empty state. |
+| `crowded` | Thirty workers and fifteen deck rows: the large end of the range the layout has to survive, and the set the fold line was tuned against. Five rows are held - four for a person, three of those answerable right now - three workers are past the wedge line and two records disagree with reality, so every column carries more than fits. See docs/decisions/2026-08-31-the-fold-line.md. |
+| `wide-detail` | A snapshot whose refusal quotes what it refused: a 180-character run with no space, hyphen or slash in it, which is the shape that used to burst out of a lens frame sideways. Fleet and deck dark, shipshape current. |
+| `all-dark` | A truncated snapshot with no `health.json` beside it. Every lens dark at once and nothing left to draw - the page with the least on it the panel can still be asked to render, and the one that has to keep reading as one instrument. |
 | `upstream-shape` | A synthetic fleet in upstream's real shape and real vocabulary: every state a live fleet reconciles to, a project recorded as a path, a kind this build has never seen, numeric priorities, a start date rather than an instant, a row with no start, no project and no kind at all, a row asking for research, a backlog line nobody turned into a work item, and a deferral that is not a date. The set that keeps the real read honest without a real fleet. |
 
 `generated` in the fresh sets sits far enough in the future that they never
 drift into looking stale as the repository ages. `stale` is fixed in the past on
 purpose.
+
+The sets above are the pages worth pointing the panel at and looking at. They
+are not the whole degradation matrix: fleet and deck share the snapshot's
+`generated` and health is read separately, which makes fifteen reachable
+combinations of the three lens statuses, six of which differ from a set above by
+one timestamp. `tests/degradation.test.ts` composes all fifteen from a copied
+fixture and drives each through the built server, rather than committing six
+directories whose only distinguishing feature is a date.
 
 Every set is written in the shape upstream actually publishes, so a snapshot
 here can be dropped in front of the parser exactly as a fleet's own would be.

@@ -189,7 +189,7 @@ function OverdueWork({ signal, nowMs }: { signal: OverdueSignal; nowMs: number }
             key={item.id}
             className="flex flex-wrap items-baseline justify-between gap-x-3 text-xs"
           >
-            <span className="min-w-0 truncate font-mono text-foreground">{item.id}</span>
+            <span className="min-w-0 wrap-anywhere font-mono text-foreground">{item.id}</span>
             <span className="font-mono text-muted-foreground">
               {`waiting since ${ago(item.waitingSince, nowMs)}`}
             </span>
@@ -253,8 +253,8 @@ function Drift({ signal }: { signal: DriftSignal }) {
       <ul className="flex flex-col gap-1.5">
         {signal.disagreements.map((disagreement) => (
           <li key={disagreement.record} className="flex flex-col text-xs">
-            <span className="truncate font-mono text-foreground">{disagreement.record}</span>
-            <span className="break-words text-muted-foreground">{disagreement.detail}</span>
+            <span className="wrap-anywhere font-mono text-foreground">{disagreement.record}</span>
+            <span className="wrap-anywhere text-muted-foreground">{disagreement.detail}</span>
           </li>
         ))}
       </ul>

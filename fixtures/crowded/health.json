@@ -1,0 +1,38 @@
+{
+  "asOf": "2099-01-01T09:15:00.000Z",
+  "supervisor": {
+    "read": "ok",
+    "alive": true,
+    "lastSeen": "2099-01-01T09:14:20.000Z"
+  },
+  "overdue": {
+    "read": "ok",
+    "overdue": [
+      {
+        "id": "wi-brackish-142",
+        "waitingSince": "2099-01-01T07:45:00.000Z"
+      },
+      {
+        "id": "wi-windlass-149",
+        "waitingSince": "2099-01-01T07:15:00.000Z"
+      },
+      {
+        "id": "wi-halyard-156",
+        "waitingSince": "2099-01-01T06:45:00.000Z"
+      }
+    ]
+  },
+  "drift": {
+    "read": "ok",
+    "disagreements": [
+      {
+        "record": "data/backlog.md",
+        "detail": "wi-driftwood-555 is in flight with no worker behind it."
+      },
+      {
+        "record": "state/wi-cordage-419.status",
+        "detail": "wi-cordage-419 is still held while its status log records the decision answered."
+      }
+    ]
+  }
+}

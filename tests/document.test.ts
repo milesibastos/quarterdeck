@@ -94,6 +94,9 @@ type Shape = {
  */
 const SHAPES: Readonly<Record<string, Shape>> = {
   healthy: { fleet: ["fresh", 11], deck: ["fresh", 6], health: "fresh" },
+  // The large end of the range the layout has to survive; see
+  // docs/decisions/2026-08-31-the-fold-line.md.
+  crowded: { fleet: ["fresh", 30], deck: ["fresh", 15], health: "fresh" },
   empty: { fleet: ["fresh", 0], deck: ["fresh", 0], health: "fresh" },
   stale: { fleet: ["stale", 2], deck: ["stale", 2], health: "stale" },
   malformed: { fleet: ["unreadable", 0], deck: ["unreadable", 0], health: "fresh" },
@@ -106,6 +109,13 @@ const SHAPES: Readonly<Record<string, Shape>> = {
   // The one set in upstream's real shape and real vocabulary; its projection is
   // asserted field by field in tests/fleet-source.test.ts.
   "upstream-shape": { fleet: ["fresh", 8], deck: ["fresh", 5], health: "fresh" },
+  // A refusal quoting a 180-character token with no break opportunity in it.
+  // The lens statuses are `malformed`'s; what this set is for is the width of
+  // the sentence they carry.
+  "wide-detail": { fleet: ["unreadable", 0], deck: ["unreadable", 0], health: "fresh" },
+  // Every lens dark at once, with nothing left over to draw: the page with the
+  // least on it that the panel can still be asked to render.
+  "all-dark": { fleet: ["unreadable", 0], deck: ["unreadable", 0], health: "unreadable" },
 };
 
 test("every fixture set on disk is walked here", () => {

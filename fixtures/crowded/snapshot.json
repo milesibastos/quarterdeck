@@ -1,0 +1,1005 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2099-01-01T09:15:00.000Z",
+  "tasks": [
+    {
+      "id": "wi-tidewater-100",
+      "project": "tidewater",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-tidewater-100.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-tidewater-100",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "editing the projection",
+        "observed_at": "2099-01-01T09:14:40.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-lamplight-107",
+      "project": "lamplight",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-lamplight-107.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-lamplight-107",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "writing the fixture set",
+        "observed_at": "2099-01-01T09:14:03.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-saltmarsh-114",
+      "project": "saltmarsh",
+      "kind": "scout",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-saltmarsh-114.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-saltmarsh-114",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "validating",
+        "detail": "validating (running)",
+        "observed_at": "2099-01-01T09:13:26.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-cordage-121",
+      "project": "cordage",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-cordage-121.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-cordage-121",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "validating",
+        "detail": "validating: test suite running",
+        "observed_at": "2099-01-01T09:12:49.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-driftwood-128",
+      "project": "driftwood",
+      "kind": "docs",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-driftwood-128.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-driftwood-128",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "reading the brief",
+        "observed_at": "2099-01-01T09:12:12.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-brackish-135",
+      "project": "brackish",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-brackish-135.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-brackish-135",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "dispatched",
+        "detail": "dispatched to a fresh worktree",
+        "observed_at": "2099-01-01T09:11:35.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-windlass-142",
+      "project": "windlass",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-windlass-142.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-windlass-142",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "pr_open",
+        "detail": "pull request opened",
+        "observed_at": "2099-01-01T09:10:58.000Z"
+      },
+      "pr": {
+        "url": "https://forge.invalid/windlass/pull/142",
+        "source": "meta"
+      }
+    },
+    {
+      "id": "wi-halyard-149",
+      "project": "halyard",
+      "kind": "scout",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-halyard-149.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-halyard-149",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "rewriting the reader",
+        "observed_at": "2099-01-01T09:10:21.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-capstan-156",
+      "project": "capstan",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-capstan-156.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-capstan-156",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "in_review",
+        "detail": "waiting on a human reviewer",
+        "observed_at": "2099-01-01T09:09:44.000Z"
+      },
+      "pr": {
+        "url": "https://forge.invalid/capstan/pull/156",
+        "source": "meta"
+      }
+    },
+    {
+      "id": "wi-spindrift-163",
+      "project": "spindrift",
+      "kind": "docs",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-spindrift-163.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-spindrift-163",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "parked",
+        "detail": "parked at review: 2 finding(s) (ask-user: authority decision)",
+        "observed_at": "2099-01-01T09:09:07.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-tidewater-170",
+      "project": "tidewater",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-tidewater-170.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-tidewater-170",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "threading the clock through",
+        "observed_at": "2099-01-01T09:08:30.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-lamplight-177",
+      "project": "lamplight",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-lamplight-177.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-lamplight-177",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "validating",
+        "detail": "validating: lint",
+        "observed_at": "2099-01-01T09:07:53.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-saltmarsh-184",
+      "project": "saltmarsh",
+      "kind": "scout",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-saltmarsh-184.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-saltmarsh-184",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "blocked",
+        "detail": "blocked on a sibling landing first",
+        "observed_at": "2099-01-01T09:07:16.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-cordage-191",
+      "project": "cordage",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-cordage-191.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-cordage-191",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "splitting the component",
+        "observed_at": "2099-01-01T09:06:39.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-driftwood-198",
+      "project": "driftwood",
+      "kind": "docs",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-driftwood-198.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-driftwood-198",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "landed",
+        "detail": "landed on the default branch",
+        "observed_at": "2099-01-01T09:06:02.000Z"
+      },
+      "pr": {
+        "url": "https://forge.invalid/driftwood/pull/198",
+        "source": "meta"
+      }
+    },
+    {
+      "id": "wi-brackish-205",
+      "project": "brackish",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-brackish-205.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-brackish-205",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "widening the parser",
+        "observed_at": "2099-01-01T09:05:25.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-windlass-212",
+      "project": "windlass",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-windlass-212.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-windlass-212",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "waiting_external",
+        "detail": "waiting on an upstream release",
+        "observed_at": "2099-01-01T09:04:48.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-halyard-219",
+      "project": "halyard",
+      "kind": "scout",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-halyard-219.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-halyard-219",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "validating",
+        "detail": "validating: ci",
+        "observed_at": "2099-01-01T09:04:11.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-capstan-226",
+      "project": "capstan",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-capstan-226.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-capstan-226",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "adding the missing case",
+        "observed_at": "2099-01-01T09:03:34.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-spindrift-233",
+      "project": "spindrift",
+      "kind": "docs",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-spindrift-233.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-spindrift-233",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "failed",
+        "detail": "failed during lint: 3 errors",
+        "observed_at": "2099-01-01T09:02:57.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-tidewater-240",
+      "project": "tidewater",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-tidewater-240.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-tidewater-240",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "correcting the copy",
+        "observed_at": "2099-01-01T09:02:20.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-lamplight-247",
+      "project": "lamplight",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-lamplight-247.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-lamplight-247",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "pr_open",
+        "detail": "pull request opened",
+        "observed_at": "2099-01-01T09:01:43.000Z"
+      },
+      "pr": {
+        "url": "https://forge.invalid/lamplight/pull/247",
+        "source": "meta"
+      }
+    },
+    {
+      "id": "wi-saltmarsh-254",
+      "project": "saltmarsh",
+      "kind": "scout",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-saltmarsh-254.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-saltmarsh-254",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "unpicking the layout",
+        "observed_at": "2099-01-01T09:01:06.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-cordage-261",
+      "project": "cordage",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-cordage-261.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-cordage-261",
+          "present": false
+        }
+      },
+      "current_state": {
+        "state": "unknown",
+        "detail": "no state source answered; its last line said push",
+        "observed_at": "2099-01-01T09:00:29.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-driftwood-268",
+      "project": "driftwood",
+      "kind": "docs",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-driftwood-268.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-driftwood-268",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "renaming the token",
+        "observed_at": "2099-01-01T08:59:52.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-brackish-275",
+      "project": "brackish",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-brackish-275.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-brackish-275",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "validating",
+        "detail": "validating (running)",
+        "observed_at": "2099-01-01T08:59:15.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-windlass-282",
+      "project": "windlass",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-windlass-282.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-windlass-282",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "drafting the decision",
+        "observed_at": "2099-01-01T08:58:38.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-halyard-289",
+      "project": "halyard",
+      "kind": "scout",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-halyard-289.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-halyard-289",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "in_review",
+        "detail": "waiting on a human reviewer",
+        "observed_at": "2099-01-01T08:58:01.000Z"
+      },
+      "pr": {
+        "url": "https://forge.invalid/halyard/pull/289",
+        "source": "meta"
+      }
+    },
+    {
+      "id": "wi-capstan-296",
+      "project": "capstan",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-capstan-296.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-capstan-296",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "measuring the read",
+        "observed_at": "2099-01-01T08:57:24.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    },
+    {
+      "id": "wi-spindrift-303",
+      "project": "spindrift",
+      "kind": "docs",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-spindrift-303.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-spindrift-303",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "tidying the fold",
+        "observed_at": "2099-01-01T08:56:47.000Z"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      }
+    }
+  ],
+  "backlog": {
+    "present": true,
+    "records": [
+      {
+        "structured": true,
+        "id": "wi-tidewater-131",
+        "title": "Settle the fold line",
+        "repo": "tidewater",
+        "kind": "ship",
+        "state": "queued",
+        "priority": "now",
+        "since": "2099-01-01T09:00:00.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": "captain",
+        "hold_reason": "Two layouts, and only one survives a fleet of thirty",
+        "hold_until": null,
+        "captain_actionable": true
+      },
+      {
+        "structured": true,
+        "id": "wi-lamplight-238",
+        "title": "Answer the naming call",
+        "repo": "lamplight",
+        "kind": "scout",
+        "state": "queued",
+        "priority": "now",
+        "since": "2099-01-01T08:05:00.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": "captain",
+        "hold_reason": "Needs a naming decision before the reader is written",
+        "hold_until": null,
+        "captain_actionable": true
+      },
+      {
+        "structured": true,
+        "id": "wi-saltmarsh-322",
+        "title": "Pick the degraded copy",
+        "repo": "saltmarsh",
+        "kind": "docs",
+        "state": "in_flight",
+        "priority": "next",
+        "since": "2099-01-01T08:31:40.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": "captain",
+        "hold_reason": "Which of the two sentences an operator reads first",
+        "hold_until": null,
+        "captain_actionable": true
+      },
+      {
+        "structured": true,
+        "id": "wi-cordage-419",
+        "title": "Confirm the spool location",
+        "repo": "cordage",
+        "kind": "ship",
+        "state": "queued",
+        "priority": "next",
+        "since": "2099-01-01T07:15:00.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": "captain",
+        "hold_reason": "Deferred until the intake lands",
+        "hold_until": "2099-01-06",
+        "captain_actionable": false
+      },
+      {
+        "structured": true,
+        "id": "wi-driftwood-548",
+        "title": "Adopt the upstream flag",
+        "repo": "driftwood",
+        "kind": "ship",
+        "state": "queued",
+        "priority": "later",
+        "since": "2099-01-01T06:15:00.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": "external",
+        "hold_reason": "Waits on the upstream release",
+        "hold_until": null,
+        "captain_actionable": false
+      },
+      {
+        "structured": true,
+        "id": "wi-brackish-284",
+        "title": "Widen the parser",
+        "repo": "brackish",
+        "kind": "ship",
+        "state": "queued",
+        "priority": "next",
+        "since": "2099-01-01T07:45:00.000Z",
+        "blocked_by_ids": [
+          "wi-cordage-419"
+        ],
+        "blocked_reason": "Waits on the spool question",
+        "hold_kind": null,
+        "hold_reason": null,
+        "hold_until": null,
+        "captain_actionable": false
+      },
+      {
+        "structured": true,
+        "id": "wi-windlass-190",
+        "title": "Split the health reader",
+        "repo": "windlass",
+        "kind": "ship",
+        "state": "queued",
+        "priority": "now",
+        "since": "2099-01-01T08:45:00.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": null,
+        "hold_reason": null,
+        "hold_until": null,
+        "captain_actionable": false
+      },
+      {
+        "structured": true,
+        "id": "wi-halyard-262",
+        "title": "Vendor the second subset",
+        "repo": "halyard",
+        "kind": "docs",
+        "state": "queued",
+        "priority": "next",
+        "since": "2099-01-01T08:15:00.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": null,
+        "hold_reason": null,
+        "hold_until": null,
+        "captain_actionable": false
+      },
+      {
+        "structured": true,
+        "id": "wi-capstan-355",
+        "title": "Rewrite the refusal copy",
+        "repo": "capstan",
+        "kind": "ship",
+        "state": "queued",
+        "priority": "later",
+        "since": "2099-01-01T06:45:00.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": null,
+        "hold_reason": null,
+        "hold_until": null,
+        "captain_actionable": false
+      },
+      {
+        "structured": true,
+        "id": "wi-spindrift-471",
+        "title": "Measure the read",
+        "repo": "spindrift",
+        "kind": "scout",
+        "state": "in_flight",
+        "priority": "now",
+        "since": "2099-01-01T09:05:00.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": null,
+        "hold_reason": null,
+        "hold_until": null,
+        "captain_actionable": false
+      },
+      {
+        "structured": true,
+        "id": "wi-tidewater-137",
+        "title": "Tidy the token layer",
+        "repo": "tidewater",
+        "kind": "ship",
+        "state": "in_flight",
+        "priority": "next",
+        "since": "2099-01-01T08:35:00.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": null,
+        "hold_reason": null,
+        "hold_until": null,
+        "captain_actionable": false
+      },
+      {
+        "structured": true,
+        "id": "wi-lamplight-244",
+        "title": "Bound the walk",
+        "repo": "lamplight",
+        "kind": "ship",
+        "state": "queued",
+        "priority": "later",
+        "since": "2099-01-01T05:45:00.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": null,
+        "hold_reason": null,
+        "hold_until": null,
+        "captain_actionable": false
+      },
+      {
+        "structured": true,
+        "id": "wi-saltmarsh-329",
+        "title": "Name the third signal",
+        "state": "queued",
+        "priority": "later",
+        "since": null,
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": null,
+        "hold_reason": null,
+        "hold_until": null,
+        "captain_actionable": false
+      },
+      {
+        "structured": true,
+        "id": "wi-cordage-426",
+        "title": "Carry the checks state",
+        "repo": "cordage",
+        "kind": "ship",
+        "state": "queued",
+        "priority": "later",
+        "since": "2099-01-01T05:15:00.000Z",
+        "blocked_by_ids": [
+          "wi-windlass-190"
+        ],
+        "blocked_reason": "Waits on the reader split",
+        "hold_kind": null,
+        "hold_reason": null,
+        "hold_until": null,
+        "captain_actionable": false
+      },
+      {
+        "structured": true,
+        "id": "wi-driftwood-555",
+        "title": "Trim the rail",
+        "repo": "driftwood",
+        "kind": "docs",
+        "state": "in_flight",
+        "priority": "later",
+        "since": "2099-01-01T07:51:40.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": null,
+        "hold_reason": null,
+        "hold_until": null,
+        "captain_actionable": false
+      },
+      {
+        "structured": true,
+        "id": "wi-halyard-269",
+        "title": "Commit the display font",
+        "repo": "halyard",
+        "kind": "ship",
+        "state": "done",
+        "priority": "later",
+        "since": "2099-01-01T03:41:40.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": null,
+        "hold_reason": null,
+        "hold_until": null,
+        "captain_actionable": false
+      },
+      {
+        "structured": true,
+        "id": "wi-capstan-362",
+        "title": "Pin the schema",
+        "repo": "capstan",
+        "kind": "ship",
+        "state": "done",
+        "priority": "now",
+        "since": "2099-01-01T00:55:00.000Z",
+        "blocked_by_ids": [],
+        "blocked_reason": null,
+        "hold_kind": null,
+        "hold_reason": null,
+        "hold_until": null,
+        "captain_actionable": false
+      }
+    ]
+  }
+}

@@ -14,7 +14,9 @@ not fetch a font at runtime.
 Three layers in `src/app/globals.css`, and components only ever touch the third:
 
 1. `--qd-*` - the palette. Raw colour, no meaning.
-2. `:root` and `.dark` - semantic tokens pointing at palette entries.
+2. `:root` and, originally, `.dark` - semantic tokens pointing at palette
+   entries. See the superseded note below: `.dark` is gone, replaced by a
+   second `:root` block keyed on `prefers-color-scheme`.
 3. `@theme inline` - exposes them to Tailwind.
 
 A component writes `bg-primary text-primary-foreground`, never a palette value.
@@ -37,13 +39,19 @@ means two hops to find a colour. It also means the light and dark blocks read as
 a mapping - "card is white, or ink-700 in the dark" - which is the thing a
 reviewer actually needs to check, and it makes a palette change one edit.
 
-**Dark is class-only.** `.dark` on the root element, per shadcn's structure. It
-does not follow the operator's system preference, because doing that without an
-inline script means either duplicating every dark token inside a
+**Dark is class-only.** ~~`.dark` on the root element, per shadcn's structure.
+It does not follow the operator's system preference, because doing that without
+an inline script means either duplicating every dark token inside a
 `prefers-color-scheme` block - two copies that will drift - or shipping an
 inline script that weakens the Content-Security-Policy invariant 7 depends on.
-Neither is worth it for a skeleton with no theme switcher. Recorded as a gap in
-`docs/quality.md`.
+Neither is worth it for a skeleton with no theme switcher.~~
+
+**Superseded on 2026-08-31**, by dropping the class rather than adding a second
+copy of the mapping beside it: both objections above assumed `.dark` stays, and
+neither survives it going. See
+`docs/decisions/2026-08-31-the-theme-follows-the-system.md`. Everything else in
+this decision - the three layers, the palette hop, the computed OKLCH values,
+`next/font/local` - still stands.
 
 **`next/font/local`, not `next/font/google`.** Next's Google font loader
 self-hosts at build time and would satisfy the runtime rule. It would also make

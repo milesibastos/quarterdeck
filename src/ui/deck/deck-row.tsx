@@ -55,7 +55,12 @@ function accentOf({ item, blocking }: Row): string {
 function BlockerLine({ blocker }: { blocker: Blocker }) {
   return (
     <li className="flex flex-wrap items-baseline gap-x-1.5">
-      <span className={cn("text-sm", blocker.label === null && "font-mono text-xs")}>
+      <span
+        className={cn(
+          "min-w-0 wrap-anywhere text-sm",
+          blocker.label === null && "font-mono text-xs",
+        )}
+      >
         {blocker.label ?? blocker.id}
       </span>
       {blocker.where !== null && (
@@ -94,7 +99,9 @@ export function DeckItemRow({
         today rather than a heading with a badge after it.
       */}
       <div className="flex items-start justify-between gap-2">
-        <p className="font-heading text-sm leading-snug text-foreground">{item.title}</p>
+        <h4 className="font-heading text-sm leading-snug font-medium wrap-anywhere text-foreground">
+          {item.title}
+        </h4>
         <Badge variant={PRIORITY_VARIANT[item.priority]} className="shrink-0">
           {item.priority}
         </Badge>
@@ -107,7 +114,7 @@ export function DeckItemRow({
         is worse than an absent one. The date is the same: a row with no start
         says so rather than being stamped with the moment upstream looked.
       */}
-      <p className="mt-0.5 font-mono text-[0.6875rem] text-muted-foreground">
+      <p className="mt-0.5 font-mono text-[0.6875rem] wrap-anywhere text-muted-foreground">
         <span className={item.since === null ? undefined : "text-foreground"}>
           {item.since === null ? "no start date" : ago(item.since, nowMs)}
         </span>
@@ -129,7 +136,9 @@ export function DeckItemRow({
           </p>
           {/* Upstream's own words, unedited: a paraphrase of a reason is a
               second-hand account of why someone stopped. */}
-          {hold.reason !== null && <p className="text-sm text-muted-foreground">{hold.reason}</p>}
+          {hold.reason !== null && (
+            <p className="text-sm wrap-anywhere text-muted-foreground">{hold.reason}</p>
+          )}
           {hold.deferredTo !== null && (
             <p className="font-mono text-[0.6875rem] text-muted-foreground">
               deferred until <time dateTime={hold.deferredTo}>{hold.deferredTo}</time>
@@ -157,13 +166,13 @@ export function DeckItemRow({
             ))}
           </ul>
           {item.blocked?.reason != null && (
-            <p className="mt-0.5 text-sm text-muted-foreground">{item.blocked.reason}</p>
+            <p className="mt-0.5 text-sm wrap-anywhere text-muted-foreground">{item.blocked.reason}</p>
           )}
         </div>
       )}
 
       {cleared.length > 0 && (
-        <p className="mt-1.5 font-mono text-[0.6875rem] text-muted-foreground">
+        <p className="mt-1.5 font-mono text-[0.6875rem] wrap-anywhere text-muted-foreground">
           {`${cleared.map((blocker) => blocker.id).join(", ")} landed; no longer blocking`}
         </p>
       )}

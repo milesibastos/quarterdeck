@@ -31,7 +31,10 @@ Seven positions, one direction. Dependencies point right, and only right.
   directory per lens - `fleet/`, `deck/`, `shipshape/` - so the worker building
   a lens edits no file another worker is also editing. `shell.tsx` lays the
   three out, `lens-frame.tsx` is the chrome they share, and `fleet-picker.tsx`
-  wraps the lot with which fleet is being looked at.
+  wraps the lot with which fleet is being looked at. The fold line is
+  `lens-frame.tsx`'s: it pins a header and scrolls the body, so all three lenses
+  answer "what stays on screen" the same way at any fleet size. See
+  `docs/decisions/2026-08-31-the-fold-line.md`.
 
 Plus two positions off the line:
 
@@ -258,9 +261,14 @@ question it can answer, and it does not pretend to. See
 the built server, not `src/`, so a stale build cannot pass. A freshness guard
 fails first and says to rebuild.
 
-`tests/document.test.ts` is the exception, and deliberately: it walks every
-fixture set and asserts the document each produces, against the pure projection
-rather than the server. The document is the seam several workers build against
+`tests/degradation.test.ts` walks every combination of the three lens statuses
+the projection can actually reach - fifteen of them, because fleet and deck
+share the snapshot's `generated` while health is read separately - composing
+each from a copied fixture rather than committing a directory per cell.
+
+`tests/document.test.ts` is the exception to driving the built server, and
+deliberately: it walks every fixture set and asserts the document each produces,
+against the pure projection rather than the server. The document is the seam several workers build against
 at once, so a change to its shape has to break a test there rather than surface
 later as a lens quietly rendering nothing.
 
@@ -273,6 +281,11 @@ parallel, so each file claims a block of ports by naming itself to
 is bounded: a child that ignores SIGTERM fails its test instead of hanging the
 run.
 
-Scroll preservation is the one claim not asserted here: it is React's
-reconciliation contract, and it is demonstrated in a browser instead. See
-`docs/plans/done/`.
+Three claims are demonstrated in a browser rather than asserted here, each
+because a string of markup cannot carry it: scroll preservation, which is
+React's reconciliation contract; that nothing overflows the page sideways at a
+narrow width; and that the theme follows the operator's system setting in both
+directions. What markup *can* carry - the pinned headers, the live regions, the
+focusable scroll bodies, the served stylesheet's two blocks - is in
+`tests/shell.test.ts`. See `docs/plans/done/` and the two dated decisions of
+2026-08-31.

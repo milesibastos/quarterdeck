@@ -29,6 +29,14 @@ import { cn } from "@/ui/lib/utils";
  * A `<select>` moves its own value the instant it is clicked, before the server
  * has read anything. That is precisely the ambiguity above, built into the
  * control. A chip that changes only when the render behind it does cannot lie.
+ *
+ * ## Why it owns the page's height too
+ *
+ * At `md` and up the panel is exactly one viewport tall and each lens scrolls
+ * inside itself. Since this wraps everything the panel draws, it is where that
+ * height starts: `md:h-full` here, and the content below takes what the nav
+ * leaves. See `src/ui/shell.tsx` and
+ * `docs/decisions/2026-08-31-the-fold-line.md`.
  */
 
 /** One fleet, as the operator sees it. The id is the panel's, the label theirs. */
@@ -78,10 +86,14 @@ export function FleetPicker({
   };
 
   return (
-    <div data-fleet={showing} data-switching-to={switching ? wanted : undefined}>
+    <div
+      data-fleet={showing}
+      data-switching-to={switching ? wanted : undefined}
+      className="flex min-h-full flex-col md:h-full md:min-h-0"
+    >
       <nav
         aria-label="Fleet"
-        className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-3 gap-y-2 px-6 pt-6"
+        className="mx-auto flex w-full max-w-6xl shrink-0 flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-4 sm:px-6 md:pt-5"
       >
         <span className="font-mono text-[0.6875rem] tracking-widest uppercase text-muted-foreground">
           Fleet
@@ -138,7 +150,10 @@ export function FleetPicker({
           claims it belongs to the fleet being switched to. */}
       <div
         aria-busy={switching || undefined}
-        className={cn("transition-opacity", switching && "opacity-50")}
+        className={cn(
+          "flex flex-col transition-opacity md:min-h-0 md:flex-1",
+          switching && "opacity-50",
+        )}
       >
         {children}
       </div>
