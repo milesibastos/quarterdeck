@@ -3,6 +3,7 @@ import type { AnsweringSession } from "@/ui/deck/answer-control";
 import { DeckItemRow } from "@/ui/deck/deck-row";
 import { LensFrame } from "@/ui/lens-frame";
 import { ago } from "@/ui/lib/age";
+import { MergeCard, type MergeSession } from "@/ui/needs-you/merge-card";
 import { needsYou } from "@/ui/needs-you/needs-you";
 
 /**
@@ -45,11 +46,24 @@ import { needsYou } from "@/ui/needs-you/needs-you";
  * nothing".
  */
 
-/** How many decisions, for the pinned header. A count, never a verdict. */
-function sizeOf(count: number, actionable: number): string | null {
-  if (count === 0) return null;
-  const decisions = count === 1 ? "1 decision" : `${count} decisions`;
-  return actionable > 0 ? `${decisions} · ${actionable} to answer` : decisions;
+/**
+ * How much is waiting on the operator, for the pinned header. A count, never a
+ * verdict.
+ *
+ * Both groups, in one line, from the one fold - so the header can never report
+ * a band the operator is not looking at. A group holding nothing contributes no
+ * clause rather than the word zero: the band's emptiness is what carries the
+ * information here, and "0 to merge" beside two decisions reads as a reassurance
+ * nobody counted.
+ */
+function sizeOf(count: number, actionable: number, merges: number): string | null {
+  const parts: string[] = [];
+  if (count > 0) {
+    parts.push(count === 1 ? "1 decision" : `${count} decisions`);
+    if (actionable > 0) parts.push(`${actionable} to answer`);
+  }
+  if (merges > 0) parts.push(`${merges} to merge`);
+  return parts.length === 0 ? null : parts.join(" · ");
 }
 
 /**
@@ -100,6 +114,12 @@ function NothingNeedsYou({
           ? "The deck carried nothing at all, so nothing in it is held for a person."
           : `The deck carried ${deckSize} ${deckSize === 1 ? "item" : "items"} and none of them is held for a person.`}
       </p>
+      {/* Said separately because it is a different read: the decisions come
+          from the deck and the merges from the fleet, and one sentence covering
+          both would attribute a fleet's silence to the deck. */}
+      <p className="mx-auto mt-1 max-w-prose text-sm text-muted-foreground">
+        No pull request in the fleet is ready to merge.
+      </p>
     </div>
   );
 }
@@ -109,20 +129,26 @@ export function NeedsYouBand({
   fleet,
   nowMs,
   session = null,
+  merging = null,
   className,
 }: {
   /** The deck, with its own status: the band's count is only as good as this. */
   lens: Lens<readonly DeckItem[]>;
-  /** The fleet's work items, read only to name and settle the deck's blockers. */
+  /**
+   * The fleet's work items. Read to name and settle the deck's blockers, and
+   * for the pull requests that are ready to land.
+   */
   fleet: readonly Worker[];
   /** Chosen by the composition point, so every age on the page agrees. */
   nowMs: number;
   /** How an answer reaches the server. `null` when it has nowhere to go. */
   session?: AnsweringSession | null;
+  /** How a merge order reaches the server. `null` when it has nowhere to go. */
+  merging?: MergeSession | null;
   /** The share of the first screen the shell reserves for it. */
   className?: string;
 }) {
-  const { decisions, actionable } = needsYou(lens.content, fleet);
+  const { decisions, actionable, merges } = needsYou(lens.content, fleet);
 
   return (
     <LensFrame
@@ -130,7 +156,7 @@ export function NeedsYouBand({
       name="needs-you"
       title="Needs you"
       prominence="primary"
-      summary={sizeOf(decisions.length, actionable)}
+      summary={sizeOf(decisions.length, actionable, merges.length)}
       className={className}
     >
       {/* How old the picture is, which the frame's one line deliberately does
@@ -151,30 +177,45 @@ export function NeedsYouBand({
         </p>
       )}
 
-      {decisions.length === 0 ? (
+      {decisions.length === 0 && merges.length === 0 ? (
         <NothingNeedsYou status={lens.status} deckSize={lens.content.length} nowMs={nowMs} />
       ) : (
-        <ul data-needs-group="decisions" className="card-grid [--qd-card-min:24rem]">
-          {decisions.map((row) => (
-            <DeckItemRow
-              key={row.item.id}
-              row={row}
-              nowMs={nowMs}
-              session={session}
-              tone="card"
-            />
-          ))}
-        </ul>
+        <>
+          {decisions.length > 0 && (
+            <ul data-needs-group="decisions" className="card-grid [--qd-card-min:24rem]">
+              {decisions.map((row) => (
+                <DeckItemRow
+                  key={row.item.id}
+                  row={row}
+                  nowMs={nowMs}
+                  session={session}
+                  tone="card"
+                />
+              ))}
+            </ul>
+          )}
+          {/*
+            The second group: work whose pull request is ready to land. A
+            separate list rather than a mixed one, because the two are answered
+            with different gestures - one is typed, one is a single press - and
+            the count above is the fold's, not this render's. Below the
+            decisions, deliberately: a question nobody has answered is holding
+            work up, and a green pull request is not.
+          */}
+          {merges.length > 0 && (
+            <ul data-needs-group="merges" className="card-grid [--qd-card-min:24rem]">
+              {merges.map((worker) => (
+                <MergeCard
+                  key={worker.id}
+                  worker={worker}
+                  nowMs={nowMs}
+                  session={merging}
+                />
+              ))}
+            </ul>
+          )}
+        </>
       )}
-
-      {/*
-        The second group belongs here: work that is ready to merge, which needs
-        the operator exactly as personally as a decision does. It is a task of
-        its own and deliberately not built - the place is kept, not filled. When
-        it lands it is another `data-needs-group` list beside the one above, and
-        another field on `NeedsYou` so the two counts are folded together rather
-        than added by a component. See `src/ui/needs-you/needs-you.ts`.
-      */}
     </LensFrame>
   );
 }

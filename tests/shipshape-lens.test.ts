@@ -431,7 +431,7 @@ describe("exactly one signal dark", () => {
         assert.ok(!html.includes("Dark by design"), "one dark signal is not a dark lens");
         assert.ok(html.includes('data-lens="fleet" data-lens-status="fresh"'));
         assert.ok(html.includes('data-lens="deck" data-lens-status="fresh"'));
-        assert.equal((html.match(/data-worker="/g) ?? []).length, 11, "the fleet still renders");
+        assert.equal((html.match(/data-worker="/g) ?? []).length, 12, "the fleet still renders");
       });
     });
   }

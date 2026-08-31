@@ -118,6 +118,29 @@ export class FleetRuntime {
     return this.#inFlight;
   }
 
+  /**
+   * A reading taken now, never the cache. For the acting path only.
+   *
+   * Everything that renders wants the cache: the panel re-renders on every
+   * filesystem event, and a lens is allowed - required, even - to draw the last
+   * picture that read cleanly. Acting is the one place where that is not good
+   * enough. An operator presses a button against a page that may be seconds or
+   * minutes old, and the question at that moment is not "what did the panel
+   * last see" but "is this still true", so the acting route asks again rather
+   * than believing the render.
+   *
+   * A read already in flight is waited out first: it may have started before
+   * the change this call exists to notice, and returning it would be the cache
+   * problem wearing a different coat. Nothing is published - a re-read is not a
+   * change, and telling every open page to re-render because somebody pressed a
+   * button would be this panel inventing traffic.
+   */
+  async reread(): Promise<PanelDocument> {
+    if (this.#inFlight) await this.#inFlight.catch(() => undefined);
+    this.#stale = true;
+    return this.document();
+  }
+
   async #read(): Promise<PanelDocument> {
     const { config, source, clock, logger, healthDir, fleetHome, forge } = this.#deps;
     const options = { clock, staleAfterMs: config.staleAfterMs };

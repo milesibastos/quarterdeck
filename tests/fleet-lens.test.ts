@@ -290,7 +290,7 @@ describe("a fleet that cannot be trusted", () => {
         () => body(panel),
         (text) => text.includes("Last good picture, still on screen"),
       );
-      assert.equal((html.match(/data-worker="/g) ?? []).length, 11, "the fleet is still there");
+      assert.equal((html.match(/data-worker="/g) ?? []).length, 12, "the fleet is still there");
     } finally {
       await panel.stop();
     }

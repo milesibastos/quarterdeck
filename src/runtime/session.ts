@@ -9,12 +9,13 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
  * to already be in front of it - retrofitting a guard means shipping a window
  * where there is none.
  *
- * It is never logged. It does now reach the browser, in the page that carries an
- * answer control, which the security baseline named as part of the write path
- * rather than a change to it: the front door is what keeps it safe, and none of
- * that moved. A panel with no answer spool configured has nothing to act on and
- * hands out nothing. See
- * `docs/decisions/2026-08-30-answering-a-held-decision.md`.
+ * It is never logged. It does now reach the browser, in the page that carries a
+ * control that acts - an answer control or a merge card - which the security
+ * baseline named as part of the write path rather than a change to it: the
+ * front door is what keeps it safe, and none of that moved. A fleet with no
+ * intent spool configured has nothing to act on and hands out nothing. See
+ * `docs/decisions/2026-08-30-answering-a-held-decision.md` and
+ * `docs/decisions/2026-08-31-ordering-a-merge.md`.
  */
 const SINGLETON = Symbol.for("quarterdeck.sessionSecret");
 

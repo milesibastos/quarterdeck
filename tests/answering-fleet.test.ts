@@ -217,7 +217,7 @@ describe("a fleet with no spool configured, alongside one that has", () => {
       mode: "done",
     });
     assert.equal(result.status, 409);
-    assert.match(String(result.body.error), /no answer spool is configured/i);
+    assert.match(String(result.body.error), /nothing is configured for this panel to record/i);
   });
 
   test("still records normally on the fleet that does have a spool", async () => {

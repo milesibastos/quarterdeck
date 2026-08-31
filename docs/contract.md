@@ -552,28 +552,28 @@ upstream's peek resolves any selector containing a colon as a raw session
 target. Neither check is optional and neither happens after the spawn. See
 `docs/decisions/2026-08-31-the-worker-terminal.md`.
 
-## The intent record (the one thing the panel writes)
+## The intent records (the two things the panel writes)
 
-The panel's only outbound shape, written by `src/adapters/intent.ts` and by
+The panel's only outbound shapes, written by `src/adapters/intent.ts` and by
 nothing else.
 
-`Intent` is a union discriminated on `kind`, with one member today -
-`answer-decision` - and a table beside it giving each kind its file extension
-and the bytes it holds. A second kind (a merge order is the one coming) is a
-member added to the union and a row added to the table; it is not a second
-writer, and it may not redefine the first. That matters more than it sounds: the
-whole safety argument for this panel is that exactly one file writes, and a
-second intent kind arriving as a second file would end that argument quietly.
+`Intent` is a union discriminated on `kind`, with two members -
+`answer-decision` and `merge-pull-request` - and a table beside it giving each
+kind its file extension and the bytes it holds. A kind is a member added to the
+union and a row added to the table; it is not a second writer, and it may not
+redefine the others. That matters more than it sounds: the whole safety argument
+for this panel is that exactly one file writes, and a second intent kind
+arriving as a second file would end that argument quietly.
 
 The extension is part of each format rather than a constant beside it, because
 the fleet's sources watch for the shapes they can read - a merge order landing
 with `.keyed-answer-v1` on it would be handed to the answer intake, which would
 find a line it cannot parse.
 
-What follows is `answer-decision`'s format, unchanged and frozen. Records
-written by earlier builds are still sitting in spools, and their names are what
-make a replay a collision rather than a second answer; `tests/answering.test.ts`
-pins the digest and the extension for that reason. Where it goes is declared per fleet, not once for the panel:
+Both formats are frozen. Records written by earlier builds are still sitting in
+spools, and their names are what make a replay a collision rather than a second
+action; `tests/answering.test.ts` and `tests/merging.test.ts` pin each digest and
+extension for that reason. Where they go is declared per fleet, not once for the panel:
 `QUARTERDECK_INTENT_DIR` is a colon-separated list positionally aligned with the
 configured fleet list, the same convention `QUARTERDECK_FLEET_HOME` and
 `QUARTERDECK_FIXTURE_SET` use. A request is written to the selected fleet's own
@@ -581,6 +581,8 @@ directory, resolved from the selection cookie the same way the page resolves
 which fleet to render - never from a field the client sends. A fleet whose slot
 is empty or absent has no spool, and its write path is closed rather than
 guessed at.
+
+### `answer-decision`
 
 One file per answered decision, named `<request-id>.keyed-answer-v1`, holding one
 line and nothing else:
@@ -603,6 +605,34 @@ The panel does not feed the intake and does not run anything. A registered
 process-event source reads these records, re-verifies the decision is still
 open, and pipes the lines in. See
 `docs/decisions/2026-08-30-answering-a-held-decision.md`.
+
+### `merge-pull-request`
+
+One file per merge order, named `<request-id>.merge-order-v1`, holding one line
+and nothing else:
+
+```
+<task-id>\t<pr-url>\n
+```
+
+Those are exactly the two arguments `bin/fm-pr-merge.sh` takes, in its order.
+The address is the full URL, always - the command resolves the owner and
+repository out of it, and a bare number would have to be resolved against a
+repository somebody guessed at. Nothing about the checks, the review or the
+branch is in the record: the command reads all of that live at merge time and
+owns every rule about whether the merge may happen.
+
+The request id is `sha256(task id, pr url)`, truncated. Nothing that moves is in
+it - not the checks' `as_of`, which changes every time the forge is read, and
+not a head commit, which this document does not carry - so the same order always
+names the same record and a double click is a collision. Published with `link`,
+like the answer.
+
+Unlike an answer, the route re-reads the fleet before recording one, and refuses
+an order whose pull request has gone red, closed, landed, moved or vanished
+since the page was drawn. That is the panel declining to carry an order whose
+premise has expired, not the panel deciding a merge is allowed. See
+`docs/decisions/2026-08-31-ordering-a-merge.md`.
 
 ## The pinned identifier
 

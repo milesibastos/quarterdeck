@@ -101,7 +101,7 @@ type Shape = {
  * document, and is asserted separately below.
  */
 const SHAPES: Readonly<Record<string, Shape>> = {
-  healthy: { fleet: ["fresh", 11], deck: ["fresh", 6], landed: ["fresh", 4], health: "fresh", omissions: ["not-shown", "unreadable", "unreadable"] },
+  healthy: { fleet: ["fresh", 12], deck: ["fresh", 6], landed: ["fresh", 4], health: "fresh", omissions: ["not-shown", "unreadable", "unreadable"] },
   // The large end of the range the layout has to survive; see
   // docs/decisions/2026-08-31-the-fold-line.md.
   crowded: { fleet: ["fresh", 30], deck: ["fresh", 15], landed: ["fresh", 3], health: "fresh", omissions: ["not-looked-up", "not-looked-up", "not-shown"] },
@@ -168,6 +168,8 @@ describe("the fleet part", () => {
         "wi-lamplight-207 validating -",
         "wi-lamplight-211 validating test",
         "wi-saltmarsh-302 pr-open -",
+        // Green and open: the one shape the needs-you band offers a merge on.
+        "wi-cordage-406 pr-open -",
         "wi-saltmarsh-305 in-review -",
         "wi-cordage-401 landed -",
         "wi-cordage-404 blocked -",
@@ -322,9 +324,9 @@ describe("the fleet part", () => {
 
   test("a landed worker's pull request is landed, and a scout is research", async () => {
     const { content } = (await documentOf("healthy")).fleet;
-    assert.equal(content[6].pullRequest?.state, "landed");
-    assert.equal(content[5].kind, "research");
-    assert.equal(content[10].worktree.present, false, "a worktree can be gone");
+    assert.equal(content[7].pullRequest?.state, "landed");
+    assert.equal(content[6].kind, "research");
+    assert.equal(content[11].worktree.present, false, "a worktree can be gone");
   });
 });
 
@@ -650,7 +652,7 @@ describe("degradation is per lens, not per document", () => {
     const good = await documentOf("healthy");
     const document = withSnapshotUnreadable(good, "truncated", await healthOf("healthy"), OPTIONS);
     assert.equal(document.fleet.status.state, "unreadable");
-    assert.equal(document.fleet.content.length, 11, "the fleet is still on screen");
+    assert.equal(document.fleet.content.length, 12, "the fleet is still on screen");
     assert.equal(document.deck.content.length, 6, "and so is the deck");
   });
 });
