@@ -16,6 +16,10 @@ concurrency:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    # Green runs take 42-64s (20 consecutive runs, sampled 2026-08-31), so 10 minutes
+    # is ~10x the slowest: a cold cache or a grown suite still passes comfortably, but a
+    # wedged job (e.g. a test-port collision) fails in minutes instead of sitting an hour.
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
