@@ -18,9 +18,7 @@ from fixtures when none is configured - see `docs/contract.md` and
 1. **The fleet lens** - `src/ui/fleet/` - has its worker card and lifecycle
    rail; lanes and filters remain. The first to ask real questions of the theme
    and the layering.
-2. **The shipshape lens** - `src/ui/shipshape/`, which needs `adapters/health.ts`
-   pointed at what a live fleet actually publishes - it currently finds no file
-   in a fleet home and goes dark, correctly, by its own contract.
+2. **The shipshape lens** - `src/ui/shipshape/`.
 
 The deck lens has landed - see `docs/plans/done/2026-08-30-deck-lens.md`.
 

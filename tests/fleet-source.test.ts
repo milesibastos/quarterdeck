@@ -103,7 +103,11 @@ function runtimeOn(
 ): FleetRuntime {
   return new FleetRuntime({
     config: {
-      fleetHome: FLEET_HOME,
+      // null, not FLEET_HOME: this suite stubs the snapshot source directly, and
+      // a fleet home here would redirect health to `readFleetHomeHealth`, which
+      // has no real directory to read - `healthDir` below is what these tests
+      // mean by "health reads for itself".
+      fleetHome: null,
       fixtureSet: "healthy",
       fixtureRoot: FIXTURES,
       host: "127.0.0.1",
