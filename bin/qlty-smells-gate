@@ -1,0 +1,386 @@
+#!/usr/bin/env node
+/**
+ * Turn `qlty smells` into a verdict.
+ *
+ * `qlty smells` exits 0 whether it finds twelve problems or none, and smells do
+ * not participate in `qlty check` - not with `[smells] mode = "block"`, not
+ * with an inline `qlty-ignore` comment, not with an `[[exclude]]` block and not
+ * with `[[triage]] set.ignored`. All four were tried; all four are
+ * linter-pipeline machinery that `qlty smells` never consults. So the gate is
+ * here, and so is the list of findings this project has looked at and kept.
+ *
+ * The rule is default-deny. Every finding qlty reports must match an entry in
+ * KEPT below, or this exits 1. A new duplication, a new complex function, and
+ * any smell nobody has seen yet - boolean logic, nesting, parameter counts -
+ * all fail without anyone having to remember to add them here first.
+ *
+ *   bin/qlty-smells-gate            # the whole tree
+ *   bin/qlty-smells-gate --quiet    # only what fails
+ *
+ * The findings are keyed by what does not move when the code around them does:
+ *
+ *   Duplication carries a `structural_hash` from qlty - derived from the syntax
+ *   tree, so it survives reformatting and renaming a line above it. One hash
+ *   covers every end of a cluster. Change what the duplicated code DOES and the
+ *   hash changes, which is the point: the pair was kept on the strength of an
+ *   argument about that code, and the argument has to be made again.
+ *
+ *   A hash alone is not enough, which was measured rather than assumed: paste a
+ *   THIRD copy of a kept pair and qlty reports the same hash, "in 3 locations",
+ *   and a hash-only gate waves it through. So each entry also records how many
+ *   copies were agreed to, and a further one fails.
+ *
+ *   Complexity carries no hash, so it is keyed by rule, file and the symbol
+ *   qlty names, plus the count it was accepted at. Growth past that count
+ *   fails. Equality would fail every innocent refactor; no bound at all would
+ *   let `health.ts` go from 87 to 300 in silence, which is exactly the failure
+ *   the old blanket exclusion was criticised for.
+ */
+import { spawnSync } from "node:child_process";
+
+/**
+ * Every finding on this tree that has been looked at and deliberately kept.
+ *
+ * Adding an entry is a decision, not a formality. It says the code is right and
+ * the measurement is wrong about it, or that the finding belongs to somebody
+ * else. Each one carries the argument, because an unexplained entry is the one
+ * a future contributor copies.
+ */
+const KEPT = [
+  // ---- Duplication -------------------------------------------------------
+  {
+    hash: "f0b5b555e25dd5702f2c4cd4a2bf8faf",
+    locations: 2,
+    where: "src/ui/disclosure-bar.tsx / src/ui/landed/landed-lens.tsx",
+    why:
+      "`NothingOmitted` and `NothingLanded`: the same empty state, telling " +
+      "'unreadable' apart from 'genuinely empty', under different labels. " +
+      "Sharing them would put one component in front of two bands that are " +
+      "still moving, and the wrong shared component is more expensive than " +
+      "the duplication. Recorded 2026-08-31 in " +
+      "docs/decisions/2026-08-31-what-the-parallel-lens-build-duplicated.md.",
+  },
+  {
+    hash: "3509ebfb6b466865bc21d0d3b40a68ac",
+    locations: 2,
+    where: "src/ui/deck/deck-row.tsx / src/ui/needs-you/decision-card.tsx",
+    why:
+      "The 'Blocked by' block, drawn in two bands that answer different " +
+      "questions - what the fleet is handling by itself, and what is held " +
+      "for a person. The two were deliberately not merged so that a restyle " +
+      "of one band does not land in the other. Same record as above.",
+  },
+  {
+    hash: "21950cb731058b1d2d4aa87519db34e4",
+    locations: 2,
+    where: "src/ui/components/grok/grok-write.tsx, lines 51 and 66",
+    why:
+      "Vendored from the brainless registry. The `before` and `after` line " +
+      "maps are written twice upstream, and this project's only edit to the " +
+      "grok components was re-tokenising them onto quarterdeck's palette. " +
+      "Fixing this would mean maintaining a fork of somebody else's " +
+      "component. See docs/decisions/2026-08-31-the-terminal-grammar.md.",
+  },
+
+  // ---- Complexity --------------------------------------------------------
+  {
+    rule: "qlty:file-complexity",
+    file: "src/adapters/health.ts",
+    max: 87,
+    where: "src/adapters/health.ts, whole file",
+    why:
+      "The quarantined module. Invariant 4 confines every fleet-internal " +
+      "path to this one file and `npm test` enforces it, so the only split " +
+      "that would clear this is the one the suite refuses: measured at the " +
+      "file's own seam, the parser half falls to 16 and the reader half " +
+      "stays at 71, and the reader half is the half in which every function " +
+      "names a path. Held at 87 rather than excluded, so the file cannot " +
+      "grow past what it costs today without saying so here.",
+  },
+  {
+    rule: "qlty:function-complexity",
+    file: "src/ui/keyboard-help.tsx",
+    symbol: "KeyboardHelp",
+    max: 33,
+    where: "src/ui/keyboard-help.tsx, KeyboardHelp",
+    why:
+      "qlty folds the `keydown` dispatcher declared inside an effect into " +
+      "the component that declares it. `qlty metrics` measures the whole " +
+      "file at cyclomatic 21 across five functions, against the 33 it " +
+      "attributes to one of them. Hoisting the handler to module scope " +
+      "would move the number without removing a branch.",
+  },
+  {
+    rule: "qlty:return-statements",
+    file: "src/ui/keyboard-help.tsx",
+    symbol: "KeyboardHelp",
+    max: 7,
+    where: "src/ui/keyboard-help.tsx, KeyboardHelp",
+    why:
+      "The same folded closure, counted a second way: the returns belong to " +
+      "the key dispatcher, one per key it answers to. Same judgement as the " +
+      "`return_statements` threshold in .qlty/qlty.toml - a ladder of " +
+      "guard clauses is the shape this codebase wants at a boundary.",
+  },
+  {
+    rule: "qlty:function-complexity",
+    file: "src/ui/fleet-picker.tsx",
+    symbol: "FleetPicker",
+    max: 19,
+    where: "src/ui/fleet-picker.tsx, FleetPicker",
+    why:
+      "One over the threshold, and for the same reason: the callbacks " +
+      "inside JSX props are counted as branches of the component. That is " +
+      "how React is written rather than a fact about this file. " +
+      "`function_complexity` stays at qlty's default of 18 for every other " +
+      "component, which is worth more than this entry costs.",
+  },
+  {
+    rule: "qlty:function-complexity",
+    file: "src/ui/components/grok/grok-project-picker.tsx",
+    symbol: "GrokProjectPicker",
+    max: 34,
+    where: "src/ui/components/grok/grok-project-picker.tsx, GrokProjectPicker",
+    why: "Vendored, and upstream's to answer for. See grok-write.tsx above.",
+  },
+  {
+    rule: "qlty:function-complexity",
+    file: "src/ui/components/grok/grok-settings.tsx",
+    symbol: "GrokSettings",
+    max: 24,
+    where: "src/ui/components/grok/grok-settings.tsx, GrokSettings",
+    why: "Vendored, and upstream's to answer for. See grok-write.tsx above.",
+  },
+];
+
+const DOC = "docs/decisions/2026-08-31-measuring-duplication-and-complexity.md";
+const WIDTH = 76;
+
+function wrap(text, indent) {
+  const out = [];
+  let line = "";
+  for (const word of text.split(/\s+/)) {
+    if (line && `${line} ${word}`.length > WIDTH) {
+      out.push(indent + line);
+      line = word;
+    } else {
+      line = line ? `${line} ${word}` : word;
+    }
+  }
+  if (line) out.push(indent + line);
+  return out.join("\n");
+}
+
+/** The house violation shape: what broke, why the rule is here, the edit. */
+function formatViolation(v) {
+  return [
+    `x ${v.slug}  ${v.file}:${v.line}`,
+    wrap(v.what, "  "),
+    wrap(v.why, "  "),
+    wrap(v.fix, "  "),
+    `  See ${v.doc}.`,
+  ].join("\n");
+}
+
+function smells() {
+  const run = spawnSync(
+    "qlty",
+    ["smells", "--all", "--sarif", "--no-upgrade-check"],
+    { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+  );
+  if (run.error) {
+    console.error(
+      `qlty-smells-gate: could not run qlty (${run.error.message}).\n` +
+        "Install it from https://qlty.sh, or run this in CI where it is installed.",
+    );
+    process.exit(2);
+  }
+  if (run.status !== 0) {
+    console.error(`qlty-smells-gate: qlty smells exited ${run.status}.`);
+    console.error(run.stderr);
+    process.exit(2);
+  }
+  try {
+    return JSON.parse(run.stdout).runs[0].results ?? [];
+  } catch (cause) {
+    console.error(`qlty-smells-gate: qlty's SARIF did not parse (${cause}).`);
+    process.exit(2);
+  }
+}
+
+/** The count qlty states in its own message, e.g. "(count = 33)". */
+function countOf(message) {
+  const found = /count = (\d+)/.exec(message);
+  return found ? Number(found[1]) : null;
+}
+
+/** The number of copies qlty found, e.g. "in 3 locations". */
+function locationsOf(message) {
+  const found = /in (\d+) locations?/.exec(message);
+  return found ? Number(found[1]) : null;
+}
+
+/** The symbol qlty names after the colon, e.g. "...(count = 33): KeyboardHelp". */
+function symbolOf(message) {
+  const found = /:\s*([A-Za-z_$][\w$]*)\s*$/.exec(message);
+  return found ? found[1] : null;
+}
+
+function judge(result) {
+  const rule = result.ruleId;
+  const file = result.locations?.[0]?.physicalLocation?.artifactLocation?.uri;
+  const line = result.locations?.[0]?.physicalLocation?.region?.startLine ?? 1;
+  const message = result.message?.text ?? "";
+  const hash = result.properties?.structural_hash ?? null;
+  const count = countOf(message);
+  const locations = locationsOf(message);
+  const symbol = symbolOf(message);
+  const finding = {
+    rule,
+    file,
+    line,
+    message,
+    hash,
+    count,
+    symbol,
+    locations,
+  };
+
+  if (hash) {
+    const kept = KEPT.find((k) => k.hash === hash);
+    if (!kept) return { ...finding, kept: null };
+    // A third copy of a kept pair carries the pair's own hash. Without this
+    // the gate accepts any number of copies once it has accepted two.
+    if (locations !== null && locations > kept.locations) {
+      return { ...finding, kept: null, spread: kept };
+    }
+    return { ...finding, kept };
+  }
+
+  const kept = KEPT.find(
+    (k) =>
+      k.rule === rule &&
+      k.file === file &&
+      (k.symbol === undefined || k.symbol === symbol),
+  );
+  if (!kept) return { ...finding, kept: null };
+  if (count !== null && kept.max !== undefined && count > kept.max) {
+    return { ...finding, kept: null, grew: kept };
+  }
+  return { ...finding, kept };
+}
+
+function violationFor(f) {
+  const slug = f.rule.replace(/^qlty:/, "");
+  // qlty's message ends without a stop; ours continues the sentence.
+  const said = f.message.replace(/\s*$/, "").replace(/([^.])$/, "$1.");
+  if (f.grew) {
+    return {
+      slug,
+      file: f.file,
+      line: f.line,
+      what: `${said} This finding is kept at ${f.grew.max}; it is now ${f.count}.`,
+      why:
+        "It was accepted at a stated number so that it could not grow in " +
+        "silence. A kept finding with no bound is an exclusion wearing a " +
+        "reason, and the number is what stops this file drifting past what " +
+        "the argument for keeping it covers.",
+      fix:
+        "Bring it back to " +
+        `${f.grew.max} or below, or raise \`max\` for this entry in ` +
+        "bin/qlty-smells-gate and say in the same edit what changed about " +
+        "the code that makes the larger number right.",
+      doc: DOC,
+    };
+  }
+  if (f.spread) {
+    return {
+      slug,
+      file: f.file,
+      line: f.line,
+      what:
+        `${said} This shape was kept in ${f.spread.locations} places; ` +
+        `it is now in ${f.locations}.`,
+      why:
+        "The argument for keeping it was an argument about two copies that " +
+        "answer to different bands. A third copy is not covered by it, and " +
+        "duplication that spreads is the debt this gate exists to notice.",
+      fix:
+        "Share the code, or raise `locations` for this entry in " +
+        "bin/qlty-smells-gate and say in the same edit why the new copy " +
+        "belongs apart from the others.",
+      doc: DOC,
+    };
+  }
+  if (f.hash) {
+    return {
+      slug,
+      file: f.file,
+      line: f.line,
+      what: `${said} Nothing in bin/qlty-smells-gate accounts for it.`,
+      why:
+        "Duplication is the debt that accumulates quietly, because nothing " +
+        "ever fails on it. This gate is the thing that fails on it.",
+      fix:
+        "Share the code, or - if the two copies are deliberately apart - add " +
+        `the structural hash ${f.hash} to KEPT in bin/qlty-smells-gate with ` +
+        "the argument for keeping them apart. A pair whose hash changed " +
+        "because the code changed needs its argument made again, not its " +
+        "hash updated.",
+      doc: DOC,
+    };
+  }
+  return {
+    slug,
+    file: f.file,
+    line: f.line,
+    what: `${said} Nothing in bin/qlty-smells-gate accounts for it.`,
+    why:
+      "This is the first time anything has reported it, which means no one " +
+      "has decided whether the code is right and the measurement wrong, or " +
+      "the other way round. The gate is default-deny so that the decision " +
+      "gets made rather than inherited.",
+    fix:
+      "Split it, or add an entry to KEPT in bin/qlty-smells-gate naming the " +
+      `rule (${f.rule}), the file, ` +
+      (f.symbol ? `the symbol (${f.symbol}), ` : "") +
+      `\`max: ${f.count ?? "the count"}\`, and why the measurement is wrong ` +
+      "about this code.",
+    doc: DOC,
+  };
+}
+
+const quiet = process.argv.includes("--quiet");
+const judged = smells().map(judge);
+const failing = judged.filter((f) => !f.kept);
+// By entry, not by `where`: a duplication pair reports once from each end, and
+// keyboard-help.tsx carries two different rules about the same function.
+const matched = KEPT.filter((entry) => judged.some((f) => f.kept === entry));
+const keptCount = matched.length;
+
+if (failing.length > 0) {
+  console.error(failing.map((f) => formatViolation(violationFor(f))).join("\n\n"));
+  console.error(
+    `\n${failing.length} finding${failing.length === 1 ? "" : "s"} not accounted for. ` +
+      `${keptCount} kept, each with its reason in bin/qlty-smells-gate.`,
+  );
+  process.exit(1);
+}
+
+if (!quiet) {
+  console.log(
+    `qlty-smells-gate: clean. ${keptCount} finding${keptCount === 1 ? "" : "s"} ` +
+      "deliberately kept, each with its reason in bin/qlty-smells-gate:",
+  );
+  for (const entry of matched) {
+    const rule = entry.rule ? entry.rule.replace(/^qlty:/, "") : "duplication";
+    console.log(`  - ${rule}  ${entry.where}`);
+  }
+  const stale = KEPT.filter((entry) => !matched.includes(entry));
+  for (const entry of stale) {
+    console.log(
+      `  ! ${entry.where} is kept here but qlty no longer reports it - ` +
+        "the entry can go.",
+    );
+  }
+}

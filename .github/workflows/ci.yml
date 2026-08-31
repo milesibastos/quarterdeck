@@ -30,3 +30,82 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: npm test
+
+  # Beside build-and-test rather than after it, so the fast pipeline stays fast
+  # and a formatting failure is visible without waiting for the suite.
+  quality:
+    runs-on: ubuntu-latest
+    # qlty downloads a toolchain per plugin on a cold cache, which is the slow
+    # part and the reason for a longer bound than the test job's.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      # knip resolves imports against the installed tree; without this it
+      # reports every dependency as unlisted.
+      - run: npm ci
+
+      # Pinned. The thresholds in .qlty/qlty.toml are qlty's own defaults as of
+      # this CLI - checked against a bare config, not taken from the docs site,
+      # which is stale - so a version that changed a default would re-flag a
+      # tree nobody touched. QLTY_VERSION is the installer's only pin: it takes
+      # no arguments and errors on any.
+      - name: Install qlty 0.644.0
+        run: |
+          curl -fsSL https://qlty.sh | QLTY_VERSION=0.644.0 sh
+          echo "$HOME/.qlty/bin" >> "$GITHUB_PATH"
+      - name: Report the version actually installed
+        run: qlty version
+
+      # Keyed on the config, because that is what decides which toolchains get
+      # downloaded. A miss costs a download, never a wrong answer.
+      #
+      # The path is resolved here rather than written literally: the leak guard
+      # in `npm test` refuses any `~/<name>/` path in a tracked file, and it is
+      # right to - a rule that makes an exception for the convenient case is
+      # the rule that misses the real one.
+      - name: Locate qlty's toolchain cache
+        run: echo "QLTY_CACHE_DIR=$HOME/.qlty/cache" >> "$GITHUB_ENV"
+      - name: Cache qlty plugin toolchains
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.QLTY_CACHE_DIR }}
+          key: qlty-${{ runner.os }}-${{ hashFiles('.qlty/qlty.toml') }}
+          restore-keys: qlty-${{ runner.os }}-
+
+      # Formatting, markdown, the workflow, secrets and dead code. Fails on any
+      # issue: `--no-fail` is the flag that would make this advisory again.
+      - name: qlty check
+        run: qlty check --all --no-upgrade-check
+
+      # Duplication and complexity. `qlty smells` exits 0 whatever it finds, so
+      # the verdict is this script's - see the header in it for why the
+      # suppression lives there and not in .qlty/qlty.toml.
+      - name: qlty smells
+        run: ./bin/qlty-smells-gate
+
+  # Its own job, and outside qlty, for one reason: osv-scanner reaches the
+  # network on every run, and a local `qlty check` that stalls offline is a tool
+  # people stop running. `[[plugin]] triggers = ["build"]` looked like the
+  # answer and is not - measured, it makes the plugin unreachable from
+  # `qlty check` everywhere, locally and under CI, because `qlty check` has no
+  # `--trigger` flag at all. So the scan runs here, where the network is a
+  # given, and `.qlty/qlty.toml` stays offline-clean.
+  vulnerabilities:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      # Pinned by digest rather than tag: a tag can be moved, and this is the
+      # one step in the pipeline that runs somebody else's container. The
+      # digest below is v2.5.1. A pinned reference is 87 characters and cannot
+      # be wrapped, which is the one place the 80-column limit cannot be met.
+      - name: Scan the lockfile against the OSV database
+        # yamllint disable-line rule:line-length
+        uses: google/osv-scanner-action/osv-scanner-action@6e4298ebc4db23e847df9b2e2de2939d6f066c67
+        with:
+          scan-args: |-
+            --lockfile=package-lock.json
