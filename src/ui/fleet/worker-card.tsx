@@ -81,9 +81,16 @@ export function WorkerCard({ worker, nowMs }: { worker: Worker; nowMs: number })
       <CardContent className="flex flex-col gap-2.5">
         <header className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
           <StageChip stage={lifecycle.stage} />
-          <span className="min-w-0 flex-1 truncate font-mono text-sm text-foreground">
+          {/* A heading, so the fleet column is a list a reader can jump
+              through rather than one undifferentiated run of text. Truncated
+              rather than wrapped: an id is scanned, and a second line of one
+              costs a row of every card to save a tail nobody reads. */}
+          <h3
+            title={worker.id}
+            className="min-w-0 flex-1 truncate font-mono text-sm font-normal text-foreground"
+          >
             {worker.id}
-          </span>
+          </h3>
         </header>
 
         <p className="flex flex-wrap items-baseline gap-x-2 text-xs text-muted-foreground">
@@ -99,7 +106,7 @@ export function WorkerCard({ worker, nowMs }: { worker: Worker; nowMs: number })
           the finest detail there is, and for one that stopped it is the whole
           reason it stopped, which is the state an operator has to act on.
         */}
-        <p className="text-xs text-muted-foreground">{lifecycle.detail}</p>
+        <p className="text-xs wrap-anywhere text-muted-foreground">{lifecycle.detail}</p>
 
         <div className="flex flex-col gap-1 text-xs">
           <Pointer label="in" path={worker.worktree} />

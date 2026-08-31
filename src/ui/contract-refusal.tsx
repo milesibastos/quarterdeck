@@ -17,7 +17,9 @@ export function ContractRefusal({
   source: string;
 }) {
   return (
-    <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-6 py-10">
+    // The page does not scroll at `md` and up; this is a page of its own
+    // inside that frame, so it takes the height and scrolls itself.
+    <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-10 sm:px-6 md:min-h-0 md:flex-1 md:overflow-y-auto">
       <h1 className="font-display text-3xl tracking-wide text-danger">
         Snapshot refused
       </h1>
@@ -25,13 +27,16 @@ export function ContractRefusal({
         The fleet snapshot announced a schema this build of Quarterdeck does not
         understand. Nothing is rendered from it, on purpose.
       </p>
+      {/* Every value here is upstream's own, quoted as found, and nothing
+          promises a short one - so each wraps anywhere rather than pushing the
+          column, and with it the page, sideways. */}
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 rounded-lg border border-danger/40 bg-danger/10 px-4 py-3 font-mono text-sm">
         <dt className="text-muted-foreground">expected</dt>
-        <dd className="text-foreground">{expected}</dd>
+        <dd className="min-w-0 wrap-anywhere text-foreground">{expected}</dd>
         <dt className="text-muted-foreground">found</dt>
-        <dd className="text-foreground">{found}</dd>
+        <dd className="min-w-0 wrap-anywhere text-foreground">{found}</dd>
         <dt className="text-muted-foreground">source</dt>
-        <dd className="text-foreground">{source}</dd>
+        <dd className="min-w-0 wrap-anywhere text-foreground">{source}</dd>
       </dl>
       <p className="text-sm text-muted-foreground">
         Update <code className="font-mono">SNAPSHOT_SCHEMA_ID</code> and the parser
