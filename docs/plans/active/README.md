@@ -24,13 +24,14 @@ outside world, and drawing it. Each item below owns files nobody else touches.
 2. **The fleet lens** - `src/ui/fleet/` - has its worker card and lifecycle
    rail; lanes and filters remain. The first to ask real questions of the theme
    and the layering.
-3. **The deck lens** - `src/ui/deck/`.
-4. **The shipshape lens** - `src/ui/shipshape/`.
+3. **The shipshape lens** - `src/ui/shipshape/`.
+
+The deck lens has landed - see `docs/plans/done/2026-08-30-deck-lens.md`.
 
 Then, and not in parallel with those:
 
-5. **The write path.** `src/adapters/intent.ts` holds the type and the marker.
+4. **The write path.** `src/adapters/intent.ts` holds the type and the marker.
    The guard in front of `/api/act` already exists; what is missing is getting
    the session secret to the page and an endpoint that does something.
-6. **The shell's proportions and fold line**, which need real lens content
+5. **The shell's proportions and fold line**, which need real lens content
    before they can be tuned.

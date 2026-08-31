@@ -7,10 +7,12 @@ import { copyFixtures, startPanel, testPort, until, type Panel } from "./lib/ser
 /**
  * What the panel renders, driven end to end through the built server.
  *
- * The three lenses are placeholders - what they draw is later work by other
- * hands - so what this file asserts is the shell and the envelope: that all
- * three lenses are mounted, and that each reports its own freshness. The
- * document behind them is asserted in `document.test.ts`.
+ * The fleet and shipshape lenses are still placeholders - what they draw is
+ * later work by other hands - so what this file asserts for them is the shell
+ * and the envelope: that all three lenses are mounted, and that each reports
+ * its own freshness. The deck lens is drawn, so `describe("the deck lens", ...)`
+ * below asserts what it draws. The document behind them is asserted in
+ * `document.test.ts`.
  */
 
 /**
