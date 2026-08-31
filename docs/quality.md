@@ -3,12 +3,14 @@
 A grade per area, and where the gaps are. Written to be honest rather than
 flattering: an area marked green is one somebody can build on without checking.
 
-Last reviewed: 2026-08-31, after the worker terminal - the first feature
-deliberately built beside the document rather than on it. It landed on top of
-the pass that drew the shipshape strip's last two signals, which itself
-extended the document to everything the wireframe still needs - one version
-bump, checked field by field against two live fleet homes rather than against
-the last pass's notes.
+Last reviewed: 2026-08-31, at the end of the pass that finished the worker card
+- where the work physically is, the instructions in the card, and the pull
+request block - and built the forge read those last two fields needed. It
+landed on top of the worker terminal - the first feature deliberately built
+beside the document rather than on it - which itself landed on top of the pass
+that drew the shipshape strip's last two signals. That pass extended the
+document to everything the wireframe still needs, one version bump, checked
+field by field against two live fleet homes.
 
 | Area | Grade | Where it stands |
 | --- | --- | --- |
@@ -22,12 +24,13 @@ the last pass's notes.
 | The write path | Amber | `Intent` is a union discriminated on `kind` with one member and a per-kind format table, so the merge order that is coming is a member and a row rather than a second writer; `answer-decision`'s bytes, extension and request-identity digest are pinned by test, because records written by earlier builds are still in spools and their names are what make a replay a collision. `intent.ts` writes one record per answered decision - one intake line, published by `link` so a replay collides rather than repeats - and executes nothing. The spool is declared per fleet (`QUARTERDECK_INTENT_DIR`, positional against the fleet list) and the route resolves which fleet's spool to use from the selection cookie, so an answer given while looking at one fleet can never land in another's. `tests/answering.test.ts` drives the single-fleet path through the built server: the record's exact bytes, eight simultaneous clicks leaving one record, a replay leaving the spool byte-identical, and every format refusal writing nothing. `tests/answering-fleet.test.ts` drives the multi-fleet path: two fleets with different spools stay apart, and a fleet with none configured refuses rather than guessing. Amber only because nothing picks the records up yet: the fleet-side process-event adapter is not built, so a recorded answer reaches the intake only once it is. See `docs/decisions/2026-08-30-answering-a-held-decision.md`. |
 | The deck lens | Amber | Offers an answer control on work held for a person - both closes the intake accepts, declared on the card - and nothing on a hold that waits on a queue, a date or an upstream release. Draws all four piles - held, blocked, queued, in flight - from the document, with the empty, stale and unreadable states each saying which they are. Driven end to end through the built server, including both directions of the blocker rule. A row now names its project and whether the work is research or build, from the `repo` and `kind` upstream publishes per record, and a row that named neither says so rather than guessing. Amber only because nothing picks up the answers it records - the write path's gap, not the lens's. See `docs/plans/done/2026-08-30-deck-lens.md`. |
 | The shipshape lens | Green | Draws all five health signals - supervisor, queue, attendance, overdue, drift - each in its `ok` and `unreadable` forms, plus the whole-lens dark state. A supervision cycle alive but silent for longer than the named threshold reads as a concern, not as health; a queue holding the threshold or more reads as one that has stopped draining, and the boundary is pinned by test; away mode and the home lock are drawn as the two entries the wireframe asks for, under the one verdict the document can honestly give both. An unreadable signal never implies what it would have said, and a document with exactly one dark signal draws exactly one dark block with the other four verdicts intact. `tests/shipshape-lens.test.ts` drives every state through the built server, including a mixed reading, a health file predating two of the signals, and each new signal dark on its own. See `docs/plans/done/2026-08-31-the-last-two-health-signals.md`. |
-| The fleet lens | Amber | The worker card and the lifecycle rail. Every coarse stage and every off-track state has a tone and a place on the rail, the validation step is named with its place in the run, and a halted worker shows the stage it left the track in and upstream's words for why. A worker the panel cannot see is drawn as unseen, with an unlit rail: no position is inferred for it, not even from the step words upstream's own account of its blindness happens to contain. Stale, empty and unreadable are three different states on screen. `tests/fleet-lens.test.ts` drives all of it through the built server; refresh in place was demonstrated in a browser. Amber because version 4 put six things on the card's document that the card does not draw: where the work physically is, the spec's own words, the delivery contract that says which rail the worker even has, the checks outcome and its progress, and whether a person has commented. The rail is still one fixed track. The fields and their fixtures are there; drawing them is a separate task. |
+| The fleet lens | Amber | The worker card and the lifecycle rail. Every coarse stage and every off-track state has a tone and a place on the rail, the validation step is named with its place in the run, and a halted worker shows the stage it left the track in and upstream's words for why. A worker the panel cannot see is drawn as unseen, with an unlit rail: no position is inferred for it, not even from the step words upstream's own account of its blindness happens to contain. Stale, empty and unreadable are three different states on screen. The card now also says where the work physically is - the worktree, the branch, the runtime, the model and the effort, each either its recorded value or an explicit "not recorded" - carries the dispatch instructions summarised with their full text one click behind, and draws a pull request block, only where there is a pull request, with the whole address, how far its checks have got and whether a person has commented. `not-looked-up` and a forge that answered never render alike, in either signal. `tests/fleet-lens.test.ts` drives all of it through the built server, against the `healthy` set that carries every field in every state it can hold; light, dark and 360 CSS pixels were measured in a browser. Amber because the rail is still one fixed track and does not yet read `delivery`, which is the last of version 4's fields with no reader - a sibling task. |
 | The worker terminal | Green | Last fifteen lines, read only, expanded in the card, and read only when it is opened - which `tests/terminal.test.ts` asserts rather than assumes, against a fleet home whose peek command records every call it receives: the first paint leaves that record empty. Four readings, and the three absences stay three sentences on screen - a session that is gone, one that could not be read, one that answered with nothing. Both sources normalise through one pipeline, so escapes, redrawn lines, tabs and a two-thousand-character line behave the same from a fixture and from a fleet. A worker not in the current document, and any id upstream's peek would resolve as a raw session target, are refused with no command started; every method but `GET` is refused too. That an open terminal survives an update with both scroll offsets intact was demonstrated in a browser, as was a long line scrolling inside its box at 1440 and 360 CSS pixels; the half a test can hold - that the server never re-reads a session on a refresh - is in the suite. See `docs/decisions/2026-08-31-the-worker-terminal.md`. |
 | The shell | Green | Three equal columns; at `md` and up the page is exactly one viewport tall and each lens scrolls inside itself under a pinned header carrying its name, its trust word and how much it is holding. A fleet of two and a fleet of thirty put the same three answers on screen, and the difference shows up as a scrollbar rather than as the shipshape lens leaving the page. Measured against the `crowded` set in a browser at 1440x900 and at 360 CSS pixels: the page never scrolls sideways, and no element's right edge passes the client width. `tests/shell.test.ts` drives the pinned headers, the counts and the scroll regions through the built server. See `docs/decisions/2026-08-31-the-fold-line.md`. |
 | Degraded states | Green | All fifteen combinations of the three lens statuses that the projection can actually reach - fleet and deck share the snapshot's `generated`, health is read separately - are driven through the built server one page at a time in `tests/degradation.test.ts`, which asserts that all three lenses stay framed in every one of them. The one the project designed for deliberately, shipshape dark beside a fresh fleet and deck, has both a committed fixture set and a test. |
 | Accessibility | Amber | Headings form an outline with no level skipped, one `h1` per page, one `h2` per lens, and it is checked in `tests/shell.test.ts`. Each lens header is a `role="status"` region containing its own name, so a lens turning stale under a reader is announced and the announcement says which lens moved; the answer control's outcome is a `status` and its refusal an `alert`. Every scrolling lens body takes keyboard focus and is named by its heading. Contrast was measured rather than assumed - see the gap below for the two values in the light theme that are still short. |
 | Choosing a fleet | Green | The panel offers every configured fleet, the operator switches between them and their browser remembers the choice, and no writer was needed for it. `tests/fleet-switch.test.ts` drives it through the built server: the content follows the selection, two fleets read at once are never mixed up, an unreadable one degrades through the per-lens statuses with the picker still there to leave by, and a single-fleet panel still names what it is showing. The mid-switch state - the previous fleet named, the incoming one named, nothing attributed to the wrong one - was checked in a browser under throttling. |
+| Reading the forge | Amber | A pull request's checks and its review comments, read through `gh api graphql` on the one spawn door, opt-in behind `QUARTERDECK_READ_FORGE`, off the first paint, and floored at one read a minute per pull request - the floor stamped at schedule time, so a burst of renders is one read and a refusing forge is not retried on every render. Every failure degrades to an `unreadable` reading carrying the line it failed with, and none of them can throw. `tests/forge.test.ts` proves the cost rule against a stub runner and a clock it moves by hand, including that a failed read is rate-limited exactly like a successful one; `tests/fleet-lens.test.ts` proves the same end to end against a `gh` on the panel's own `PATH` that is a shell script - nothing asked before the operator opts in, three calls for three pull requests, and ten more renders inside the minute adding none. Amber for the two bounds in the gaps below: one undercounts a review's comments, the other reports a checks count as `unreadable` rather than guess at it. See `docs/decisions/2026-08-31-reading-the-forge.md`. |
 | Reading a real fleet | Amber | Wired: a configured fleet home, its snapshot command run through the one spawn door, parsed strictly and projected into the fleet and deck parts. Tested two ways with no fleet present - the parsing, refusals and read discipline against a stub runner, and the whole path end to end through the built server against a temporary fleet home holding one script. Both of upstream's homeless values now have one: `unknown` is the `unseen` stage and a record with no start date carries none. Amber only because the fleet home is read on every pass with no caching, which is the gap below. |
 
 ## Known gaps
@@ -75,6 +78,21 @@ the last pass's notes.
   readings; every other set records no sessions, so its cards all say so. That
   is a true statement about a synthetic fleet rather than a defect, but it does
   mean the crowded layout has never been looked at with thirty tails in it.
+- **A review with only inline comments is not counted as a comment.** The count
+  is issue comments left by a person plus reviews left by a person that carry a
+  body. A review submitted with nothing but inline code comments carries no body
+  and is missed, which understates by one on a pull request somebody has already
+  engaged with. Counting bodiless approvals instead would overstate in the other
+  direction - "approved without a word" is not a comment - so the bound was
+  chosen deliberately. Closing it means a `reviewThreads` page in the query.
+- **A run whose checks cannot all be listed reports as unreadable, not
+  approximated.** `finished` is counted from the individual checks, never from
+  the rollup verdict: the verdict can reach `FAILURE` while other checks are
+  still running, and treating that as "every check reported" would overstate
+  progress rather than understate it. When the forge reports more checks exist
+  than the page it listed (`contexts(first: 100)`), there is no way to tell how
+  many of the unlisted ones have finished, so the reading is `unreadable`
+  rather than a guessed count.
 
 - **A halted worker's coarse stage is not in the document.** `Lifecycle` carries
   the stage a worker is in, not the stage it was in before it stopped. The rail
@@ -84,16 +102,18 @@ the last pass's notes.
   `lastActiveStage` on `Lifecycle` would close it.
 
 - **Five things the wireframe wants that a live snapshot does not publish.** All
-  five now have a field with an honest absent form, and all five are `null` or
-  `not-looked-up` on every real read. Checked on 2026-08-31 against
-  `bin/fm-fleet-snapshot.sh --json` in two live fleet homes, not from memory:
+  five have a field with an honest absent form, and the first four are `null` on
+  every real read. The fifth - the forge readings - is now filled by the panel
+  itself when the operator asks for it, and reads `not-looked-up` when they have
+  not. Checked on 2026-08-31 against `bin/fm-fleet-snapshot.sh --json` in two
+  live fleet homes, not from memory:
 
   | What | What is actually true | Evidence |
   | --- | --- | --- |
   | `dispatch.branch` | Not recorded anywhere - not in the snapshot, and not in the home's own dispatch record either. | `state/<id>.meta` holds `window`, `worktree`, `project`, `harness`, `kind`, `mode`, `yolo`, `model`, `effort` and the two generation tokens, and no branch. |
   | `dispatch.model`, `dispatch.effort` | **Recorded at dispatch, and not published.** This is the distinction that matters: the fleet writes `model=opus` and `effort=high` into `state/<id>.meta` when it dispatches a worker, and the snapshot command simply does not carry them out. | The meta file above. `grep -nE 'model\|effort\|branch' bin/fm-fleet-snapshot.sh` matches nothing, and no such key appears anywhere in a live `--json`. |
   | `brief.summary`, `brief.text` | Not published, and the path upstream does publish is not the brief. `paths.meta` points at `state/<id>.meta`, the key-value dispatch record; the brief is scaffolded at `data/<id>/brief.md`. | `grep -n brief bin/fm-fleet-snapshot.sh` matches nothing. `bin/fm-brief.sh` line 174 writes `$DATA/$ID/brief.md`. A live task's `paths.meta.path` ends `.meta`. |
-  | `pullRequest.checks`, `pullRequest.review` | Not carried. `pr` is `{ url, source }` and `source` is one of `meta`, `status_event`, `absent`. | Both live homes; `bin/fm-fleet-snapshot.sh` lines 480-487 and 630. |
+  | `pullRequest.checks`, `pullRequest.review` | Not carried. `pr` is `{ url, source }` and `source` is one of `meta`, `status_event`, `absent`. Closed on this side rather than upstream's: the panel reads the forge itself, opt-in, and fills only what upstream left out - so the day a fleet publishes these, its answer wins and the panel stops asking. | Both live homes; `bin/fm-fleet-snapshot.sh` lines 480-487 and 630. |
 
   Reading the meta record from the fleet lens is not the fix. Those paths are
   fleet-internal and only the quarantined health module may name them, and
@@ -103,10 +123,11 @@ the last pass's notes.
   fills them without a parser change, and the fixture fleets are what exercise
   the filled shape.
 
-  The forge readings are different in kind: nothing is missing upstream, the
-  read simply has not been built. It is a network call, deliberately opt-in and
-  off the first paint, and the document says `not-looked-up` and names it in
-  `omissions` rather than pretending to a green light.
+  The forge readings are different in kind, and are no longer in this list: the
+  read is built. `src/adapters/forge.ts` asks `gh` about a pull request when the
+  operator sets `QUARTERDECK_READ_FORGE`, and with it unset every pull request
+  still reads `not-looked-up` and is still named in `omissions`. See the forge
+  row above and `docs/decisions/2026-08-31-reading-the-forge.md`.
 
 - **Three health signals share one source, so they go dark together.**
   `attendance`, `overdue` and `drift` all need a listing of the fleet home's

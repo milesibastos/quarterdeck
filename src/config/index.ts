@@ -78,6 +78,20 @@ export interface Config {
   /** A read that outlives this is abandoned; last-known-good is kept. */
   readonly readTimeoutMs: number;
   /**
+   * Whether the panel may ask the forge about a pull request's checks and its
+   * review comments.
+   *
+   * Off by default, and the one setting here that governs a network call. It is
+   * a choice rather than a default because it is the only thing the panel does
+   * that leaves this machine, it needs a working `gh` with credentials, and a
+   * panel that quietly started calling a forge on every refresh would be
+   * spending an operator's rate limit without having been asked. When it is
+   * off, every pull request reads `not-looked-up` - which is the honest
+   * statement of exactly what happened. See `src/runtime/forge.ts` for the
+   * cost rule that governs it once it is on.
+   */
+  readonly readForge: boolean;
+  /**
    * Pin "now" to a fixed instant, or `null` to use the wall clock.
    *
    * Staleness is a comparison against the current time, so with a real clock
@@ -108,6 +122,26 @@ function intFromEnv(env: NodeJS.ProcessEnv, name: string, fallback: number): num
     throw new TypeError(`${name} must be a positive integer, got: ${raw}`);
   }
   return value;
+}
+
+/**
+ * A setting that is on or off, refused rather than defaulted when it is
+ * neither.
+ *
+ * The same rule every other value in this file gets: a typo that quietly leaves
+ * a feature off is worse than a panel that will not start, because the operator
+ * who set it has no way to tell the difference from the page.
+ */
+const ON = new Set(["1", "true", "on", "yes"]);
+const OFF = new Set(["0", "false", "off", "no"]);
+
+function flagFromEnv(env: NodeJS.ProcessEnv, name: string): boolean {
+  const raw = env[name];
+  if (raw === undefined || raw === "") return false;
+  const value = raw.trim().toLowerCase();
+  if (ON.has(value)) return true;
+  if (OFF.has(value)) return false;
+  throw new TypeError(`${name} must be on or off, got: ${raw}`);
 }
 
 function instantFromEnv(env: NodeJS.ProcessEnv, name: string): string | null {
@@ -256,6 +290,7 @@ export function loadConfig(
     staleAfterMs: intFromEnv(env, "QUARTERDECK_STALE_AFTER_MS", 60_000),
     debounceMs: intFromEnv(env, "QUARTERDECK_DEBOUNCE_MS", 120),
     readTimeoutMs: intFromEnv(env, "QUARTERDECK_READ_TIMEOUT_MS", 5_000),
+    readForge: flagFromEnv(env, "QUARTERDECK_READ_FORGE"),
     now: instantFromEnv(env, "QUARTERDECK_NOW"),
   };
 }

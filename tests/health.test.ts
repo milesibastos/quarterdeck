@@ -459,6 +459,7 @@ test("a configured fleet home is what the panel's own document is built from", a
     // The point of the wiring under test: health follows the fleet home even
     // while the snapshot is being read from somewhere else entirely.
     fleetHome: home,
+    forge: null,
   });
 
   const document = await runtime.document();

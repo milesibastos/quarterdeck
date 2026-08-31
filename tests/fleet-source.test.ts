@@ -133,6 +133,7 @@ function runtimeOn(
       host: "127.0.0.1",
       port: 0,
       staleAfterMs: OPTIONS.staleAfterMs,
+      readForge: false,
       debounceMs: 10,
       readTimeoutMs,
       now: "2099-01-01T09:15:30.000Z",
@@ -147,6 +148,8 @@ function runtimeOn(
     // has no real directory to read - `healthDir` above is what these tests
     // mean by "health reads for itself".
     fleetHome: null,
+    // The forge is read in `tests/forge.test.ts`, on its own terms.
+    forge: null,
   });
 }
 
