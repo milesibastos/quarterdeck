@@ -3,11 +3,14 @@
 A grade per area, and where the gaps are. Written to be honest rather than
 flattering: an area marked green is one somebody can build on without checking.
 
-Last reviewed: 2026-08-31, at the end of the pass that added the merge card -
-the panel's second real action, and the half of the captain's V1 ruling that had
-not shipped. It landed on top of the pass that finished the worker card - where
-the work physically is, the instructions in the card, and the pull request block
-- and built the forge read those last two fields needed, which in turn landed on
+Last reviewed: 2026-08-31, at the end of the pass that drew the lifecycle rail
+from a worker's recorded kind and delivery contract - four shapes for four
+kinds of work, with no stage drawn that the work cannot reach. It landed on
+top of the pass that added the merge card - the panel's second real action,
+and the half of the captain's V1 ruling that had not shipped. That pass
+landed on top of the pass that finished the worker card - where the work
+physically is, the instructions in the card, and the pull request block - and
+built the forge read those last two fields needed, which in turn landed on
 top of the worker terminal - the first feature deliberately built beside the
 document rather than on it - which itself landed on top of the pass
 that drew the shipshape strip's last two signals. That pass extended the
