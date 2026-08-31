@@ -37,26 +37,34 @@ address and hands it to both bands. Two copies of one POST is the price of the
 ownership boundary and is written down here so the next pass can collapse them
 deliberately rather than notice them by accident.
 
-### The chooser, not the approval card
+### The chooser, not the approval card - and the approval card's legend, fixed
 
 The obvious component was `GrokPermission` - grok's left-border approval box
-with `(●)` / `(○)` radios - and it is not used. Its footer hard-codes
-`1/3:select │ Ctrl+o:yolo │ Ctrl+c:cancel`, and the component implements none of
-the two key bindings. A legend that promises what the surface does not do is the
-defect this project exists to prevent, and the foundation already fixed two
-instances of it, including making `GrokShortcuts`' footer a prop for exactly
-this reason.
+with `(●)` / `(○)` radios. Two things were wrong with reaching for it.
 
-`GrokProjectPicker` is the same grammar - left rule, numbered radios, arrow
-keys, hint line - with a footer that names only what it implements
-(`↑/↓ navigate · Enter:submit`), and it already spreads per-row `data`
-attributes, which is what carries `data-close-mode`. So the two closes are drawn
-by the chooser. Driven in the running panel: arrow keys move the selection
-without sending, Enter on the second row wrote one record to the spool.
+The first was a false legend, and it is now fixed rather than worked around. Its
+footer hard-coded `1/3:select │ Ctrl+o:yolo │ Ctrl+c:cancel` and the component
+implements none of those three; what it binds is the arrow keys and Enter or
+space. So the legend became a prop defaulting to `↑/↓ nav · Enter/Space select`,
+the treatment `GrokShortcuts` and `GrokSettings` already carry - a host that has
+genuinely wired a key says so, and one that has not inherits no claim. The keys
+were deliberately not implemented to make the old label true: building behaviour
+to justify a label is the same defect wearing the other hat. Upstream's live
+`2/3` count went with the footer, because it sat where the number keys were
+named and read as one of them; the `(●)` in the list above says which row is
+selected without claiming a binding.
 
-**Finding for the foundation**: `GrokPermission` wants the same legend-as-prop
-treatment `GrokShortcuts` got. Until it has one it cannot be composed anywhere
-in this panel, which leaves the family's approval card unusable.
+The second is mechanical and stands: `GrokPermission`'s options are bare
+strings, so a row cannot carry the `data-close-mode` that says which close the
+fleet was asked for. `GrokProjectPicker` is the same grammar - left rule,
+numbered radios, arrow keys, honest hint line - and it already spreads per-row
+`data`. So the two closes are drawn by the chooser. Driven in the running panel:
+arrow keys move the selection without sending, Enter on the second row wrote one
+record to the spool.
+
+The boundary around `src/ui/components/grok/` was lifted for that one file, on
+the day, because no other lens draws it - only the vendored `GrokSession`
+showcase, which no route renders.
 
 ### The composer's chrome over a textarea
 

@@ -32,13 +32,17 @@ import type { AnsweringSession } from "@/ui/deck/answer-control";
  * ## Why the closes are a radiogroup and the answer is not a composer
  *
  * `GrokProjectPicker` is grok's chooser: numbered `(●)` / `(○)` rows, real
- * arrow keys, and a hint line that names only the two keys it implements. It is
- * the honest half of the family's two approval cards - `GrokPermission`'s
- * footer hard-codes `Ctrl+o:yolo` and `Ctrl+c:cancel`, which it does not
- * implement, and a legend that promises what the surface does not do is the
- * defect this project exists to prevent. That component wants the same
- * legend-as-prop treatment `GrokShortcuts` already got; until it has one, the
- * chooser is the component that fits.
+ * arrow keys, and a hint line that names only the keys it implements. The
+ * family's other approval card, `GrokPermission`, is the closer match by name
+ * and is not used here for one mechanical reason: its options are bare strings,
+ * so a row cannot carry the `data-close-mode` that says which close the fleet
+ * was asked for. The chooser spreads per-row `data`, which is exactly that.
+ *
+ * Its footer used to be the reason as well - it hard-coded `Ctrl+o:yolo` and
+ * `Ctrl+c:cancel`, which it does not implement - and that is fixed rather than
+ * worked around: the legend is a prop now, defaulting to the two keys the
+ * component actually binds. See
+ * `docs/decisions/2026-08-31-the-needs-you-band-in-the-grammar.md`.
  *
  * `GrokPrompt` is the grammar's text box and is deliberately not used: it is a
  * single-line `<input>`, and an answer recorded verbatim in the operator's own
