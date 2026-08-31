@@ -7,7 +7,18 @@ import { cn } from "@/ui/lib/utils";
  * GrokPermission — Grok CLI's left-border approval card.
  *
  * Captured grammar (v0.2.93): a `┃` gutter, title + command, then numbered
- * `(●)` / `(○)` radios. Footer hint: `1/3:select │ Ctrl+o:yolo │ Ctrl+c:cancel`.
+ * `(●)` / `(○)` radios, over a footer legend.
+ *
+ * Upstream's footer read `1/3:select │ Ctrl+o:yolo │ Ctrl+c:cancel`, and this
+ * component implements none of those three: there is no number-key handler, no
+ * yolo and no cancel. What it does implement is the arrow keys and Enter or
+ * space on a row. So the legend says that and became a prop, the same treatment
+ * `GrokShortcuts` and `GrokSettings` already carry - a host that has genuinely
+ * wired a key of its own says so, and one that has not inherits no claim.
+ *
+ * The keys were not implemented to make the old label true. A label describes
+ * the surface; building behaviour to justify a label is the same defect wearing
+ * the other hat.
  */
 const BORDER = "var(--term-rule)"; // 38;5;8
 const FG = "var(--term-fg)";
@@ -25,6 +36,7 @@ export function GrokPermission({
   command = "echo permission-probe-ok > probe-out.txt",
   options = DEFAULT_OPTIONS,
   defaultSelected = 0,
+  legend = "↑/↓ nav · Enter/Space select",
   onChoose,
   className,
 }: {
@@ -32,6 +44,13 @@ export function GrokPermission({
   command?: string;
   options?: string[];
   defaultSelected?: number;
+  /**
+   * The footer legend. A prop because it is a claim about which keys work, and
+   * the default names only the two this component binds itself. A page that has
+   * wired anything further - a cancel, an always-approve - says so here; a page
+   * that has not says nothing, which is the honest half of the same rule.
+   */
+  legend?: React.ReactNode;
   onChoose?: (index: number) => void;
   className?: string;
 }) {
@@ -101,31 +120,17 @@ export function GrokPermission({
         </div>
       </div>
 
-      <div
-        className="mt-3 flex flex-wrap items-center gap-x-2 text-[12px]"
-        style={{ color: DIM }}
-      >
-        <span>
-          <span className="font-semibold" style={{ color: FG }}>
-            {sel + 1}/{options.length}
-          </span>
-          :select
-        </span>
-        <span aria-hidden>│</span>
-        <span>
-          <span className="font-semibold" style={{ color: FG }}>
-            Ctrl+o
-          </span>
-          :yolo
-        </span>
-        <span aria-hidden>│</span>
-        <span>
-          <span className="font-semibold" style={{ color: FG }}>
-            Ctrl+c
-          </span>
-          :cancel
-        </span>
-      </div>
+      {/* Which row is selected is not repeated here as `2/3`: upstream's count
+          sat where its number keys were named and read as one of them, and the
+          `(●)` in the list above already says it without claiming a binding. */}
+      {legend ? (
+        <div
+          className="mt-3 flex flex-wrap items-center gap-x-2 text-[12px]"
+          style={{ color: DIM }}
+        >
+          {legend}
+        </div>
+      ) : null}
     </div>
   );
 }

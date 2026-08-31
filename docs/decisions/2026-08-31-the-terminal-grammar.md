@@ -183,8 +183,11 @@ The shipshape strip has since converted - see
 `docs/decisions/2026-08-31-the-shipshape-strip-in-the-grok-grammar.md`. The
 deck, the landed band and the disclosure bar have since converted too - see
 `docs/decisions/2026-08-31-the-reading-surfaces-in-the-grammar.md`, which named
-no new token. The needs-you band and the fleet lens are still unconverted. An
-unconverted lens under a converted frame is the expected intermediate state.
-They convert against the tokens above; if one of them wants a role this table
+no new token. The needs-you band has since converted as well - see
+`docs/decisions/2026-08-31-the-needs-you-band-in-the-grammar.md`. The fleet
+lens has since converted too - see
+`docs/decisions/2026-08-31-the-fleet-lens-in-the-terminal-grammar.md`. Every
+lens now draws in the grammar.
+A surface converts against the tokens above; if one wants a role this table
 has no word for, the answer is a new token in all three layers of the
 stylesheet, not an exception in the component.

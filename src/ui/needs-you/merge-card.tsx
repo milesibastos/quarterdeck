@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import type { Worker } from "@/types/document.ts";
-import { Button } from "@/ui/components/button";
 import { ago } from "@/ui/lib/age";
 import { ORDER_EXPLAINER, ORDER_RECORDED, ORDER_UNCONFIRMED } from "@/ui/needs-you/merge-copy";
 
@@ -32,6 +31,17 @@ import { ORDER_EXPLAINER, ORDER_RECORDED, ORDER_UNCONFIRMED } from "@/ui/needs-y
  * reader should have to hold that context in their head. The full URL is what
  * the record carries and it is what the card shows, so the operator checks the
  * thing that is actually going to be acted on.
+ *
+ * ## Why the action is a button and not a chooser
+ *
+ * The decision card beside it offers two closes, which is a choice, and the
+ * grammar's chooser draws it. This offers one act. A radiogroup of one row
+ * would carry a hint line promising arrow keys that have nowhere to move, and a
+ * legend that does not do what it says is the defect this project exists to
+ * prevent. So it is the same bordered action button the frame already uses to
+ * open its fleet chooser, without the bracketed key - there is no binding that
+ * presses this from anywhere on the page, and a `[key]` that only works once
+ * the button is focused would be claiming one.
  */
 
 /** How the server is reached. Passed in: `src/ui/` may not read the runtime. */
@@ -67,12 +77,14 @@ function ChecksLine({
   nowMs: number;
 }) {
   return (
-    <p data-merge-checks="passing" className="flex items-baseline gap-1.5 text-sm">
-      <span className="size-1.5 shrink-0 self-center rounded-full bg-online" />
-      <span className="text-foreground">
+    <p data-merge-checks="passing" className="flex flex-wrap items-baseline gap-x-1.5 text-[13px]">
+      <span aria-hidden className="shrink-0 text-term-success">
+        ◆
+      </span>
+      <span className="text-term-fg">
         {`${checks.finished} of ${checks.total} checks · passing`}
       </span>
-      <span className="shrink-0 font-mono text-muted-foreground">{ago(checks.asOf, nowMs)}</span>
+      <span className="shrink-0 text-[12px] text-term-faint">{ago(checks.asOf, nowMs)}</span>
     </p>
   );
 }
@@ -96,7 +108,7 @@ export function MergeCard({
   const { url, checks } = pullRequest;
 
   async function send() {
-    if (session === null) return;
+    if (session === null || outcome.state === "sending") return;
     setOutcome({ state: "sending" });
     try {
       const response = await fetch(session.endpoint, {
@@ -127,64 +139,64 @@ export function MergeCard({
   }
 
   return (
-    /* The band's other group is drawn by `DeckItemRow` in its `card` tone, and
-       this matches it deliberately: a decision and a ready pull request are two
-       kinds of the same thing - work waiting on this person - and drawing them
-       as two different objects would say otherwise. */
+    /* The band's other group is drawn by `DecisionCard`, and this matches its
+       gutter deliberately: a decision and a ready pull request are two kinds of
+       the same thing - work waiting on this person - and drawing them as two
+       different objects would say otherwise. The rule is green rather than the
+       decision's accent because that is the fact this card turns on: somebody
+       read the checks and they passed. */
     <li
       data-merge-card={worker.id}
-      className="min-w-0 space-y-1.5 rounded-xl border-l-2 border-primary bg-card p-3 ring-1 ring-foreground/10"
+      className="min-w-0 space-y-1.5 border-l-2 border-term-success pl-3 font-mono text-[13px] leading-[1.55]"
     >
-      <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
-        <h3 className="font-heading text-sm leading-snug font-medium wrap-anywhere text-foreground">
+      <div className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+        <h3 className="min-w-0 wrap-anywhere text-[13px] font-semibold text-term-fg-bright">
           {worker.project}
         </h3>
-        <span className="font-mono text-[0.6875rem] text-muted-foreground">{worker.id}</span>
+        <span className="text-[12px] text-term-faint">{worker.id}</span>
       </div>
       {/* The full address, wrapping rather than truncating. A pull request
           address cut off in the middle is the one thing on this card that
           would be worse than not showing it at all: a truncated address still
           looks like an address, and the reader would check the wrong one. */}
-      <p className="font-mono text-xs wrap-anywhere text-foreground">{url}</p>
+      <p className="text-[12px] wrap-anywhere text-term-info">{url}</p>
       <ChecksLine checks={checks} nowMs={nowMs} />
 
       {outcome.state === "recorded" ? (
         <div role="status" data-merge-ordered={worker.id} className="space-y-0.5">
           {/* Exactly what is true, and not one word past it. The fleet has not
               been asked yet, and this panel has read nothing since. */}
-          <p className="text-sm wrap-anywhere text-foreground">
+          <p className="text-[13px] wrap-anywhere text-term-fg">
             {`${outcome.detail} ${ORDER_RECORDED}`}
           </p>
-          <p className="font-mono text-[0.6875rem] text-muted-foreground">{ORDER_UNCONFIRMED}</p>
+          <p className="text-[12px] text-term-faint">{ORDER_UNCONFIRMED}</p>
         </div>
       ) : session === null ? (
-        <p
-          data-merge-unavailable={worker.id}
-          className="font-mono text-[0.6875rem] text-muted-foreground"
-        >
+        <p data-merge-unavailable={worker.id} className="text-[12px] text-term-faint">
           Nothing is configured for this panel to record an order in, so a merge cannot be
           ordered here.
         </p>
       ) : (
         <div className="space-y-1.5">
-          <Button
-            size="xs"
+          <button
+            type="button"
             data-merge-order={worker.id}
             disabled={outcome.state === "sending"}
             title="records an order for the fleet to merge this pull request"
             onClick={() => void send()}
+            className="rounded-sm border border-term-rule-soft px-2 py-0.5 text-[12px] text-term-fg outline-none hover:bg-term-selected hover:text-term-fg-bright focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
           >
             Order the merge
-          </Button>
+          </button>
           {/* What the press actually does, spelled out rather than left to a
               tooltip. A button whose label is a verb has to say who performs
               it, and here the answer is not this page. */}
-          <p className="font-mono text-[0.6875rem] text-muted-foreground">{ORDER_EXPLAINER}</p>
+          <p className="text-[12px] text-term-faint">{ORDER_EXPLAINER}</p>
           {/* An alert, not a status: a refusal is the one outcome here where
               the operator has to do something, and it lands while their
               attention is on the button they just pressed. */}
           {outcome.state === "refused" && (
-            <p role="alert" className="text-sm wrap-anywhere text-destructive">
+            <p role="alert" className="text-[13px] wrap-anywhere text-term-danger">
               {outcome.detail}
             </p>
           )}
