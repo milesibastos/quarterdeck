@@ -61,13 +61,21 @@ describe("a start date carrying no time", () => {
 
   test("yesterday is yesterday all day, not somewhere between 1h and 47h", () => {
     for (const hour of HOURS) {
-      assert.equal(agoAtPrecision("2026-08-30", at(hour)), "yesterday", `at ${hour}:30`);
+      assert.equal(
+        agoAtPrecision("2026-08-30", at(hour)),
+        "yesterday",
+        `at ${hour}:30`,
+      );
     }
   });
 
   test("older days count in days, and the count does not move within a day", () => {
     for (const hour of HOURS) {
-      assert.equal(agoAtPrecision("2026-08-28", at(hour)), "3d ago", `at ${hour}:30`);
+      assert.equal(
+        agoAtPrecision("2026-08-28", at(hour)),
+        "3d ago",
+        `at ${hour}:30`,
+      );
     }
     assert.equal(agoAtPrecision("2025-08-31", at(10)), "1y ago");
   });
@@ -124,18 +132,30 @@ describe("the deck lens, drawn at two hours of the same day", () => {
       env: { TZ: "UTC" },
     });
     try {
-      const html = (await (await fetch(panel.url)).text()).replaceAll("<!-- -->", "");
-      return new RegExp(`data-deck-item="${ROW}"(.*?)</li>`, "s").exec(html)?.[1] ?? "";
+      const html = (await (await fetch(panel.url)).text()).replaceAll(
+        "<!-- -->",
+        "",
+      );
+      return (
+        new RegExp(`data-deck-item="${ROW}"(.*?)</li>`, "s").exec(html)?.[1] ??
+        ""
+      );
     } finally {
       await panel.stop();
     }
   }
 
   test("says the row started today, morning and late evening alike", async () => {
-    for (const now of ["2099-01-01T00:30:00.000Z", "2099-01-01T23:30:00.000Z"]) {
+    for (const now of [
+      "2099-01-01T00:30:00.000Z",
+      "2099-01-01T23:30:00.000Z",
+    ]) {
       const row = await rowAt(now);
       assert.notEqual(row, "", `no row drawn at ${now}`);
-      assert.ok(row.includes("since today"), `at ${now} the row did not read as today`);
+      assert.ok(
+        row.includes("since today"),
+        `at ${now} the row did not read as today`,
+      );
       assert.equal(
         /\d+h ago/.test(row),
         false,

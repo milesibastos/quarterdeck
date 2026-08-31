@@ -210,7 +210,9 @@ function projectOf(project: string): string {
   return project.split("/").filter(Boolean).at(-1) ?? "";
 }
 
-const DECK_STATE: Readonly<Record<Exclude<SnapshotRecordState, "done">, DeckState>> = {
+const DECK_STATE: Readonly<
+  Record<Exclude<SnapshotRecordState, "done">, DeckState>
+> = {
   queued: "queued",
   in_flight: "in-flight",
 };
@@ -228,7 +230,12 @@ const STEPS: ReadonlySet<string> = new Set([
   "ci",
 ]);
 
-const HALTED: ReadonlySet<Stage> = new Set(["blocked", "held", "waiting", "failed"]);
+const HALTED: ReadonlySet<Stage> = new Set([
+  "blocked",
+  "held",
+  "waiting",
+  "failed",
+]);
 
 /**
  * The fine step inside a stage, read out of upstream's own words.
@@ -280,7 +287,8 @@ function finishedStage(task: SnapshotTask): Stage {
  */
 function checksOf(checks: SnapshotChecks | null): ChecksSignal {
   if (checks === null) return { read: "not-looked-up" };
-  if (checks.read === "unreadable") return { read: "unreadable", detail: checks.detail };
+  if (checks.read === "unreadable")
+    return { read: "unreadable", detail: checks.detail };
   return {
     read: "ok",
     outcome: checks.outcome,
@@ -292,7 +300,8 @@ function checksOf(checks: SnapshotChecks | null): ChecksSignal {
 
 function reviewOf(review: SnapshotReview | null): ReviewSignal {
   if (review === null) return { read: "not-looked-up" };
-  if (review.read === "unreadable") return { read: "unreadable", detail: review.detail };
+  if (review.read === "unreadable")
+    return { read: "unreadable", detail: review.detail };
   return { read: "ok", comments: review.comments, asOf: review.as_of };
 }
 
@@ -310,7 +319,10 @@ function projectWorker(task: SnapshotTask): Worker {
       summary: task.brief.summary,
       text: task.brief.text,
     },
-    worktree: { ref: task.paths.worktree.path, present: task.paths.worktree.present },
+    worktree: {
+      ref: task.paths.worktree.path,
+      present: task.paths.worktree.present,
+    },
     // Carried exactly as recorded, nulls included. Nothing here is derived from
     // anything else on the worker: a branch guessed from an id, or a model
     // guessed from a harness, would be the panel stating a fact about where the
@@ -388,7 +400,10 @@ function projectDeckItem(record: SnapshotRecord): DeckItem {
  * loud, and is `null` when the snapshot did not name one rather than defaulted
  * to "here", which would attribute unattributed work to the fleet on screen.
  */
-function projectLandedHere(record: SnapshotRecord, home: string | null): LandedItem {
+function projectLandedHere(
+  record: SnapshotRecord,
+  home: string | null,
+): LandedItem {
   return {
     id: record.id,
     title: record.title || record.id,
@@ -441,20 +456,25 @@ function projectLandedElsewhere(
  * having been read is the panel's own, which is the one absence on this page
  * that is nobody's failure.
  */
-function omissionsOf(snapshot: FleetSnapshot, workers: readonly Worker[]): readonly Omission[] {
+function omissionsOf(
+  snapshot: FleetSnapshot,
+  workers: readonly Worker[],
+): readonly Omission[] {
   const omissions: Omission[] = [];
 
   if (!snapshot.backlog.present) {
     omissions.push({
       what: "queued and landed work",
       reason: "unreadable",
-      detail: "Upstream could not read the backlog, so neither the deck nor this home's landed work is on this page.",
+      detail:
+        "Upstream could not read the backlog, so neither the deck nor this home's landed work is on this page.",
     });
   }
 
   const unreadChecks = workers.filter(
     (worker) =>
-      worker.pullRequest !== null && worker.pullRequest.checks.read === "not-looked-up",
+      worker.pullRequest !== null &&
+      worker.pullRequest.checks.read === "not-looked-up",
   ).length;
   if (unreadChecks > 0) {
     omissions.push({
@@ -466,7 +486,8 @@ function omissionsOf(snapshot: FleetSnapshot, workers: readonly Worker[]): reado
 
   const unreadReview = workers.filter(
     (worker) =>
-      worker.pullRequest !== null && worker.pullRequest.review.read === "not-looked-up",
+      worker.pullRequest !== null &&
+      worker.pullRequest.review.read === "not-looked-up",
   ).length;
   if (unreadReview > 0) {
     omissions.push({
@@ -514,7 +535,10 @@ export interface ProjectOptions {
  * States the policy that was breached rather than the age. How old the content
  * is is already in `asOf` and `ageMs`; phrasing it for a reader is the UI's job.
  */
-function freshness(asOf: string, { clock, staleAfterMs }: ProjectOptions): LensStatus {
+function freshness(
+  asOf: string,
+  { clock, staleAfterMs }: ProjectOptions,
+): LensStatus {
   const ageMs = clock.nowMs() - Date.parse(asOf);
   if (ageMs <= staleAfterMs) return { state: "fresh", asOf };
   return {
@@ -532,7 +556,13 @@ function unreadable(detail: string, clock: Clock): LensStatus {
 /** Every signal dark, with the same one-line reason. */
 function darkHealth(detail: string): Health {
   const signal = { read: "unreadable", detail } as const;
-  return { supervisor: signal, queue: signal, attendance: signal, overdue: signal, drift: signal };
+  return {
+    supervisor: signal,
+    queue: signal,
+    attendance: signal,
+    overdue: signal,
+    drift: signal,
+  };
 }
 
 /**
@@ -543,7 +573,10 @@ function darkHealth(detail: string): Health {
  * last-known-good, while health simply goes dark. Either can happen without the
  * other, which is what the per-lens status exists to express.
  */
-export function projectHealth(reading: HealthReading, options: ProjectOptions): Lens<Health> {
+export function projectHealth(
+  reading: HealthReading,
+  options: ProjectOptions,
+): Lens<Health> {
   if (reading.read === "unreadable") {
     return {
       content: darkHealth(reading.detail),

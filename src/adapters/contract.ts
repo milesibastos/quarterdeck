@@ -416,7 +416,11 @@ const TASK_STATES: ReadonlySet<string> = new Set([
   "landed",
 ]);
 
-const RECORD_STATES: ReadonlySet<string> = new Set(["queued", "in_flight", "done"]);
+const RECORD_STATES: ReadonlySet<string> = new Set([
+  "queued",
+  "in_flight",
+  "done",
+]);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -441,7 +445,11 @@ function requireString(value: unknown, path: string, source: string): string {
 }
 
 /** Absent and `null` both mean "upstream has nothing to say here". */
-function optionalString(value: unknown, path: string, source: string): string | null {
+function optionalString(
+  value: unknown,
+  path: string,
+  source: string,
+): string | null {
   if (value === null || value === undefined) return null;
   return requireString(value, path, source);
 }
@@ -467,7 +475,10 @@ function requireBoolean(value: unknown, path: string, source: string): boolean {
 function requireInstant(value: unknown, path: string, source: string): string {
   const text = requireString(value, path, source);
   if (!isIsoInstant(text)) {
-    throw new ContractParseError(`${path} must be an ISO-8601 instant, got "${text}"`, source);
+    throw new ContractParseError(
+      `${path} must be an ISO-8601 instant, got "${text}"`,
+      source,
+    );
   }
   return text;
 }
@@ -505,11 +516,18 @@ function requireStringArray(
   );
 }
 
-const CHECK_OUTCOMES: ReadonlySet<string> = new Set(["pending", "passing", "failing"]);
+const CHECK_OUTCOMES: ReadonlySet<string> = new Set([
+  "pending",
+  "passing",
+  "failing",
+]);
 
 function requireCount(value: unknown, path: string, source: string): number {
   if (typeof value !== "number" || !Number.isSafeInteger(value) || value < 0) {
-    throw new ContractParseError(`${path} must be a whole number of zero or more`, source);
+    throw new ContractParseError(
+      `${path} must be a whole number of zero or more`,
+      source,
+    );
   }
   return value;
 }
@@ -538,12 +556,19 @@ function parseForgeRead<T>(
     source,
   );
   if (read === "unreadable") {
-    return { read: "unreadable", detail: requireString(entry.detail, `${path}.detail`, source) };
+    return {
+      read: "unreadable",
+      detail: requireString(entry.detail, `${path}.detail`, source),
+    };
   }
   return ok(entry);
 }
 
-function parseChecks(value: unknown, path: string, source: string): SnapshotChecks | null {
+function parseChecks(
+  value: unknown,
+  path: string,
+  source: string,
+): SnapshotChecks | null {
   return parseForgeRead(value, path, source, (entry) => ({
     read: "ok" as const,
     outcome: requireMember<SnapshotCheckOutcome>(
@@ -558,7 +583,11 @@ function parseChecks(value: unknown, path: string, source: string): SnapshotChec
   }));
 }
 
-function parseReview(value: unknown, path: string, source: string): SnapshotReview | null {
+function parseReview(
+  value: unknown,
+  path: string,
+  source: string,
+): SnapshotReview | null {
   return parseForgeRead(value, path, source, (entry) => ({
     read: "ok" as const,
     comments: requireCount(entry.comments, `${path}.comments`, source),
@@ -590,24 +619,43 @@ function parseSecondmateLanded(
   value: unknown,
   source: string,
 ): SnapshotSecondmateLanded {
-  const empty = { records: [], truncated: [], unreadable: [], partial: [] } as const;
+  const empty = {
+    records: [],
+    truncated: [],
+    unreadable: [],
+    partial: [],
+  } as const;
   if (value === null || value === undefined) return empty;
   const at = "secondmate_landed";
   const entry = requireRecord(value, at, source);
   return {
-    records: requireArray(entry.records ?? [], `${at}.records`, source).map((row, i) => {
-      const path = `${at}.records[${i}]`;
-      const record = requireRecord(row, path, source);
-      return {
-        id: requireString(record.id, `${path}.id`, source),
-        title: proseString(record.title) ?? "",
-        home: proseString(record.home),
-        pr_url: proseString(record.pr_url),
-        completion: parseCompletion(record.completion, `${path}.completion`, source),
-      };
-    }),
-    truncated: requireStringArray(entry.truncated ?? [], `${at}.truncated`, source),
-    unreadable: requireStringArray(entry.unreadable ?? [], `${at}.unreadable`, source),
+    records: requireArray(entry.records ?? [], `${at}.records`, source).map(
+      (row, i) => {
+        const path = `${at}.records[${i}]`;
+        const record = requireRecord(row, path, source);
+        return {
+          id: requireString(record.id, `${path}.id`, source),
+          title: proseString(record.title) ?? "",
+          home: proseString(record.home),
+          pr_url: proseString(record.pr_url),
+          completion: parseCompletion(
+            record.completion,
+            `${path}.completion`,
+            source,
+          ),
+        };
+      },
+    ),
+    truncated: requireStringArray(
+      entry.truncated ?? [],
+      `${at}.truncated`,
+      source,
+    ),
+    unreadable: requireStringArray(
+      entry.unreadable ?? [],
+      `${at}.unreadable`,
+      source,
+    ),
     partial: requireStringArray(entry.partial ?? [], `${at}.partial`, source),
   };
 }
@@ -623,7 +671,11 @@ function parsePath(value: unknown, path: string, source: string): SnapshotPath {
 function parseTask(value: unknown, at: string, source: string): SnapshotTask {
   const entry = requireRecord(value, at, source);
   const paths = requireRecord(entry.paths, `${at}.paths`, source);
-  const current = requireRecord(entry.current_state, `${at}.current_state`, source);
+  const current = requireRecord(
+    entry.current_state,
+    `${at}.current_state`,
+    source,
+  );
   const pr = requireRecord(entry.pr, `${at}.pr`, source);
 
   return {
@@ -650,7 +702,11 @@ function parseTask(value: unknown, at: string, source: string): SnapshotTask {
         `${at}.current_state.state`,
         source,
       ),
-      detail: requireString(current.detail, `${at}.current_state.detail`, source),
+      detail: requireString(
+        current.detail,
+        `${at}.current_state.detail`,
+        source,
+      ),
       observed_at: requireInstant(
         current.observed_at,
         `${at}.current_state.observed_at`,
@@ -682,14 +738,26 @@ function parseBrief(value: unknown): SnapshotTask["brief"] {
  * upstream did join in is its own computation, though, and its shape is
  * refused like any other structural field; only the verb inside it is prose.
  */
-function parseTaskCompletion(value: unknown, path: string, source: string): string | null {
+function parseTaskCompletion(
+  value: unknown,
+  path: string,
+  source: string,
+): string | null {
   if (value === null || value === undefined) return null;
   const backlog = requireRecord(value, path, source);
-  const completion = requireRecord(backlog.completion, `${path}.completion`, source);
+  const completion = requireRecord(
+    backlog.completion,
+    `${path}.completion`,
+    source,
+  );
   return proseString(completion.verb);
 }
 
-function parseRecord(value: unknown, at: string, source: string): SnapshotRecord {
+function parseRecord(
+  value: unknown,
+  at: string,
+  source: string,
+): SnapshotRecord {
   const entry = requireRecord(value, at, source);
   return {
     id: requireString(entry.id, `${at}.id`, source),
@@ -773,7 +841,9 @@ export function parseSnapshot(raw: string, source: string): FleetSnapshot {
         // named rather than a position that counts only what survived.
         .map((entry, i) => [entry, i] as const)
         .filter(([entry]) => isStructured(entry))
-        .map(([entry, i]) => parseRecord(entry, `backlog.records[${i}]`, source)),
+        .map(([entry, i]) =>
+          parseRecord(entry, `backlog.records[${i}]`, source),
+        ),
     },
   };
 }
@@ -791,7 +861,10 @@ export async function readSnapshot(
  * `fixtureSet` is a config value, so switching between the fixture fleets is a
  * restart rather than a code change. See fixtures/README.md for the sets.
  */
-export function fixtureSource(fixtureRoot: string, fixtureSet: string): SnapshotSource {
+export function fixtureSource(
+  fixtureRoot: string,
+  fixtureSet: string,
+): SnapshotSource {
   const file = join(fixtureRoot, fixtureSet, "snapshot.json");
   return {
     description: `fixture:${fixtureSet}`,
@@ -821,7 +894,8 @@ export function fleetSource(
 
   return {
     description: `fleet:${fleetHome}`,
-    read: (signal) => runner.run(command, SNAPSHOT_ARGS, { env: childEnv, signal }),
+    read: (signal) =>
+      runner.run(command, SNAPSHOT_ARGS, { env: childEnv, signal }),
   };
 }
 

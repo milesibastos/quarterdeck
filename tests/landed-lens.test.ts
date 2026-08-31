@@ -27,7 +27,9 @@ async function body(panel: Panel): Promise<string> {
 
 /** Every landed row's work item id, in the order the lens drew them. */
 function drawn(html: string): string[] {
-  return [...html.matchAll(/data-landed-item="([^"]+)"/g)].map((match) => match[1]);
+  return [...html.matchAll(/data-landed-item="([^"]+)"/g)].map(
+    (match) => match[1],
+  );
 }
 
 /**
@@ -71,7 +73,11 @@ describe("the landed lens", () => {
   test("does not compete with the band that owns the first screen", () => {
     // Ordinary weight, and below the deck. Both are the same claim: nothing
     // here needs the operator, so nothing here may look as though it does.
-    assert.ok(html.includes('data-lens="landed" data-lens-status="fresh" data-prominence="lens"'));
+    assert.ok(
+      html.includes(
+        'data-lens="landed" data-lens-status="fresh" data-prominence="lens"',
+      ),
+    );
     const order = ["needs-you", "fleet", "deck", "landed"].map((lens) =>
       html.indexOf(`data-lens="${lens}"`),
     );
@@ -110,12 +116,18 @@ describe("the landed lens", () => {
 
   test("gives the delivery artifact as a full address, never a bare number", () => {
     const landed = row(html, "wi-tidewater-109");
-    assert.ok(landed.includes('href="https://forge.invalid/tidewater/pull/109"'));
+    assert.ok(
+      landed.includes('href="https://forge.invalid/tidewater/pull/109"'),
+    );
     assert.ok(
       landed.includes(">https://forge.invalid/tidewater/pull/109<"),
       "the address is the link's own text",
     );
-    assert.ok(row(html, "wi-brackish-088").includes("https://forge.invalid/brackish/pull/88"));
+    assert.ok(
+      row(html, "wi-brackish-088").includes(
+        "https://forge.invalid/brackish/pull/88",
+      ),
+    );
   });
 
   test("says when a piece of work closed without one", () => {
@@ -153,9 +165,13 @@ describe("a second mate's landed work survives this home's backlog", () => {
   after(() => panel.stop());
 
   test("draws it, dark lens and all", () => {
-    assert.ok(html.includes('data-lens="landed" data-lens-status="unreadable"'));
+    assert.ok(
+      html.includes('data-lens="landed" data-lens-status="unreadable"'),
+    );
     assert.deepEqual(drawn(html), ["wi-kelpwick-031"]);
-    assert.ok(row(html, "wi-kelpwick-031").includes('data-landed-where="second-mate"'));
+    assert.ok(
+      row(html, "wi-kelpwick-031").includes('data-landed-where="second-mate"'),
+    );
   });
 
   test("claims nothing about how old what survived is", () => {
@@ -163,7 +179,9 @@ describe("a second mate's landed work survives this home's backlog", () => {
     // be wrong here. A mate's landed work is rolled up separately and is as
     // current as the read that produced it; only this home's is missing.
     assert.ok(!html.includes("the last landed work that read cleanly"));
-    assert.ok(html.includes("what follows is the part of it that still arrived"));
+    assert.ok(
+      html.includes("what follows is the part of it that still arrived"),
+    );
   });
 });
 
@@ -180,10 +198,17 @@ describe("nothing landed", () => {
   test("is drawn as a clean empty read, not as a blank area", () => {
     assert.equal(drawn(html).length, 0);
     assert.ok(html.includes('data-landed-empty="none"'));
-    assert.ok(html.includes("Nothing has landed: the read carried no finished work, here or in a mate's home."));
+    assert.ok(
+      html.includes(
+        "Nothing has landed: the read carried no finished work, here or in a mate's home.",
+      ),
+    );
   });
 
   test("reports no count it did not count", () => {
-    assert.ok(!html.includes("0 landed"), "a zero in the header is a number nobody counted");
+    assert.ok(
+      !html.includes("0 landed"),
+      "a zero in the header is a number nobody counted",
+    );
   });
 });

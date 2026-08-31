@@ -70,15 +70,15 @@ Each is a check wired into `npm test`, and each has a deliberately broken tree
 under `tests/violations/` proving the check reports it. The checks are the
 foundation everything else rests on, so they are themselves known-good.
 
-| # | Rule | Why it exists |
-| --- | --- | --- |
-| 1 | Imports point forward only | Prevents the slow collapse into one tangled module |
-| 2 | `src/domain/` performs no I/O | Keeps the projection testable against fixtures with no fleet present |
-| 3 | Exactly one file may write anything (`src/adapters/intent.ts`), and exactly one may start a process (`src/providers/process.ts`) | The whole safety argument for acting reduces to two reviewable files |
-| 4 | Only `src/adapters/health.ts` may name fleet-internal paths | Confines the one unstable dependency |
-| 5 | The contract version is pinned and parsed at the boundary | A changed contract refuses loudly rather than rendering something plausible and wrong |
-| 6 | `src/ui/` imports only `src/types/` and providers | Keeps the panel replaceable; stops fleet reading creeping into rendering |
-| 7 | No network egress from the browser at runtime | A local tool that degrades without internet fails its own honesty rules |
+| #   | Rule                                                                                                                             | Why it exists                                                                         |
+| --- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| 1   | Imports point forward only                                                                                                       | Prevents the slow collapse into one tangled module                                    |
+| 2   | `src/domain/` performs no I/O                                                                                                    | Keeps the projection testable against fixtures with no fleet present                  |
+| 3   | Exactly one file may write anything (`src/adapters/intent.ts`), and exactly one may start a process (`src/providers/process.ts`) | The whole safety argument for acting reduces to two reviewable files                  |
+| 4   | Only `src/adapters/health.ts` may name fleet-internal paths                                                                      | Confines the one unstable dependency                                                  |
+| 5   | The contract version is pinned and parsed at the boundary                                                                        | A changed contract refuses loudly rather than rendering something plausible and wrong |
+| 6   | `src/ui/` imports only `src/types/` and providers                                                                                | Keeps the panel replaceable; stops fleet reading creeping into rendering              |
+| 7   | No network egress from the browser at runtime                                                                                    | A local tool that degrades without internet fails its own honesty rules               |
 
 Plus two beyond the seven, each guarding a decision rather than a layer
 boundary: `provider-bypass`, which is the reason `src/providers/` exists -
@@ -219,7 +219,7 @@ Rules that come with the pipe, all in `src/runtime/fleet.ts`:
   down with the other three.
 - `EventSource` reconnects on its own, so a restarted server heals without a
   reload.
-- The forge, when the operator has turned it on, is read *after* the document is
+- The forge, when the operator has turned it on, is read _after_ the document is
   built and never before: `src/runtime/forge.ts` applies what it already has and
   then schedules. A completed read publishes one signal, which lands back here
   as one more render, and the once-a-minute floor is what stops that render
@@ -372,7 +372,7 @@ narrow width; that the theme follows the operator's system setting in both
 directions; that an expanded terminal is still expanded, with both its scroll
 offsets unchanged, after an update lands under it; and that a line far wider
 than its column scrolls inside its own box rather than pushing the page. What
-markup *can* carry - the heading outline, the live regions, each body named by
+markup _can_ carry - the heading outline, the live regions, each body named by
 its own heading, the served stylesheet's two blocks - is in
 `tests/shell.test.ts`. See `docs/plans/done/` and the two dated decisions of
 2026-08-31.

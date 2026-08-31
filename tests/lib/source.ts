@@ -58,7 +58,8 @@ export interface ImportRef {
  * The clause is matched with `[^;'"]` so it can span newlines without running
  * past the end of the statement into an unrelated `from` in some later string.
  */
-const IMPORT_FROM = /\b(import|export)[ \t\n]+([^;'"]*?)[ \t\n]*from[ \t]*["']([^"']+)["']/g;
+const IMPORT_FROM =
+  /\b(import|export)[ \t\n]+([^;'"]*?)[ \t\n]*from[ \t]*["']([^"']+)["']/g;
 const SIDE_EFFECT_IMPORT = /\bimport[ \t]*["']([^"']+)["']/g;
 const DYNAMIC_IMPORT = /\bimport[ \t]*\([ \t\n]*["']([^"']+)["']/g;
 /** `require("...")`, however the result is bound - a default import's CommonJS twin. */
@@ -86,15 +87,27 @@ export function importsOf(file: SourceFile): ImportRef[] {
   for (const match of file.text.matchAll(SIDE_EFFECT_IMPORT)) {
     const at = match.index ?? 0;
     if (seen.has(at)) continue;
-    refs.push({ specifier: match[1], line: lineAt(file.text, at), typeOnly: false });
+    refs.push({
+      specifier: match[1],
+      line: lineAt(file.text, at),
+      typeOnly: false,
+    });
   }
   for (const match of file.text.matchAll(DYNAMIC_IMPORT)) {
     const at = match.index ?? 0;
-    refs.push({ specifier: match[1], line: lineAt(file.text, at), typeOnly: false });
+    refs.push({
+      specifier: match[1],
+      line: lineAt(file.text, at),
+      typeOnly: false,
+    });
   }
   for (const match of file.text.matchAll(REQUIRE_CALL)) {
     const at = match.index ?? 0;
-    refs.push({ specifier: match[1], line: lineAt(file.text, at), typeOnly: false });
+    refs.push({
+      specifier: match[1],
+      line: lineAt(file.text, at),
+      typeOnly: false,
+    });
   }
 
   return refs.sort((a, b) => a.line - b.line);
@@ -130,7 +143,10 @@ export function layerOf(path: string): Layer | null {
  * Which layer an import points at, or `null` for anything that is not an
  * in-repo layer import (npm packages, and relative paths inside one layer).
  */
-export function targetLayerOf(fromPath: string, specifier: string): Layer | null {
+export function targetLayerOf(
+  fromPath: string,
+  specifier: string,
+): Layer | null {
   if (specifier.startsWith("@/")) return layerOf(specifier.slice(2));
   if (!specifier.startsWith(".")) return null;
   const dir = posix.dirname(fromPath);

@@ -1,6 +1,14 @@
 import { cookies } from "next/headers";
-import { ContractIdentifierError, SNAPSHOT_REBUILD } from "@/adapters/contract.ts";
-import { fleetById, loadConfig, type Config, type FleetRef } from "@/config/index.ts";
+import {
+  ContractIdentifierError,
+  SNAPSHOT_REBUILD,
+} from "@/adapters/contract.ts";
+import {
+  fleetById,
+  loadConfig,
+  type Config,
+  type FleetRef,
+} from "@/config/index.ts";
 import { clockFor, fleetRuntime } from "@/runtime/fleet.ts";
 import { SESSION_HEADER, sessionSecret } from "@/runtime/session.ts";
 import type { PanelDocument } from "@/types/document.ts";
@@ -44,7 +52,10 @@ type Outcome =
 
 async function read(config: Config, fleet: FleetRef): Promise<Outcome> {
   try {
-    return { kind: "document", document: await fleetRuntime(config, fleet).document() };
+    return {
+      kind: "document",
+      document: await fleetRuntime(config, fleet).document(),
+    };
   } catch (error) {
     if (error instanceof ContractIdentifierError) {
       return {
@@ -165,7 +176,9 @@ export default async function Page() {
     <FleetPicker fleets={choices} showing={fleet.id}>
       {/* The signal stream is per fleet, so a switch listens to the fleet on
           screen rather than to the one that was there before it. */}
-      <LiveRefresh endpoint={`/api/events?fleet=${encodeURIComponent(fleet.id)}`} />
+      <LiveRefresh
+        endpoint={`/api/events?fleet=${encodeURIComponent(fleet.id)}`}
+      />
       {outcome.kind === "refusal" ? (
         <ContractRefusal
           expected={outcome.expected}

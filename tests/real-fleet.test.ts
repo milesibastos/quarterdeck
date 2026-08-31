@@ -1,5 +1,13 @@
 import assert from "node:assert/strict";
-import { chmod, copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
@@ -30,7 +38,9 @@ async function body(panel: Panel): Promise<string> {
 
 function lensStatus(html: string, name: string): string | null {
   return (
-    new RegExp(`data-lens="${name}" data-lens-status="([a-z]+)"`).exec(html)?.[1] ?? null
+    new RegExp(`data-lens="${name}" data-lens-status="([a-z]+)"`).exec(
+      html,
+    )?.[1] ?? null
   );
 }
 
@@ -113,9 +123,14 @@ describe("the panel pointed at a fleet home", () => {
     // it could not read, which is the quarantined module's own contract.
     const html = await body(panel);
     for (const lens of ["fleet", "deck"]) {
-      const section = new RegExp(`data-lens="${lens}"[\\s\\S]*?</section>`).exec(html);
+      const section = new RegExp(
+        `data-lens="${lens}"[\\s\\S]*?</section>`,
+      ).exec(html);
       assert.ok(section, `the ${lens} lens is mounted`);
-      assert.ok(!section[0].includes(home), `the ${lens} lens names no machine path`);
+      assert.ok(
+        !section[0].includes(home),
+        `the ${lens} lens names no machine path`,
+      );
     }
   });
 
@@ -128,7 +143,10 @@ describe("the panel pointed at a fleet home", () => {
     );
     await chmod(join(home, "bin", "fm-fleet-snapshot.sh"), 0o755);
     // Touching a watched directory is what makes the panel look again.
-    await writeFile(join(home, "state", "wi-northreach-509.meta"), "id: wi-northreach-509\n");
+    await writeFile(
+      join(home, "state", "wi-northreach-509.meta"),
+      "id: wi-northreach-509\n",
+    );
 
     const html = await until(
       () => body(panel),
@@ -169,7 +187,9 @@ describe("a fleet home whose backlog changes", () => {
   test("is noticed, even though no worker moved", async () => {
     assert.equal(deckItems(await body(panel)), 5);
 
-    const snapshot = JSON.parse(await readFile(join(home, "snapshot.json"), "utf8"));
+    const snapshot = JSON.parse(
+      await readFile(join(home, "snapshot.json"), "utf8"),
+    );
     snapshot.backlog.records.push({
       order: 8,
       state: "queued",
@@ -185,11 +205,17 @@ describe("a fleet home whose backlog changes", () => {
       since: "2099-01-01",
       captain_actionable: false,
     });
-    await writeFile(join(home, "snapshot.json"), JSON.stringify(snapshot, null, 2));
+    await writeFile(
+      join(home, "snapshot.json"),
+      JSON.stringify(snapshot, null, 2),
+    );
     // The backlog a captain edits lives under `data`, and nothing under
     // `state` moved. Watching only the workers would leave the deck stale
     // until some unrelated worker happened to change.
-    await writeFile(join(home, "data", "backlog.md"), "- [ ] wi-northreach-520\n");
+    await writeFile(
+      join(home, "data", "backlog.md"),
+      "- [ ] wi-northreach-520\n",
+    );
 
     const html = await until(
       () => body(panel),

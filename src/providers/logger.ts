@@ -11,7 +11,11 @@ export interface Logger {
   error(message: string, fields?: Record<string, unknown>): void;
 }
 
-function line(level: string, message: string, fields?: Record<string, unknown>) {
+function line(
+  level: string,
+  message: string,
+  fields?: Record<string, unknown>,
+) {
   const suffix = fields ? ` ${JSON.stringify(fields)}` : "";
   return `[quarterdeck] ${level} ${message}${suffix}`;
 }

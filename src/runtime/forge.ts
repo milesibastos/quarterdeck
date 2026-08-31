@@ -73,7 +73,10 @@ export class ForgeCache {
    */
   applyTo(snapshot: FleetSnapshot): FleetSnapshot {
     if (this.#readings.size === 0) return snapshot;
-    return { ...snapshot, tasks: snapshot.tasks.map((task) => this.#fill(task)) };
+    return {
+      ...snapshot,
+      tasks: snapshot.tasks.map((task) => this.#fill(task)),
+    };
   }
 
   #fill(task: SnapshotTask): SnapshotTask {
@@ -83,7 +86,11 @@ export class ForgeCache {
     if (reading === undefined) return task;
     return {
       ...task,
-      pr: { url, checks: checks ?? reading.checks, review: review ?? reading.review },
+      pr: {
+        url,
+        checks: checks ?? reading.checks,
+        review: review ?? reading.review,
+      },
     };
   }
 
@@ -104,7 +111,10 @@ export class ForgeCache {
     this.#queue = this.#queue
       .then(async () => {
         for (const url of due) {
-          this.#readings.set(url, await read(url, AbortSignal.timeout(readTimeoutMs)));
+          this.#readings.set(
+            url,
+            await read(url, AbortSignal.timeout(readTimeoutMs)),
+          );
         }
       })
       .then(onRead)
@@ -129,7 +139,11 @@ export class ForgeCache {
       const { url, checks, review } = task.pr;
       if (url === null || (checks !== null && review !== null)) continue;
       const scheduledAt = this.#scheduledAtMs.get(url);
-      if (scheduledAt !== undefined && nowMs - scheduledAt < FORGE_MIN_INTERVAL_MS) continue;
+      if (
+        scheduledAt !== undefined &&
+        nowMs - scheduledAt < FORGE_MIN_INTERVAL_MS
+      )
+        continue;
       due.add(url);
     }
     return [...due];

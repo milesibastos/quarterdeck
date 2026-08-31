@@ -84,7 +84,9 @@ const CALLS = "peek-calls";
 async function peekCalls(home: string): Promise<string[]> {
   const path = join(home, CALLS);
   if (!existsSync(path)) return [];
-  return (await readFile(path, "utf8")).split("\n").filter((line) => line.length > 0);
+  return (await readFile(path, "utf8"))
+    .split("\n")
+    .filter((line) => line.length > 0);
 }
 
 /**
@@ -205,7 +207,10 @@ describe("a card nobody has opened", () => {
       !html.includes("data-terminal-lines"),
       "a collapsed card carries no tail, not even a hidden one",
     );
-    assert.ok(!html.includes("rebasing onto main"), "and none of the pane's text");
+    assert.ok(
+      !html.includes("rebasing onto main"),
+      "and none of the pane's text",
+    );
   });
 });
 
@@ -233,7 +238,10 @@ describe("expanding a card on a real fleet", () => {
 
   test("reads the worker's session, once, and asks for fifteen lines", async () => {
     const before = (await peekCalls(home)).length;
-    const { status, tail } = await readTerminal(panel, "worker=wi-tidewater-501");
+    const { status, tail } = await readTerminal(
+      panel,
+      "worker=wi-tidewater-501",
+    );
 
     assert.equal(status, 200);
     assert.equal(tail.worker, "wi-tidewater-501");
@@ -253,14 +261,22 @@ describe("expanding a card on a real fleet", () => {
     const text = tail.reading.lines.join("\n");
     assert.ok(!text.includes(ESC), "no escape sequences survive into the page");
     assert.ok(!text.includes(BEL), "and no stray control characters");
-    assert.ok(text.includes("==> rebasing onto main"), "the words themselves do");
-    assert.ok(text.includes("step\tstatus\tseconds"), "and the tabs a worker meant");
+    assert.ok(
+      text.includes("==> rebasing onto main"),
+      "the words themselves do",
+    );
+    assert.ok(
+      text.includes("step\tstatus\tseconds"),
+      "and the tabs a worker meant",
+    );
   });
 
   test("shows only what a redrawn line ended up saying", async () => {
     const { tail } = await readTerminal(panel, "worker=wi-tidewater-505");
     assert.ok(tail.reading.read === "ok");
-    const progress = tail.reading.lines.find((line) => line.includes("fetching"));
+    const progress = tail.reading.lines.find((line) =>
+      line.includes("fetching"),
+    );
     assert.equal(
       progress,
       "fetching 100%",
@@ -274,7 +290,10 @@ describe("expanding a card on a real fleet", () => {
     const trace = tail.reading.lines.find((line) => line.startsWith("trace:"));
     assert.ok(trace, "the long line is still there");
     assert.ok(trace.length <= 2_001, `a line is bounded, got ${trace.length}`);
-    assert.ok(trace.endsWith("…"), "and says it was cut rather than pretending");
+    assert.ok(
+      trace.endsWith("…"),
+      "and says it was cut rather than pretending",
+    );
   });
 
   test("carries no more than fifteen lines, and no trailing blank ones", async () => {
@@ -289,13 +308,19 @@ describe("expanding a card on a real fleet", () => {
   });
 
   test("a worker that has said nothing yet says so", async () => {
-    const { status, tail } = await readTerminal(panel, "worker=wi-lamplight-502");
+    const { status, tail } = await readTerminal(
+      panel,
+      "worker=wi-lamplight-502",
+    );
     assert.equal(status, 200);
     assert.deepEqual(tail.reading, { read: "silent" });
   });
 
   test("a session that is gone is not the same answer", async () => {
-    const { status, tail } = await readTerminal(panel, "worker=wi-saltmarsh-503");
+    const { status, tail } = await readTerminal(
+      panel,
+      "worker=wi-saltmarsh-503",
+    );
     assert.equal(status, 200);
     assert.equal(tail.reading.read, "no-session");
     assert.ok(tail.reading.read === "no-session");
@@ -351,11 +376,18 @@ describe("what the read path refuses", () => {
 
   test("a worker this fleet never published", async () => {
     const before = await peekCalls(home);
-    const { status, tail } = await readTerminal(panel, "worker=wi-elsewhere-999");
+    const { status, tail } = await readTerminal(
+      panel,
+      "worker=wi-elsewhere-999",
+    );
 
     assert.equal(status, 404);
     assert.equal(tail.reading.read, "unreadable");
-    assert.deepEqual(await peekCalls(home), before, "and no command was started");
+    assert.deepEqual(
+      await peekCalls(home),
+      before,
+      "and no command was started",
+    );
   });
 
   test("a selector that would reach past this fleet's own workers", async () => {
@@ -369,19 +401,30 @@ describe("what the read path refuses", () => {
       );
       assert.equal(status, 400, `refused: ${JSON.stringify(worker)}`);
     }
-    assert.deepEqual(await peekCalls(home), before, "and none of them started a command");
+    assert.deepEqual(
+      await peekCalls(home),
+      before,
+      "and none of them started a command",
+    );
   });
 
   test("every method but GET", async () => {
     const before = await peekCalls(home);
     for (const method of ["POST", "PUT", "PATCH", "DELETE"]) {
-      const response = await fetch(`${panel.url}/api/terminal?worker=wi-tidewater-501`, {
-        method,
-        body: method === "DELETE" ? undefined : "lines=1000",
-      });
+      const response = await fetch(
+        `${panel.url}/api/terminal?worker=wi-tidewater-501`,
+        {
+          method,
+          body: method === "DELETE" ? undefined : "lines=1000",
+        },
+      );
       assert.equal(response.status, 405, `${method} is not a read`);
     }
-    assert.deepEqual(await peekCalls(home), before, "nothing was read, and nothing sent");
+    assert.deepEqual(
+      await peekCalls(home),
+      before,
+      "nothing was read, and nothing sent",
+    );
   });
 });
 
@@ -412,7 +455,9 @@ describe("a refresh with a terminal open", () => {
     assert.equal(afterOpening.length, 1);
 
     // The fleet moves, and the page re-renders the way a live refresh makes it.
-    const snapshot = JSON.parse(await readFile(join(home, "snapshot.json"), "utf8"));
+    const snapshot = JSON.parse(
+      await readFile(join(home, "snapshot.json"), "utf8"),
+    );
     snapshot.backlog.records.push({
       order: 9,
       state: "queued",
@@ -428,8 +473,14 @@ describe("a refresh with a terminal open", () => {
       since: "2099-01-01",
       captain_actionable: false,
     });
-    await writeFile(join(home, "snapshot.json"), JSON.stringify(snapshot, null, 2));
-    await writeFile(join(home, "data", "backlog.md"), "- [ ] wi-northreach-530\n");
+    await writeFile(
+      join(home, "snapshot.json"),
+      JSON.stringify(snapshot, null, 2),
+    );
+    await writeFile(
+      join(home, "data", "backlog.md"),
+      "- [ ] wi-northreach-530\n",
+    );
 
     const rows = deckItems(await body(panel));
     await until(
@@ -464,10 +515,16 @@ describe("a fixture fleet's terminals", () => {
   });
 
   test("behaves exactly as a fleet does, escapes and all", async () => {
-    const { tail } = await readTerminal(panel, "fleet=healthy&worker=wi-tidewater-118");
+    const { tail } = await readTerminal(
+      panel,
+      "fleet=healthy&worker=wi-tidewater-118",
+    );
     assert.ok(tail.reading.read === "ok");
     const text = tail.reading.lines.join("\n");
-    assert.ok(!text.includes(ESC), "the same normalising a real capture goes through");
+    assert.ok(
+      !text.includes(ESC),
+      "the same normalising a real capture goes through",
+    );
     assert.ok(text.includes("==> rebasing onto main"));
     assert.ok(
       tail.reading.lines.some((line) => line === "fetching 100%"),
@@ -476,7 +533,10 @@ describe("a fixture fleet's terminals", () => {
   });
 
   test("cuts a long scrollback to the last fifteen lines", async () => {
-    const { tail } = await readTerminal(panel, "fleet=healthy&worker=wi-lamplight-207");
+    const { tail } = await readTerminal(
+      panel,
+      "fleet=healthy&worker=wi-lamplight-207",
+    );
     assert.ok(tail.reading.read === "ok");
     assert.equal(tail.reading.lines.length, 15);
     assert.equal(tail.reading.lines.at(-1), "line 22 of the scrollback");
@@ -510,7 +570,10 @@ describe("a fixture fleet's terminals", () => {
   });
 
   test("a set with no terminal file records no sessions at all", async () => {
-    const { tail } = await readTerminal(panel, "fleet=crowded&worker=wi-tidewater-100");
+    const { tail } = await readTerminal(
+      panel,
+      "fleet=crowded&worker=wi-tidewater-100",
+    );
     assert.equal(tail.reading.read, "no-session");
     assert.ok(tail.reading.read === "no-session");
     assert.match(tail.reading.detail, /records no sessions/);
@@ -519,7 +582,10 @@ describe("a fixture fleet's terminals", () => {
   test("answers about the fleet it was asked about, not the one on screen", async () => {
     // The two fleets share no worker ids, so an answer out of the wrong one
     // would be a `no-session` rather than the tail below.
-    const { tail } = await readTerminal(panel, "fleet=healthy&worker=wi-tidewater-114");
+    const { tail } = await readTerminal(
+      panel,
+      "fleet=healthy&worker=wi-tidewater-114",
+    );
     assert.equal(tail.reading.read, "ok");
   });
 });

@@ -1,5 +1,10 @@
 import type { DeckItem, Worker } from "@/types/document.ts";
-import { groupDeck, isAnswerable, type DeckGroups, type DeckRow } from "@/ui/deck/deck-groups";
+import {
+  groupDeck,
+  isAnswerable,
+  type DeckGroups,
+  type DeckRow,
+} from "@/ui/deck/deck-groups";
 
 /**
  * What needs the operator personally, split from what the fleet is handling on
@@ -89,7 +94,10 @@ export interface NeedsYou {
   readonly rest: DeckGroups;
 }
 
-export function needsYou(items: readonly DeckItem[], fleet: readonly Worker[]): NeedsYou {
+export function needsYou(
+  items: readonly DeckItem[],
+  fleet: readonly Worker[],
+): NeedsYou {
   const groups = groupDeck(items, fleet);
   const decisions = groups.held.filter((row) => isAnswerable(row.item));
 

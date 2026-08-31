@@ -52,7 +52,10 @@ const NOT_READY = {
 };
 
 /** `crowded`'s two pull requests whose checks nobody could read, or asked about. */
-const UNKNOWN_CHECKS = { unreadable: "wi-windlass-142", notLookedUp: "wi-halyard-289" };
+const UNKNOWN_CHECKS = {
+  unreadable: "wi-windlass-142",
+  notLookedUp: "wi-halyard-289",
+};
 
 async function spoolDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), "quarterdeck-merge-intents-"));
@@ -62,10 +65,12 @@ async function spoolDir(): Promise<string> {
 async function spool(dir: string): Promise<[string, string][]> {
   const names = (await readdir(dir)).sort();
   return Promise.all(
-    names.map(async (name): Promise<[string, string]> => [
-      name,
-      await readFile(join(dir, name), "utf8"),
-    ]),
+    names.map(
+      async (name): Promise<[string, string]> => [
+        name,
+        await readFile(join(dir, name), "utf8"),
+      ],
+    ),
   );
 }
 
@@ -75,7 +80,10 @@ async function html(panel: Panel): Promise<string> {
 
 function secretFrom(page: string): string {
   const match = /\\?"secret\\?":\\?"([A-Za-z0-9_-]{20,})\\?"/.exec(page);
-  assert.ok(match, "the page carries the session secret once a spool is configured");
+  assert.ok(
+    match,
+    "the page carries the session secret once a spool is configured",
+  );
   return match[1];
 }
 
@@ -90,7 +98,10 @@ async function order(
     headers: { "content-type": "application/json", [SESSION_HEADER]: secret },
     body: JSON.stringify(body),
   });
-  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+  return {
+    status: response.status,
+    body: (await response.json()) as Record<string, unknown>,
+  };
 }
 
 describe("the merge card in the needs-you band", () => {
@@ -111,23 +122,38 @@ describe("the merge card in the needs-you band", () => {
 
   test("draws the card, in the band, with a button on it", async () => {
     const page = await html(panel);
-    assert.ok(page.includes('data-needs-group="merges"'), "beside the decisions, not below them");
+    assert.ok(
+      page.includes('data-needs-group="merges"'),
+      "beside the decisions, not below them",
+    );
     assert.ok(page.includes(`data-merge-card="${READY.taskId}"`));
-    assert.ok(page.includes(`data-merge-order="${READY.taskId}"`), "and the button that acts");
+    assert.ok(
+      page.includes(`data-merge-order="${READY.taskId}"`),
+      "and the button that acts",
+    );
   });
 
   test("shows the full address, never a bare number", async () => {
     const page = await html(panel);
-    assert.ok(page.includes(READY.url), "the whole address the record will carry");
+    assert.ok(
+      page.includes(READY.url),
+      "the whole address the record will carry",
+    );
     // A number is only a pull request once you have decided which repository it
     // is in, and the panel shows several projects at once.
-    assert.ok(!/>#?406</.test(page), "the card must not offer the number alone");
+    assert.ok(
+      !/>#?406</.test(page),
+      "the card must not offer the number alone",
+    );
   });
 
   test("shows the checks state the button is being pressed against", async () => {
     const page = await html(panel);
     assert.ok(page.includes('data-merge-checks="passing"'));
-    assert.ok(page.includes("6 of 6 checks"), "counted, not summarised as a word");
+    assert.ok(
+      page.includes("6 of 6 checks"),
+      "counted, not summarised as a word",
+    );
   });
 
   test("counts the merges in the band's header, beside the decisions", async () => {
@@ -138,9 +164,18 @@ describe("the merge card in the needs-you band", () => {
   test("offers no button on work whose checks are running, red, or already landed", async () => {
     const page = await html(panel);
     for (const [why, id] of Object.entries(NOT_READY)) {
-      assert.ok(!page.includes(`data-merge-card="${id}"`), `${id} is ${why}, not merge-ready`);
-      assert.ok(!page.includes(`data-merge-order="${id}"`), `and carries no button either`);
-      assert.ok(page.includes(`data-worker="${id}"`), "it is still drawn in the fleet lens");
+      assert.ok(
+        !page.includes(`data-merge-card="${id}"`),
+        `${id} is ${why}, not merge-ready`,
+      );
+      assert.ok(
+        !page.includes(`data-merge-order="${id}"`),
+        `and carries no button either`,
+      );
+      assert.ok(
+        page.includes(`data-worker="${id}"`),
+        "it is still drawn in the fleet lens",
+      );
     }
   });
 });
@@ -168,9 +203,15 @@ describe("a fleet whose checks nobody has read", () => {
     // established.
     const page = await html(panel);
     for (const [why, id] of Object.entries(UNKNOWN_CHECKS)) {
-      assert.ok(!page.includes(`data-merge-card="${id}"`), `${id}: its checks are ${why}`);
+      assert.ok(
+        !page.includes(`data-merge-card="${id}"`),
+        `${id}: its checks are ${why}`,
+      );
     }
-    assert.ok(!page.includes('data-needs-group="merges"'), "no group at all, not an empty one");
+    assert.ok(
+      !page.includes('data-needs-group="merges"'),
+      "no group at all, not an empty one",
+    );
   });
 });
 
@@ -193,13 +234,20 @@ describe("recording a merge order", () => {
   });
 
   test("writes exactly the merge command's argument list, and nothing else", async () => {
-    const result = await order(panel, secret, { taskId: READY.taskId, url: READY.url });
+    const result = await order(panel, secret, {
+      taskId: READY.taskId,
+      url: READY.url,
+    });
     assert.equal(result.status, 200);
 
     const records = await spool(dir);
     assert.equal(records.length, 1, "one order, one record");
     const [name, content] = records[0];
-    assert.match(name, /^[0-9a-f]{32}\.merge-order-v1$/, "named by the request identity");
+    assert.match(
+      name,
+      /^[0-9a-f]{32}\.merge-order-v1$/,
+      "named by the request identity",
+    );
     // `<task-id>\t<pr-url>` and one newline: the two arguments
     // `bin/fm-pr-merge.sh` takes, in its order. No header, no provenance, no
     // timestamp, and nothing about the checks - the command reads those live.
@@ -207,7 +255,10 @@ describe("recording a merge order", () => {
   });
 
   test("says the order was recorded, and never that anything merged", async () => {
-    const result = await order(panel, secret, { taskId: READY.taskId, url: READY.url });
+    const result = await order(panel, secret, {
+      taskId: READY.taskId,
+      url: READY.url,
+    });
     assert.equal(result.status, 200);
     assert.match(String(result.body.detail), /recorded/i);
     assert.doesNotMatch(
@@ -226,9 +277,16 @@ describe("recording a merge order", () => {
      * easiest place left to make that mistake and the worst.
      */
     for (const line of [ORDER_RECORDED, ORDER_UNCONFIRMED, ORDER_EXPLAINER]) {
-      assert.doesNotMatch(line, /\bhas merged|was merged|is merged|now merged|has landed\b/i);
+      assert.doesNotMatch(
+        line,
+        /\bhas merged|was merged|is merged|now merged|has landed\b/i,
+      );
     }
-    assert.match(ORDER_UNCONFIRMED, /cannot say/i, "the limit of what it knows is said out loud");
+    assert.match(
+      ORDER_UNCONFIRMED,
+      /cannot say/i,
+      "the limit of what it knows is said out loud",
+    );
     assert.match(ORDER_RECORDED, /next check/, "and who acts, and when");
   });
 
@@ -261,15 +319,29 @@ describe("replaying a merge order", () => {
   });
 
   test("the same order twice changes nothing the second time", async () => {
-    const first = await order(panel, secret, { taskId: READY.taskId, url: READY.url });
+    const first = await order(panel, secret, {
+      taskId: READY.taskId,
+      url: READY.url,
+    });
     assert.equal(first.status, 200);
     assert.equal(first.body.duplicate, false);
     const before = await spool(dir);
 
-    const second = await order(panel, secret, { taskId: READY.taskId, url: READY.url });
+    const second = await order(panel, secret, {
+      taskId: READY.taskId,
+      url: READY.url,
+    });
     assert.equal(second.status, 200);
-    assert.equal(second.body.duplicate, true, "the replay is recognised as one");
-    assert.equal(second.body.requestId, first.body.requestId, "and has the same identity");
+    assert.equal(
+      second.body.duplicate,
+      true,
+      "the replay is recognised as one",
+    );
+    assert.equal(
+      second.body.requestId,
+      first.body.requestId,
+      "and has the same identity",
+    );
 
     // The acceptance is the disk, not the reply: byte for byte, name for name,
     // the spool is what it was before the replay arrived.
@@ -286,11 +358,17 @@ describe("replaying a merge order", () => {
     try {
       const key = secretFrom(await html(burst));
       const results = await Promise.all(
-        Array.from({ length: 8 }, () => order(burst, key, { taskId: READY.taskId, url: READY.url })),
+        Array.from({ length: 8 }, () =>
+          order(burst, key, { taskId: READY.taskId, url: READY.url }),
+        ),
       );
       assert.ok(results.every((result) => result.status === 200));
       const records = await spool(dir2);
-      assert.equal(records.length, 1, "eight simultaneous presses, one merge order");
+      assert.equal(
+        records.length,
+        1,
+        "eight simultaneous presses, one merge order",
+      );
       assert.equal(
         results.filter((result) => result.body.duplicate === false).length,
         1,
@@ -356,9 +434,15 @@ describe("a pull request that changed between the render and the press", () => {
   const snapshot = (): string => join(fixtureRoot, "healthy", "snapshot.json");
 
   /** Rewrite the merge-ready worker's pull request block, under the panel. */
-  async function change(mutate: (task: Record<string, unknown>) => void): Promise<void> {
-    const document = JSON.parse(original) as { tasks: Record<string, unknown>[] };
-    const task = document.tasks.find((candidate) => candidate.id === READY.taskId);
+  async function change(
+    mutate: (task: Record<string, unknown>) => void,
+  ): Promise<void> {
+    const document = JSON.parse(original) as {
+      tasks: Record<string, unknown>[];
+    };
+    const task = document.tasks.find(
+      (candidate) => candidate.id === READY.taskId,
+    );
     assert.ok(task, "the fixture still carries the merge-ready worker");
     mutate(task);
     await writeFile(snapshot(), JSON.stringify(document, null, 2));
@@ -393,10 +477,17 @@ describe("a pull request that changed between the render and the press", () => {
       };
     });
 
-    const result = await order(panel, secret, { taskId: READY.taskId, url: READY.url });
+    const result = await order(panel, secret, {
+      taskId: READY.taskId,
+      url: READY.url,
+    });
     assert.equal(result.status, 409);
     assert.match(String(result.body.error), /no longer ready/i);
-    assert.match(String(result.body.error), /6 of 6 failing/, "and says what it reads now");
+    assert.match(
+      String(result.body.error),
+      /6 of 6 failing/,
+      "and says what it reads now",
+    );
     assert.deepEqual(await spool(dir), [], "and nothing was recorded");
   });
 
@@ -405,10 +496,17 @@ describe("a pull request that changed between the render and the press", () => {
       (task.current_state as Record<string, unknown>).state = "landed";
     });
 
-    const result = await order(panel, secret, { taskId: READY.taskId, url: READY.url });
+    const result = await order(panel, secret, {
+      taskId: READY.taskId,
+      url: READY.url,
+    });
     assert.equal(result.status, 409);
     assert.match(String(result.body.error), /no longer ready/i);
-    assert.match(String(result.body.error), /it has landed/i, "names the real reason");
+    assert.match(
+      String(result.body.error),
+      /it has landed/i,
+      "names the real reason",
+    );
     assert.doesNotMatch(
       String(result.body.error),
       /passing|6 of 6/i,
@@ -423,9 +521,15 @@ describe("a pull request that changed between the render and the press", () => {
       (task.pr as Record<string, unknown>).url = moved;
     });
 
-    const result = await order(panel, secret, { taskId: READY.taskId, url: READY.url });
+    const result = await order(panel, secret, {
+      taskId: READY.taskId,
+      url: READY.url,
+    });
     assert.equal(result.status, 409);
-    assert.match(String(result.body.error), new RegExp(moved.replace(/\//g, "\\/")));
+    assert.match(
+      String(result.body.error),
+      new RegExp(moved.replace(/\//g, "\\/")),
+    );
     assert.match(String(result.body.error), /different pull request/i);
     assert.deepEqual(await spool(dir), []);
   });
@@ -435,7 +539,10 @@ describe("a pull request that changed between the render and the press", () => {
     document.tasks = document.tasks.filter((task) => task.id !== READY.taskId);
     await writeFile(snapshot(), JSON.stringify(document, null, 2));
 
-    const result = await order(panel, secret, { taskId: READY.taskId, url: READY.url });
+    const result = await order(panel, secret, {
+      taskId: READY.taskId,
+      url: READY.url,
+    });
     assert.equal(result.status, 409);
     assert.match(String(result.body.error), /no longer carries/i);
     assert.deepEqual(await spool(dir), []);
@@ -445,9 +552,15 @@ describe("a pull request that changed between the render and the press", () => {
     // "I cannot confirm" is a changed world as far as an order to merge is
     // concerned. The alternative is passing on an order backed by a picture the
     // panel has already stopped trusting.
-    await writeFile(snapshot(), '{ "schema": "fm-fleet-snapshot.v1", "generated": "2099-01');
+    await writeFile(
+      snapshot(),
+      '{ "schema": "fm-fleet-snapshot.v1", "generated": "2099-01',
+    );
 
-    const result = await order(panel, secret, { taskId: READY.taskId, url: READY.url });
+    const result = await order(panel, secret, {
+      taskId: READY.taskId,
+      url: READY.url,
+    });
     assert.equal(result.status, 409);
     assert.match(String(result.body.error), /cannot confirm/i);
     assert.match(String(result.body.error), /Nothing was recorded/);
@@ -456,7 +569,10 @@ describe("a pull request that changed between the render and the press", () => {
 
   test("and the order still records once the world reads clean again", async () => {
     await writeFile(snapshot(), original);
-    const result = await order(panel, secret, { taskId: READY.taskId, url: READY.url });
+    const result = await order(panel, secret, {
+      taskId: READY.taskId,
+      url: READY.url,
+    });
     assert.equal(result.status, 200);
     assert.equal((await spool(dir)).length, 1);
   });
@@ -498,7 +614,10 @@ describe("what the merge route refuses outright", () => {
   });
 
   test("an order about a pull request the fleet does not have is refused", async () => {
-    const result = await order(panel, secret, { taskId: NOT_READY.pending, url: READY.url });
+    const result = await order(panel, secret, {
+      taskId: NOT_READY.pending,
+      url: READY.url,
+    });
     assert.equal(result.status, 409);
     assert.match(String(result.body.error), /different pull request/i);
     assert.deepEqual(await spool(dir), []);
@@ -513,12 +632,19 @@ describe("what the writer itself will not put in a merge order", () => {
    * tested here rather than over HTTP. The writer is the file the whole safety
    * argument reduces to, and it has to hold on its own terms.
    */
-  const base = { kind: "merge-pull-request", requestId: "a".repeat(32), taskId: "wi-x-1" } as const;
+  const base = {
+    kind: "merge-pull-request",
+    requestId: "a".repeat(32),
+    taskId: "wi-x-1",
+  } as const;
 
   test("a bare number is not an address, and the panel will not guess one", () => {
     const refusal = mergeOrderLine({ ...base, url: "406" });
     assert.equal(refusal.ok, false);
-    assert.match(refusal.ok === false ? refusal.detail : "", /not a full address/);
+    assert.match(
+      refusal.ok === false ? refusal.detail : "",
+      /not a full address/,
+    );
   });
 
   test("a scheme a pull request is not addressed by is refused", () => {
@@ -527,9 +653,15 @@ describe("what the writer itself will not put in a merge order", () => {
   });
 
   test("a tab would cut the line into fields it does not have", () => {
-    const refusal = mergeOrderLine({ ...base, url: "https://forge.invalid/a/pull/1\tmore" });
+    const refusal = mergeOrderLine({
+      ...base,
+      url: "https://forge.invalid/a/pull/1\tmore",
+    });
     assert.equal(refusal.ok, false);
-    assert.match(refusal.ok === false ? refusal.detail : "", /tab or a line break/);
+    assert.match(
+      refusal.ok === false ? refusal.detail : "",
+      /tab or a line break/,
+    );
   });
 
   test("the line it does write is the argument list, and one newline", () => {
@@ -548,17 +680,30 @@ describe("a panel with nowhere to record a merge order", () => {
 
   test("says so on the card rather than offering a button that cannot work", async () => {
     const page = await html(panel);
-    assert.ok(page.includes(`data-merge-card="${READY.taskId}"`), "the work is still shown");
+    assert.ok(
+      page.includes(`data-merge-card="${READY.taskId}"`),
+      "the work is still shown",
+    );
     assert.ok(page.includes(`data-merge-unavailable="${READY.taskId}"`));
-    assert.ok(!page.includes(`data-merge-order="${READY.taskId}"`), "and no button");
+    assert.ok(
+      !page.includes(`data-merge-order="${READY.taskId}"`),
+      "and no button",
+    );
   });
 
   test("refuses an order posted anyway", async () => {
     const response = await fetch(`${panel.url}/api/act/merge-pull-request`, {
       method: "POST",
-      headers: { "content-type": "application/json", [SESSION_HEADER]: "not-the-secret" },
+      headers: {
+        "content-type": "application/json",
+        [SESSION_HEADER]: "not-the-secret",
+      },
       body: JSON.stringify({ taskId: READY.taskId, url: READY.url }),
     });
-    assert.equal(response.status, 403, "the acting guard is still in front of it");
+    assert.equal(
+      response.status,
+      403,
+      "the acting guard is still in front of it",
+    );
   });
 });

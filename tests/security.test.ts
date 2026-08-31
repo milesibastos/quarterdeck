@@ -73,7 +73,9 @@ describe("the server's front door", () => {
   });
 
   test("tells the browser it may not load anything from the network", async () => {
-    const policy = (await fetch(panel.url)).headers.get("content-security-policy");
+    const policy = (await fetch(panel.url)).headers.get(
+      "content-security-policy",
+    );
     assert.ok(policy, "every response carries a Content-Security-Policy");
 
     const remote = policy
@@ -108,7 +110,9 @@ describe("the acting guard", () => {
     // The signal channel stays open by design, so hang up once it has answered.
     const controller = new AbortController();
     try {
-      const stream = await fetch(`${panel.url}/api/events`, { signal: controller.signal });
+      const stream = await fetch(`${panel.url}/api/events`, {
+        signal: controller.signal,
+      });
       assert.equal(stream.status, 200);
     } finally {
       controller.abort();

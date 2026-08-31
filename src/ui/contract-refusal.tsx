@@ -39,9 +39,9 @@ export function ContractRefusal({
         <dd className="min-w-0 wrap-anywhere text-foreground">{source}</dd>
       </dl>
       <p className="text-sm text-muted-foreground">
-        Update <code className="font-mono">SNAPSHOT_SCHEMA_ID</code> and the parser
-        in <code className="font-mono">src/adapters/contract.ts</code> to match the
-        new shape, then record the change in{" "}
+        Update <code className="font-mono">SNAPSHOT_SCHEMA_ID</code> and the
+        parser in <code className="font-mono">src/adapters/contract.ts</code> to
+        match the new shape, then record the change in{" "}
         <code className="font-mono">docs/contract.md</code>.
       </p>
     </main>

@@ -81,11 +81,16 @@ describe("a wider viewport buys more cards", () => {
    * number it does not use.
    */
   function cardMinPx(band: string): number {
-    const cls = new RegExp(`data-needs-group="${band}" class="([^"]*)"`).exec(html)?.[1] ??
-      new RegExp(`<ul class="(card-grid[^"]*)"`).exec(html)?.[1];
+    const cls =
+      new RegExp(`data-needs-group="${band}" class="([^"]*)"`).exec(
+        html,
+      )?.[1] ?? new RegExp(`<ul class="(card-grid[^"]*)"`).exec(html)?.[1];
     assert.ok(cls, `no card grid found for ${band}`);
     const named = /\[--qd-card-min:([^\]]+)\]/.exec(cls)?.[1];
-    assert.ok(named, `${band} draws a card grid without saying how wide its cards are`);
+    assert.ok(
+      named,
+      `${band} draws a card grid without saying how wide its cards are`,
+    );
     return lengthPx(named);
   }
 
@@ -94,7 +99,10 @@ describe("a wider viewport buys more cards", () => {
     // `auto-fill` is the whole mechanism: a fixed count is what stretches three
     // cards across a monitor, which is the layout this one replaced.
     assert.match(track, /^repeat\(auto-fill,\s*minmax\(/);
-    assert.ok(!/repeat\(\d/.test(track), "a repeat with a number in it is a fixed grid");
+    assert.ok(
+      !/repeat\(\d/.test(track),
+      "a repeat with a number in it is a fixed grid",
+    );
     // Without `min(100%, ...)` a 24rem floor overflows a 360px phone sideways:
     // a track's minimum is a width the container may not shrink below.
     assert.match(track, /minmax\(min\(100%,/);
@@ -118,7 +126,10 @@ describe("a wider viewport buys more cards", () => {
 
     const nav = /<nav aria-label="Fleet" class="([^"]*)"/.exec(html)?.[1];
     assert.ok(nav, "the page drew the fleet picker");
-    assert.ok(!/\bmax-w-|\bmx-auto\b/.test(nav), `the picker is capped: ${nav}`);
+    assert.ok(
+      !/\bmax-w-|\bmx-auto\b/.test(nav),
+      `the picker is capped: ${nav}`,
+    );
   });
 
   test("three widths, three column counts, at one card size", () => {
@@ -140,7 +151,10 @@ describe("a wider viewport buys more cards", () => {
 
     for (const width of widths) {
       const card = cardWidth(width, minPx, gapPx);
-      assert.ok(card >= minPx, `a card at ${width}px shrank below its designed ${minPx}px`);
+      assert.ok(
+        card >= minPx,
+        `a card at ${width}px shrank below its designed ${minPx}px`,
+      );
       assert.ok(
         card < minPx * 2,
         `a card at ${width}px grew to ${Math.round(card)}px, which is another card's worth ` +

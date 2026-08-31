@@ -25,7 +25,9 @@ async function body(panel: Panel, path = "/"): Promise<string> {
 
 /** One worker's card element, opening tag only, or null when it is absent. */
 function card(html: string, id: string): string | null {
-  return new RegExp(`<div[^>]*data-worker="${id}"[^>]*>`).exec(html)?.[0] ?? null;
+  return (
+    new RegExp(`<div[^>]*data-worker="${id}"[^>]*>`).exec(html)?.[0] ?? null
+  );
 }
 
 function attribute(tag: string, name: string): string | null {
@@ -58,7 +60,10 @@ describe("the lifecycle rail", () => {
 
   test("draws every coarse stage and every off-track state", () => {
     for (const stage of EVERY_STAGE) {
-      assert.ok(html.includes(`data-stage="${stage}"`), `${stage} should be on screen`);
+      assert.ok(
+        html.includes(`data-stage="${stage}"`),
+        `${stage} should be on screen`,
+      );
     }
   });
 
@@ -67,7 +72,12 @@ describe("the lifecycle rail", () => {
     // another work item, and only failed is a fault. One colour for all four
     // would hide the only one that is an alarm.
     const accents = new Set(
-      ["wi-cordage-404", "wi-tidewater-121", "wi-lamplight-215", "wi-saltmarsh-309"].map((id) => {
+      [
+        "wi-cordage-404",
+        "wi-tidewater-121",
+        "wi-lamplight-215",
+        "wi-saltmarsh-309",
+      ].map((id) => {
         const tag = card(html, id);
         assert.ok(tag, `${id} should be on screen`);
         return /border-l-[a-z]+/.exec(attribute(tag, "class") ?? "")?.[0];
@@ -77,15 +87,23 @@ describe("the lifecycle rail", () => {
   });
 
   test("names the pipeline step a validating worker is on", () => {
-    assert.equal(attribute(card(html, "wi-lamplight-211") ?? "", "data-step"), "test");
+    assert.equal(
+      attribute(card(html, "wi-lamplight-211") ?? "", "data-step"),
+      "test",
+    );
     assert.ok(
-      html.includes("Validating · stage 3, of how many is not known · tests, step 4 of 9"),
+      html.includes(
+        "Validating · stage 3, of how many is not known · tests, step 4 of 9",
+      ),
       "the step, and how far into the run it is",
     );
   });
 
   test("says only what it knows when validation names no step", () => {
-    assert.equal(attribute(card(html, "wi-lamplight-207") ?? "", "data-step"), "none");
+    assert.equal(
+      attribute(card(html, "wi-lamplight-207") ?? "", "data-step"),
+      "none",
+    );
   });
 
   test("an off-track worker shows the stage it stopped in and why", () => {
@@ -94,24 +112,44 @@ describe("the lifecycle rail", () => {
     // The stage it left the track in, inferred from the step it named, and
     // upstream's own words for why it stopped.
     assert.ok(
-      html.includes("Held in validation · stage 3, of how many is not known · code review, step 3 of 9"),
+      html.includes(
+        "Held in validation · stage 3, of how many is not known · code review, step 3 of 9",
+      ),
     );
-    assert.ok(html.includes("parked at review: 1 finding(s) (ask-user: authority decision)"));
+    assert.ok(
+      html.includes(
+        "parked at review: 1 finding(s) (ask-user: authority decision)",
+      ),
+    );
   });
 
   test("claims no stage for a worker that stopped without naming a step", () => {
-    assert.equal(attribute(card(html, "wi-cordage-404") ?? "", "data-step"), "none");
-    assert.ok(html.includes("blocked on wi-cordage-401"), "the reason is still there");
-    assert.ok(!html.includes("Blocked in validation"), "the document does not say that");
+    assert.equal(
+      attribute(card(html, "wi-cordage-404") ?? "", "data-step"),
+      "none",
+    );
+    assert.ok(
+      html.includes("blocked on wi-cordage-401"),
+      "the reason is still there",
+    );
+    assert.ok(
+      !html.includes("Blocked in validation"),
+      "the document does not say that",
+    );
   });
 
   test("draws a worker it cannot see as unseeable rather than as waiting", () => {
     const tag = card(html, "wi-brackish-288");
     assert.equal(attribute(tag ?? "", "data-stage"), "unseen");
-    assert.ok(html.includes("no state source answered"), "upstream's words for what it lost");
+    assert.ok(
+      html.includes("no state source answered"),
+      "upstream's words for what it lost",
+    );
     // The failure this stage exists to end: `waiting` is a claim that the
     // worker stopped on something outside the fleet, which nobody established.
-    assert.ok(!/data-worker="wi-brackish-288"[^>]*data-stage="waiting"/.test(html));
+    assert.ok(
+      !/data-worker="wi-brackish-288"[^>]*data-stage="waiting"/.test(html),
+    );
   });
 
   test("claims no position on the track for a worker it cannot see", () => {
@@ -119,9 +157,17 @@ describe("the lifecycle rail", () => {
     // deduces a position from, so a worker the panel cannot see must not be
     // allowed to reach that deduction from words upstream wrote about its own
     // blindness.
-    assert.equal(attribute(card(html, "wi-brackish-288") ?? "", "data-step"), "none");
-    assert.ok(!html.includes("Unseen in validation"), "the document does not say that");
-    assert.ok(html.includes("no state source answered; its last line said review"));
+    assert.equal(
+      attribute(card(html, "wi-brackish-288") ?? "", "data-step"),
+      "none",
+    );
+    assert.ok(
+      !html.includes("Unseen in validation"),
+      "the document does not say that",
+    );
+    assert.ok(
+      html.includes("no state source answered; its last line said review"),
+    );
   });
 
   test("draws a pointer that stopped resolving as broken", () => {
@@ -180,7 +226,9 @@ describe("the rail a worker's own work has", () => {
     // upstream's raw detail and sits outside the rail.
     const from = card.indexOf("data-rail=");
     const block = card.slice(from, card.indexOf("wrap-anywhere", from));
-    const words = [...block.matchAll(/<p class="text-xs[^"]*">([^<]*)<\/p>/g)].map((m) => m[1]);
+    const words = [
+      ...block.matchAll(/<p class="text-xs[^"]*">([^<]*)<\/p>/g),
+    ].map((m) => m[1]);
     return {
       shape: /data-rail="([^"]*)"/.exec(block)?.[1] ?? null,
       stages: /data-stages="([^"]*)"/.exec(block)?.[1] ?? null,
@@ -195,7 +243,12 @@ describe("the rail a worker's own work has", () => {
 
   test("draws the shape the worker's own kind and contract describe", () => {
     assert.deepEqual(
-      ["wi-tidewater-601", "wi-lamplight-604", "wi-saltmarsh-607", "wi-cordage-610"].map((id) => {
+      [
+        "wi-tidewater-601",
+        "wi-lamplight-604",
+        "wi-saltmarsh-607",
+        "wi-cordage-610",
+      ].map((id) => {
         const { shape, stages } = rail(id);
         return `${shape}/${stages}`;
       }),
@@ -224,7 +277,11 @@ describe("the rail a worker's own work has", () => {
       "wi-cordage-612",
     ]) {
       const { stages, segments, openEnd } = rail(id);
-      assert.equal(segments, Number(stages), `${id} draws one segment per stage it has`);
+      assert.equal(
+        segments,
+        Number(stages),
+        `${id} draws one segment per stage it has`,
+      );
       assert.ok(!openEnd, `${id} knows where its rail ends`);
     }
   });
@@ -233,11 +290,26 @@ describe("the rail a worker's own work has", () => {
     // Three of three is done. The same three lit segments under a six-stage
     // rail would be a worker halfway through, and an operator reading the
     // column has to be able to tell those apart without opening anything.
-    assert.equal(rail("wi-cordage-612").line, "Landed · stage 3 of 3, the last of this rail");
-    assert.equal(rail("wi-saltmarsh-609").line, "Landed · stage 4 of 4, the last of this rail");
-    assert.equal(rail("wi-lamplight-606").line, "Landed · stage 5 of 5, the last of this rail");
-    assert.equal(rail("wi-tidewater-603").line, "Landed · stage 6 of 6, the last of this rail");
-    assert.ok(!rail("wi-cordage-612").line.includes("of 6"), "not three sixths of the way");
+    assert.equal(
+      rail("wi-cordage-612").line,
+      "Landed · stage 3 of 3, the last of this rail",
+    );
+    assert.equal(
+      rail("wi-saltmarsh-609").line,
+      "Landed · stage 4 of 4, the last of this rail",
+    );
+    assert.equal(
+      rail("wi-lamplight-606").line,
+      "Landed · stage 5 of 5, the last of this rail",
+    );
+    assert.equal(
+      rail("wi-tidewater-603").line,
+      "Landed · stage 6 of 6, the last of this rail",
+    );
+    assert.ok(
+      !rail("wi-cordage-612").line.includes("of 6"),
+      "not three sixths of the way",
+    );
   });
 
   test("a stop lands on a named step of the rail the worker is actually on", () => {
@@ -261,8 +333,15 @@ describe("the rail a worker's own work has", () => {
     const working = rail("wi-windlass-613");
     assert.equal(working.shape, "unknown");
     assert.equal(working.stages, "unknown");
-    assert.ok(working.openEnd, "an open end rather than stages nobody promised");
-    assert.equal(working.segments, 3, "how far it got, and the open end - nothing ahead");
+    assert.ok(
+      working.openEnd,
+      "an open end rather than stages nobody promised",
+    );
+    assert.equal(
+      working.segments,
+      3,
+      "how far it got, and the open end - nothing ahead",
+    );
     assert.equal(working.line, "Working · stage 2, of how many is not known");
     assert.equal(
       working.note,
@@ -270,7 +349,9 @@ describe("the rail a worker's own work has", () => {
     );
     // The deduction that places a stop still works here: the track it is drawn
     // along is the longest one, which has a validating stage to land on.
-    assert.ok(rail("wi-windlass-614").line.includes("code review, step 3 of 9"));
+    assert.ok(
+      rail("wi-windlass-614").line.includes("code review, step 3 of 9"),
+    );
   });
 
   test("says which record does not fit when the stage is off the recorded rail", () => {
@@ -300,7 +381,11 @@ describe("the rail a worker's own work has", () => {
     // detail, and the whole page would say yes whichever one dropped it.
     const start = html.indexOf('data-worker="wi-halyard-617"');
     const card = html.slice(start, html.indexOf('data-worker="', start + 1));
-    assert.ok(card.includes("parked at review: 1 finding(s) (ask-user: authority decision)"));
+    assert.ok(
+      card.includes(
+        "parked at review: 1 finding(s) (ask-user: authority decision)",
+      ),
+    );
   });
 
   test("says so rather than guessing when a rail has no stage to anchor a stop to", () => {
@@ -308,14 +393,30 @@ describe("the rail a worker's own work has", () => {
     // skips the pipeline it evidences nothing about which stage the worker
     // stopped in. Falling back to that rail's working stage would be a guess
     // dressed as a deduction, so the panel says the position is not known.
-    assert.equal(rail("wi-halyard-617").line, "Held · position not known", "direct-pr");
-    assert.equal(rail("wi-halyard-618").line, "Held · position not known", "research");
+    assert.equal(
+      rail("wi-halyard-617").line,
+      "Held · position not known",
+      "direct-pr",
+    );
+    assert.equal(
+      rail("wi-halyard-618").line,
+      "Held · position not known",
+      "research",
+    );
 
     // A pull request is not the missing evidence either: it proves the worker
     // REACHED that stage, where the marker claims it STOPPED there. This worker
     // has one and is still unplaced rather than pinned to it.
-    assert.equal(rail("wi-halyard-619").line, "Held · position not known", "a pull request is not a stop");
-    assert.equal(rail("wi-halyard-619").shape, "direct-pr", "and the rail itself is still right");
+    assert.equal(
+      rail("wi-halyard-619").line,
+      "Held · position not known",
+      "a pull request is not a stop",
+    );
+    assert.equal(
+      rail("wi-halyard-619").shape,
+      "direct-pr",
+      "and the rail itself is still right",
+    );
   });
 
   test("says a stopped worker's position is not known rather than showing none", () => {
@@ -330,13 +431,21 @@ describe("the rail a worker's own work has", () => {
     // The track is hidden from assistive technology on purpose. Everything it
     // says - which rail, how far along, and whether that is the end of it - has
     // to be in the sentence, on every shape.
-    for (const id of ["wi-tidewater-601", "wi-lamplight-604", "wi-saltmarsh-607", "wi-cordage-610"]) {
+    for (const id of [
+      "wi-tidewater-601",
+      "wi-lamplight-604",
+      "wi-saltmarsh-607",
+      "wi-cordage-610",
+    ]) {
       const { hidden, line } = rail(id);
       assert.ok(hidden, `${id} draws its track as decoration`);
       assert.match(line, /stage \d+ of \d+/, `${id} says where it is in words`);
     }
     for (const id of ["wi-windlass-613", "wi-halyard-616"]) {
-      assert.ok(rail(id).note?.includes("is not known"), `${id} says the shape is unknown`);
+      assert.ok(
+        rail(id).note?.includes("is not known"),
+        `${id} says the shape is unknown`,
+      );
     }
   });
 });
@@ -371,7 +480,10 @@ describe("the worker card", () => {
     for (const value of ["crew/tidewater-114", "claude", "opus", "high"]) {
       assert.ok(card.includes(value), `${value} should be on the card`);
     }
-    assert.ok(card.includes("/anchorage/worktrees/wi-tidewater-114"), "the isolated copy");
+    assert.ok(
+      card.includes("/anchorage/worktrees/wi-tidewater-114"),
+      "the isolated copy",
+    );
   });
 
   test("says a dispatch field was not recorded rather than leaving a gap", () => {
@@ -389,7 +501,10 @@ describe("the worker card", () => {
       4,
       "every absence stated, none of them skipped",
     );
-    assert.ok(card.includes("instructions not recorded"), "and the brief says its own");
+    assert.ok(
+      card.includes("instructions not recorded"),
+      "and the brief says its own",
+    );
   });
 
   test("draws a recorded field and an unrecorded one differently on the same card", () => {
@@ -397,14 +512,23 @@ describe("the worker card", () => {
     // not fall back to one treatment for the whole row.
     const card = block("wi-tidewater-121");
     assert.ok(card.includes("crew/tidewater-121"));
-    assert.equal((card.match(/>not recorded</g) ?? []).length, 3, "runtime, model and effort");
+    assert.equal(
+      (card.match(/>not recorded</g) ?? []).length,
+      3,
+      "runtime, model and effort",
+    );
   });
 
   test("puts the instructions on the card and the full text one click away", () => {
     const card = block("wi-tidewater-114");
-    assert.ok(card.includes("Draw the lifecycle rail."), "the summary, unopened");
     assert.ok(
-      card.includes("Do not invent a percentage: the shape of the rail is the progress."),
+      card.includes("Draw the lifecycle rail."),
+      "the summary, unopened",
+    );
+    assert.ok(
+      card.includes(
+        "Do not invent a percentage: the shape of the rail is the progress.",
+      ),
       "the full instructions, behind the one disclosure",
     );
     assert.ok(card.includes("<details"), "which is a click, not a navigation");
@@ -414,7 +538,10 @@ describe("the worker card", () => {
     const card = block("wi-tidewater-118");
     assert.ok(card.includes("Pin the redis image to a digest."));
     assert.ok(card.includes("The instructions themselves were not recorded"));
-    assert.ok(card.includes("/anchorage/briefs/wi-tidewater-118.md"), "the pointer is still there");
+    assert.ok(
+      card.includes("/anchorage/briefs/wi-tidewater-118.md"),
+      "the pointer is still there",
+    );
   });
 
   test("says so when no instructions were recorded at all", () => {
@@ -430,7 +557,9 @@ describe("the worker card", () => {
 
   test("carries the whole address, not a word standing in for it", () => {
     assert.ok(
-      block("wi-saltmarsh-302").includes("https://forge.invalid/saltmarsh/pull/302"),
+      block("wi-saltmarsh-302").includes(
+        "https://forge.invalid/saltmarsh/pull/302",
+      ),
       "which repository and which number, readable without opening it",
     );
   });
@@ -452,7 +581,9 @@ describe("the worker card", () => {
     assert.ok(block("wi-saltmarsh-305").includes("nobody has commented"));
     assert.ok(!block("wi-saltmarsh-305").includes("comments not looked up"));
     assert.ok(block("wi-cordage-401").includes("comments unreadable"));
-    assert.ok(block("wi-cordage-401").includes("The forge refused the review listing."));
+    assert.ok(
+      block("wi-cordage-401").includes("The forge refused the review listing."),
+    );
   });
 });
 
@@ -466,8 +597,15 @@ describe("a fleet that cannot be trusted", () => {
     });
     try {
       const html = await body(panel);
-      assert.ok(html.includes("Last good picture, taken"), "the age, not just the policy");
-      assert.equal((html.match(/data-worker="/g) ?? []).length, 2, "and the picture itself");
+      assert.ok(
+        html.includes("Last good picture, taken"),
+        "the age, not just the policy",
+      );
+      assert.equal(
+        (html.match(/data-worker="/g) ?? []).length,
+        2,
+        "and the picture itself",
+      );
     } finally {
       await panel.stop();
     }
@@ -475,7 +613,11 @@ describe("a fleet that cannot be trusted", () => {
 
   test("says the read failed rather than dating the content from it", async () => {
     const fixtureRoot = await copyFixtures();
-    const panel = await startPanel({ port: nextPort(), fixtureSet: "healthy", fixtureRoot });
+    const panel = await startPanel({
+      port: nextPort(),
+      fixtureSet: "healthy",
+      fixtureRoot,
+    });
     try {
       await body(panel);
       await writeFile(
@@ -486,7 +628,11 @@ describe("a fleet that cannot be trusted", () => {
         () => body(panel),
         (text) => text.includes("Last good picture, still on screen"),
       );
-      assert.equal((html.match(/data-worker="/g) ?? []).length, 12, "the fleet is still there");
+      assert.equal(
+        (html.match(/data-worker="/g) ?? []).length,
+        12,
+        "the fleet is still there",
+      );
     } finally {
       await panel.stop();
     }
@@ -494,11 +640,17 @@ describe("a fleet that cannot be trusted", () => {
 
   test("says there is nothing to show when a failed read has nothing behind it", async () => {
     // The malformed set never parses, so there is no earlier picture to keep.
-    const panel = await startPanel({ port: nextPort(), fixtureSet: "malformed" });
+    const panel = await startPanel({
+      port: nextPort(),
+      fixtureSet: "malformed",
+    });
     try {
       const html = await body(panel);
       assert.ok(html.includes("Nothing to show"));
-      assert.ok(!html.includes("No workers under way"), "an unread fleet is not an empty one");
+      assert.ok(
+        !html.includes("No workers under way"),
+        "an unread fleet is not an empty one",
+      );
     } finally {
       await panel.stop();
     }
@@ -513,9 +665,15 @@ describe("a fleet that cannot be trusted", () => {
     });
     try {
       const html = await body(panel);
-      assert.ok(html.includes("Last good picture, taken"), "a stale empty fleet still ages");
+      assert.ok(
+        html.includes("Last good picture, taken"),
+        "a stale empty fleet still ages",
+      );
       assert.ok(html.includes("No workers under way"));
-      assert.ok(!html.includes("read cleanly"), "a stale read is not a clean one");
+      assert.ok(
+        !html.includes("read cleanly"),
+        "a stale read is not a clean one",
+      );
     } finally {
       await panel.stop();
     }
@@ -540,11 +698,17 @@ describe("a forge that could not answer", () => {
       const card = html.slice(start, html.indexOf('data-worker="', start + 1));
 
       assert.ok(card.includes("checks unreadable"));
-      assert.ok(card.includes("The forge timed out on the check run."), "and what failed");
+      assert.ok(
+        card.includes("The forge timed out on the check run."),
+        "and what failed",
+      );
       // The other half, on the same pull request: a read that failed and a read
       // nobody did are two different facts and both are on screen.
       assert.ok(card.includes("comments not looked up"));
-      assert.ok(!card.includes("checks not looked up"), "the checks were asked for");
+      assert.ok(
+        !card.includes("checks not looked up"),
+        "the checks were asked for",
+      );
     } finally {
       await panel.stop();
     }
@@ -589,7 +753,7 @@ describe("reading the forge", () => {
         '      {"__typename":"CheckRun","status":"COMPLETED","conclusion":"SUCCESS"},',
         '      {"__typename":"CheckRun","status":"COMPLETED","conclusion":"SUCCESS"},',
         '      {"__typename":"CheckRun","status":"COMPLETED","conclusion":"SUCCESS"}',
-        '    ]}}}}]}',
+        "    ]}}}}]}",
         "}}}",
         "JSON",
         "",
@@ -606,7 +770,10 @@ describe("reading the forge", () => {
   }
 
   function withForgeOnPath(dir: string): Record<string, string> {
-    return { PATH: `${dir}:${process.env.PATH ?? ""}`, QUARTERDECK_TEST_FORGE_LOG: join(dir, "asked.log") };
+    return {
+      PATH: `${dir}:${process.env.PATH ?? ""}`,
+      QUARTERDECK_TEST_FORGE_LOG: join(dir, "asked.log"),
+    };
   }
 
   test("asks nothing, and says nobody asked, until the operator opts in", async () => {
@@ -622,7 +789,11 @@ describe("reading the forge", () => {
       const html = await body(panel);
       assert.ok(html.includes("checks not looked up"));
       assert.ok(html.includes("comments not looked up"));
-      assert.deepEqual(await asked(log), [], "the first paint costs no network call");
+      assert.deepEqual(
+        await asked(log),
+        [],
+        "the first paint costs no network call",
+      );
     } finally {
       await panel.stop();
       await rm(dir, { recursive: true, force: true });

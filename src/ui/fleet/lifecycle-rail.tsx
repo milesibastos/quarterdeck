@@ -39,7 +39,14 @@ import { cn } from "@/ui/lib/utils";
  * the key and there is no second spelling of a delivery contract in the panel.
  */
 const RAIL: Readonly<Record<Delivery | "research", readonly ActiveStage[]>> = {
-  validated: ["dispatched", "working", "validating", "pr-open", "in-review", "landed"],
+  validated: [
+    "dispatched",
+    "working",
+    "validating",
+    "pr-open",
+    "in-review",
+    "landed",
+  ],
   "direct-pr": ["dispatched", "working", "pr-open", "in-review", "landed"],
   local: ["dispatched", "working", "validating", "landed"],
   research: ["dispatched", "working", "landed"],
@@ -201,7 +208,12 @@ const STAGE: Readonly<Record<Stage, StageLook>> = {
 const ON_TRACK: ReadonlySet<string> = new Set<ActiveStage>(RAIL.validated);
 
 /** The stages a worker stops in, as a set to test against - `unseen` is not one. */
-const HALTED: ReadonlySet<string> = new Set<HaltedStage>(["blocked", "held", "waiting", "failed"]);
+const HALTED: ReadonlySet<string> = new Set<HaltedStage>([
+  "blocked",
+  "held",
+  "waiting",
+  "failed",
+]);
 
 /** The pipeline's steps in the order they run, so a step can say how far in. */
 const STEPS = [
@@ -315,11 +327,16 @@ function fits(stages: readonly ActiveStage[], stage: Stage): boolean {
 function railOf(
   worker: RailFor,
   lifecycle: Lifecycle,
-): { readonly shape: RailShape; readonly stages: readonly ActiveStage[] | null } {
+): {
+  readonly shape: RailShape;
+  readonly stages: readonly ActiveStage[] | null;
+} {
   const shape = recordedShape(worker);
   if (shape === UNKNOWN) return { shape, stages: null };
   const stages = RAIL[shape];
-  return fits(stages, lifecycle.stage) ? { shape, stages } : { shape: UNKNOWN, stages: null };
+  return fits(stages, lifecycle.stage)
+    ? { shape, stages }
+    : { shape: UNKNOWN, stages: null };
 }
 
 /**
@@ -357,7 +374,10 @@ function railOf(
  * stage of a validated rail and the third of a local one, and pull request open
  * is the fourth of the first and the third of a direct one.
  */
-function reachedIndex(stages: readonly ActiveStage[], lifecycle: Lifecycle): number | null {
+function reachedIndex(
+  stages: readonly ActiveStage[],
+  lifecycle: Lifecycle,
+): number | null {
   const own = stages.indexOf(lifecycle.stage as ActiveStage);
   if (own !== -1) return own;
   if (lifecycle.step === null) return null;
@@ -423,14 +443,18 @@ function currentLine(
   // An unknown rail is drawn along the longest track there is, which has a
   // validating stage; every other rail has to be asked.
   const validates = stages === null || stages.includes("validating");
-  const where = !ON_TRACK.has(stage) && step !== null && validates ? " in validation" : "";
+  const where =
+    !ON_TRACK.has(stage) && step !== null && validates ? " in validation" : "";
   const label = `${STAGE[stage].label}${where}`;
   const inside = stepClause(step, validates);
 
   if (reached === null) {
-    return HALTED.has(stage) ? `${label} · position not known${inside}` : `${label}${inside}`;
+    return HALTED.has(stage)
+      ? `${label} · position not known${inside}`
+      : `${label}${inside}`;
   }
-  if (stages === null) return `${label} · stage ${reached + 1}, of how many is not known${inside}`;
+  if (stages === null)
+    return `${label} · stage ${reached + 1}, of how many is not known${inside}`;
 
   const last = reached === stages.length - 1 && ON_TRACK.has(stage);
   return `${label} · stage ${reached + 1} of ${stages.length}${last ? ", the last of this rail" : ""}${inside}`;
@@ -493,7 +517,9 @@ export function LifecycleRail({
 }) {
   const { shape, stages } = railOf(worker, lifecycle);
   const reached =
-    stages === null ? reachedWithoutRail(lifecycle) : reachedIndex(stages, lifecycle);
+    stages === null
+      ? reachedWithoutRail(lifecycle)
+      : reachedIndex(stages, lifecycle);
   const look = STAGE[lifecycle.stage];
   const offTrack = !ON_TRACK.has(lifecycle.stage);
 
@@ -558,9 +584,13 @@ export function LifecycleRail({
       {/* Literal class strings, not `cn`: `tests/fleet-lens.test.ts` reads these
           two sentences out of the markup by matching a paragraph whose class
           begins with the size, and every claim the rail makes is in them. */}
-      <p className="text-xs text-term-fg">{currentLine(lifecycle, stages, reached)}</p>
+      <p className="text-xs text-term-fg">
+        {currentLine(lifecycle, stages, reached)}
+      </p>
       {stages === null && (
-        <p className="text-xs text-term-muted italic">{unknownNote(recordedShape(worker))}</p>
+        <p className="text-xs text-term-muted italic">
+          {unknownNote(recordedShape(worker))}
+        </p>
       )}
     </div>
   );

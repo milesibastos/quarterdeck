@@ -4,7 +4,13 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, test } from "node:test";
 import { derivePort, PORT_RANGE_START } from "../src/config/port.ts";
-import { BLOCK_SIZE, allocate, portAt, portsFor, testFiles } from "./lib/ports.ts";
+import {
+  BLOCK_SIZE,
+  allocate,
+  portAt,
+  portsFor,
+  testFiles,
+} from "./lib/ports.ts";
 import { checkHandPickedPorts } from "./lib/port-usage.ts";
 import { REPO_ROOT, stopChild } from "./lib/server.ts";
 import { formatViolation, formatViolations } from "./lib/violation.ts";
@@ -39,19 +45,29 @@ describe("no two test files can claim the same panel ports", () => {
 
   test("one file cannot hold two blocks", () => {
     assert.throws(
-      () => allocate([{ file: "a.test.ts", slot: 0 }, { file: "a.test.ts", slot: 1 }]),
+      () =>
+        allocate([
+          { file: "a.test.ts", slot: 0 },
+          { file: "a.test.ts", slot: 1 },
+        ]),
       /a\.test\.ts claims two port slots/,
     );
   });
 
   test("more files than the range holds is refused, not wrapped around", () => {
-    const tooMany = Array.from({ length: 1000 }, (_, slot) => ({ file: `f${slot}.test.ts`, slot }));
+    const tooMany = Array.from({ length: 1000 }, (_, slot) => ({
+      file: `f${slot}.test.ts`,
+      slot,
+    }));
     assert.throws(() => allocate(tooMany), /Lower BLOCK_SIZE/);
   });
 
   test("the suite as it stands allocates every file a block of its own", () => {
     const files = testFiles();
-    assert.ok(files.includes("harness.test.ts"), "discovery should find this very file");
+    assert.ok(
+      files.includes("harness.test.ts"),
+      "discovery should find this very file",
+    );
 
     const blocks = allocate();
     assert.equal(blocks.size, files.length);
@@ -62,11 +78,18 @@ describe("no two test files can claim the same panel ports", () => {
       for (let i = 0; i < block.size; i += 1) {
         const port = portAt(block.firstOffset + i);
         const held = owner.get(port);
-        assert.equal(held, undefined, `${held} and ${block.file} would share port ${port}`);
+        assert.equal(
+          held,
+          undefined,
+          `${held} and ${block.file} would share port ${port}`,
+        );
         owner.set(port, block.file);
 
         assert.ok(port >= PORT_RANGE_START, `${port} is below the range`);
-        assert.ok(port < 49152, "the kernel hands out 49152+ as ephemeral ports");
+        assert.ok(
+          port < 49152,
+          "the kernel hands out 49152+ as ephemeral ports",
+        );
         assert.notEqual(
           port,
           panelPort,
@@ -77,12 +100,18 @@ describe("no two test files can claim the same panel ports", () => {
   });
 
   test("a file that is not a test file has no block", () => {
-    assert.throws(() => portsFor(join(REPO_ROOT, "tests", "lib", "server.ts")), /has no port block/);
+    assert.throws(
+      () => portsFor(join(REPO_ROOT, "tests", "lib", "server.ts")),
+      /has no port block/,
+    );
   });
 
   test("a file gets one claim, and no more ports than its block holds", () => {
     const nextPort = portsFor(import.meta.filename);
-    assert.throws(() => portsFor(import.meta.filename), /already claimed its ports/);
+    assert.throws(
+      () => portsFor(import.meta.filename),
+      /already claimed its ports/,
+    );
 
     const drawn = new Set<number>();
     for (let i = 0; i < BLOCK_SIZE; i += 1) drawn.add(nextPort());
@@ -106,7 +135,9 @@ describe("no test file picks a panel port by hand", () => {
     const text = readFileSync(join(REPO_ROOT, "tests", path), "utf8");
     return { path, text, lines: text.split("\n") };
   };
-  const planted = (text: string) => [{ path: "planted.test.ts", text, lines: text.split("\n") }];
+  const planted = (text: string) => [
+    { path: "planted.test.ts", text, lines: text.split("\n") },
+  ];
 
   test("the real suite draws every panel port from the allocator", () => {
     const violations = checkHandPickedPorts(testFiles().map(sourceFileOf));
@@ -131,12 +162,18 @@ describe("no test file picks a panel port by hand", () => {
       `startPanel({ port: PORT });`,
     ].join("\n");
     const found = checkHandPickedPorts(planted(source));
-    assert.equal(found.length, 1, "a numeric constant referenced by name must not defeat the check");
+    assert.equal(
+      found.length,
+      1,
+      "a numeric constant referenced by name must not defeat the check",
+    );
     assert.match(found[0].what, /chosen by hand/);
   });
 
   test("a file that starts a panel without claiming a block is refused", () => {
-    const found = checkHandPickedPorts(planted(`startPanel({ port: nextPort() });`));
+    const found = checkHandPickedPorts(
+      planted(`startPanel({ port: nextPort() });`),
+    );
     assert.ok(
       found.some((v) => /without claiming a port block/.test(v.what)),
       "a file with no portsFor(import.meta.filename) claim must be refused",
@@ -172,17 +209,26 @@ const DEAF = "process.on('SIGTERM', () => {});" + OBEDIENT;
  * make the deaf child look obedient and the test pass for the wrong reason.
  */
 function child(script: string): Promise<ChildProcess> {
-  const spawned = spawn(process.execPath, ["-e", `${script} console.log("ready");`], {
-    stdio: ["ignore", "pipe", "ignore"],
-  });
-  return new Promise((resolve) => spawned.stdout!.once("data", () => resolve(spawned)));
+  const spawned = spawn(
+    process.execPath,
+    ["-e", `${script} console.log("ready");`],
+    {
+      stdio: ["ignore", "pipe", "ignore"],
+    },
+  );
+  return new Promise((resolve) =>
+    spawned.stdout!.once("data", () => resolve(spawned)),
+  );
 }
 
 describe("stopping a panel is bounded", () => {
   test("a child that exits on SIGTERM is simply stopped", async () => {
     const started = Date.now();
     await stopChild(await child(OBEDIENT), "http://127.0.0.1:0", 10_000);
-    assert.ok(Date.now() - started < 5_000, "a healthy stop must not approach the bound");
+    assert.ok(
+      Date.now() - started < 5_000,
+      "a healthy stop must not approach the bound",
+    );
   });
 
   test("a child that ignores SIGTERM fails its test rather than hanging", async () => {
@@ -197,8 +243,15 @@ describe("stopping a panel is bounded", () => {
       "the wait must end in a message saying what happened",
     );
 
-    assert.ok(Date.now() - started < 5_000, "the failure must arrive near the bound, not later");
-    assert.notEqual(deaf.signalCode, null, "the child must not be left running");
+    assert.ok(
+      Date.now() - started < 5_000,
+      "the failure must arrive near the bound, not later",
+    );
+    assert.notEqual(
+      deaf.signalCode,
+      null,
+      "the child must not be left running",
+    );
   });
 
   test("stopping an already-dead child is not an error", async () => {

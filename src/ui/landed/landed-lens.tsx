@@ -76,7 +76,9 @@ function Attribution({ item }: { item: LandedItem }) {
       data-landed-home={item.home ?? ""}
       className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-1 pl-4"
     >
-      <span className={mate ? "shrink-0 text-term-fg" : "shrink-0 text-term-faint"}>
+      <span
+        className={mate ? "shrink-0 text-term-fg" : "shrink-0 text-term-faint"}
+      >
         [{mate ? "a mate's home" : "this home"}]
       </span>
       {/* The home verbatim, as upstream wrote it. Shortening a path to its last
@@ -149,7 +151,10 @@ function LandedRow({ item }: { item: LandedItem }) {
       </p>
 
       {item.pullRequest === null ? (
-        <p data-landed-artifact="none" className="pl-4 text-[12px] text-term-muted">
+        <p
+          data-landed-artifact="none"
+          className="pl-4 text-[12px] text-term-muted"
+        >
           No pull request on the record.
         </p>
       ) : (

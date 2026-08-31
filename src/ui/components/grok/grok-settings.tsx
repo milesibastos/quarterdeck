@@ -127,7 +127,10 @@ export function GrokSettings({
     });
   }
 
-  function onItemKeyDown(e: React.KeyboardEvent<HTMLButtonElement>, item: GrokSetting) {
+  function onItemKeyDown(
+    e: React.KeyboardEvent<HTMLButtonElement>,
+    item: GrokSetting,
+  ) {
     if (e.key === "ArrowDown" || e.key === "ArrowUp") {
       e.preventDefault();
       const idx = flat.findIndex((i) => i.id === item.id);
@@ -177,12 +180,8 @@ export function GrokSettings({
       <div className="max-h-[24rem] overflow-auto pb-2">
         {sections.map((section) => (
           <div key={section.id} className="mt-1">
-            <div
-              className="px-3 py-1 text-[12px]"
-              style={{ color: DIM }}
-            >
-              {section.label}{" "}
-              <span aria-hidden>{"─".repeat(12)}</span>
+            <div className="px-3 py-1 text-[12px]" style={{ color: DIM }}>
+              {section.label} <span aria-hidden>{"─".repeat(12)}</span>
             </div>
             <ul>
               {section.items.map((item) => {
@@ -197,7 +196,9 @@ export function GrokSettings({
                       }}
                       onClick={() => {
                         activate(item.id);
-                        if (typeof (values[item.id] ?? item.value) === "boolean") {
+                        if (
+                          typeof (values[item.id] ?? item.value) === "boolean"
+                        ) {
                           toggle(item.id);
                           onToggle?.(item.id);
                         }
@@ -228,7 +229,7 @@ export function GrokSettings({
                       >
                         {display}
                         {item.expandable && onExpand ? (
-                          <span style={{ color: DIM }}>  ›</span>
+                          <span style={{ color: DIM }}> ›</span>
                         ) : null}
                       </span>
                     </button>

@@ -32,18 +32,18 @@ touching that one.
 
 ## Map
 
-| Where | What is there |
-| --- | --- |
-| `src/types/` | The document the UI reads, the terminal tail beside it, and the fleet-selection cookie's name. Imports nothing. |
-| `src/config/` | Environment and defaults. The port derivation lives here. |
-| `src/adapters/` | The only I/O. Five files, and the forge is the only one that leaves this machine. |
-| `src/domain/` | The projection: snapshot to document. Pure. |
-| `src/runtime/` | Watch, coalesce, cache, publish the change signal. |
-| `src/ui/` | Server-rendered components. Reads the document, plus the terminal a card opens on demand. One directory per lens. |
-| `src/providers/` | The clock, the logger and the one spawn door, as dependencies. |
-| `src/app/`, `src/proxy.ts` | Next's routes and middleware: the composition point. |
-| `fixtures/` | Synthetic fleets, up to three files per set. Zero real data, by rule. |
-| `tests/` | Behavioural tests against the built server, the invariant checks, and a pure-projection walk of every fixture. |
+| Where                      | What is there                                                                                                     |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `src/types/`               | The document the UI reads, the terminal tail beside it, and the fleet-selection cookie's name. Imports nothing.   |
+| `src/config/`              | Environment and defaults. The port derivation lives here.                                                         |
+| `src/adapters/`            | The only I/O. Five files, and the forge is the only one that leaves this machine.                                 |
+| `src/domain/`              | The projection: snapshot to document. Pure.                                                                       |
+| `src/runtime/`             | Watch, coalesce, cache, publish the change signal.                                                                |
+| `src/ui/`                  | Server-rendered components. Reads the document, plus the terminal a card opens on demand. One directory per lens. |
+| `src/providers/`           | The clock, the logger and the one spawn door, as dependencies.                                                    |
+| `src/app/`, `src/proxy.ts` | Next's routes and middleware: the composition point.                                                              |
+| `fixtures/`                | Synthetic fleets, up to three files per set. Zero real data, by rule.                                             |
+| `tests/`                   | Behavioural tests against the built server, the invariant checks, and a pure-projection walk of every fixture.    |
 
 ## Run it
 

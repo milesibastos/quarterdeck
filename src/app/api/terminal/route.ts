@@ -30,7 +30,12 @@ import type { TerminalTail } from "@/types/terminal.ts";
 export const dynamic = "force-dynamic";
 
 /** A refusal, in the same shape a reading has, so one client path draws both. */
-function refusal(worker: string, asOf: string, detail: string, status: number): Response {
+function refusal(
+  worker: string,
+  asOf: string,
+  detail: string,
+  status: number,
+): Response {
   const tail: TerminalTail = {
     worker,
     asOf,

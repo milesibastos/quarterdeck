@@ -52,8 +52,9 @@ construction rather than by review.
 
 The block is sixteen ports. The hungriest file uses eleven, and the nine
 hundred offsets the range offers hold fifty-six files at that size. Both limits
+
 - a file outgrowing its block, and the suite outgrowing the range - fail loudly
-when reached rather than wrapping around onto each other.
+  when reached rather than wrapping around onto each other.
 
 ## Alternatives considered
 

@@ -111,8 +111,14 @@ export function FleetLens({
   const { status } = lens;
 
   return (
-    <LensFrame lens={lens} name="fleet" title="Underway" summary={sizeOf(workers.length)}>
-      {(status.state === "stale" || (workers.length > 0 && status.state === "unreadable")) && (
+    <LensFrame
+      lens={lens}
+      name="fleet"
+      title="Underway"
+      summary={sizeOf(workers.length)}
+    >
+      {(status.state === "stale" ||
+        (workers.length > 0 && status.state === "unreadable")) && (
         <LastGoodPicture status={status} nowMs={nowMs} />
       )}
 

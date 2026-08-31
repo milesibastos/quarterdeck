@@ -125,7 +125,12 @@ export function LensFrame<T>({
       data-prominence={prominence}
       className={cn("flex min-w-0 flex-col", className)}
     >
-      <Card className={cn("flex min-w-0 flex-1 flex-col gap-0 py-0", EDGE[prominence])}>
+      <Card
+        className={cn(
+          "flex min-w-0 flex-1 flex-col gap-0 py-0",
+          EDGE[prominence],
+        )}
+      >
         <header
           role="status"
           data-lens-headline
@@ -142,7 +147,9 @@ export function LensFrame<T>({
               {title}
             </h2>
             <p className="min-w-0 font-mono text-[0.6875rem] tracking-wide uppercase">
-              <span className={TONE[lens.status.state]}>{HEADLINE[lens.status.state]}</span>
+              <span className={TONE[lens.status.state]}>
+                {HEADLINE[lens.status.state]}
+              </span>
               {summary !== null && (
                 <span className="text-muted-foreground">{` · ${summary}`}</span>
               )}
@@ -158,7 +165,10 @@ export function LensFrame<T>({
             used to burst out of sideways.
           */}
           {lens.status.state !== "fresh" && (
-            <p data-lens-detail className="text-sm wrap-anywhere text-muted-foreground">
+            <p
+              data-lens-detail
+              className="text-sm wrap-anywhere text-muted-foreground"
+            >
               {lens.status.detail}
             </p>
           )}

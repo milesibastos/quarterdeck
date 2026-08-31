@@ -58,10 +58,13 @@ export default function proxy(request: NextRequest) {
   );
 
   if (!verdict.ok) {
-    return new NextResponse(`Quarterdeck refused the request: ${verdict.reason}\n`, {
-      status: 403,
-      headers: { "content-type": "text/plain; charset=utf-8" },
-    });
+    return new NextResponse(
+      `Quarterdeck refused the request: ${verdict.reason}\n`,
+      {
+        status: 403,
+        headers: { "content-type": "text/plain; charset=utf-8" },
+      },
+    );
   }
 
   const response = NextResponse.next();

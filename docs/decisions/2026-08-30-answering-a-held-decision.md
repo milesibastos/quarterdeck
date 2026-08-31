@@ -43,7 +43,7 @@ because the contract says there is none to do.
 from the task id, when the item entered its current state, the answer, the
 label and the close mode. The record is published by writing to a private
 staging name and then `link`ing it into place: `link` fails with `EEXIST` when
-the name is taken, and that failure *is* the duplicate check. It is atomic, it
+the name is taken, and that failure _is_ the duplicate check. It is atomic, it
 is the filesystem's own, it survives a restart, and two requests arriving at
 once cannot both win it.
 
@@ -60,7 +60,7 @@ This was originally one value for the whole panel, which was correct as long
 as the panel could only ever show one fleet. Once more than one fleet became
 selectable in a single process (`docs/decisions/2026-08-30-choosing-a-fleet.md`),
 a single global spool stopped being safe: an answer given while looking at one
-fleet would land in whichever directory *some* fleet's registered process-event
+fleet would land in whichever directory _some_ fleet's registered process-event
 source happened to be watching, indistinguishable from an answer meant for that
 fleet. The panel still holds no knowledge of the operator's arrangement - the
 operator now declares it once per fleet instead of once for the panel, and the
@@ -76,7 +76,7 @@ The intake takes two closes: `done` completes the held task, `release` lifts the
 hold so held work resumes. A channel may only carry what its card declared.
 
 An earlier draft derived the mode from the item's state - queued means the row
-*is* the decision, so `done`; in flight means work gated by a decision, so
+_is_ the decision, so `done`; in flight means work gated by a decision, so
 `release`. That is exactly the mapping the intake's contract forbids. It is the
 panel inferring fleet semantics from a document that says nothing about them,
 and it would be silently wrong for a queued work item held for a call.

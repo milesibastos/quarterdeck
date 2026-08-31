@@ -68,7 +68,13 @@ function Dark() {
  * line falls is this lens's judgement, and it lives in one place: see
  * `thresholds.ts`, which also holds the words the copy below uses for it.
  */
-function Supervisor({ signal, nowMs }: { signal: SupervisorSignal; nowMs: number }) {
+function Supervisor({
+  signal,
+  nowMs,
+}: {
+  signal: SupervisorSignal;
+  nowMs: number;
+}) {
   if (signal.read === "unreadable") {
     return (
       <SignalBlock
@@ -87,7 +93,8 @@ function Supervisor({ signal, nowMs }: { signal: SupervisorSignal; nowMs: number
   }
 
   const seen = ago(signal.lastSeen, nowMs);
-  const silent = nowMs - Date.parse(signal.lastSeen) > SUPERVISION_SILENT_AFTER_MS;
+  const silent =
+    nowMs - Date.parse(signal.lastSeen) > SUPERVISION_SILENT_AFTER_MS;
 
   if (!signal.alive) {
     return (
@@ -186,7 +193,8 @@ function Queue({ signal }: { signal: QueueSignal }) {
     );
   }
 
-  const holding = queued === 1 ? "1 notification is" : `${queued} notifications are`;
+  const holding =
+    queued === 1 ? "1 notification is" : `${queued} notifications are`;
 
   if (queued < QUEUE_BACKED_UP_AT) {
     return (
@@ -310,7 +318,13 @@ function Attendance({ signal }: { signal: AttendanceSignal }) {
  * having run. That distinction is the whole reason this signal is drawn rather
  * than left blank when there is nothing in it.
  */
-function OverdueWork({ signal, nowMs }: { signal: OverdueSignal; nowMs: number }) {
+function OverdueWork({
+  signal,
+  nowMs,
+}: {
+  signal: OverdueSignal;
+  nowMs: number;
+}) {
   if (signal.read === "unreadable") {
     return (
       <SignalBlock
@@ -338,7 +352,8 @@ function OverdueWork({ signal, nowMs }: { signal: OverdueSignal; nowMs: number }
         tone="good"
       >
         <p>
-          The check read cleanly and found nothing waiting longer than it should.
+          The check read cleanly and found nothing waiting longer than it
+          should.
         </p>
       </SignalBlock>
     );
@@ -405,7 +420,8 @@ function Drift({ signal }: { signal: DriftSignal }) {
         tone="good"
       >
         <p>
-          The records were compared and every one of them agrees with what the fleet is doing.
+          The records were compared and every one of them agrees with what the
+          fleet is doing.
         </p>
       </SignalBlock>
     );
@@ -424,7 +440,9 @@ function Drift({ signal }: { signal: DriftSignal }) {
         {signal.disagreements.map((disagreement) => (
           <li key={disagreement.record} className="flex flex-col">
             <span className="wrap-anywhere">{disagreement.record}</span>
-            <span className="wrap-anywhere text-term-muted">{disagreement.detail}</span>
+            <span className="wrap-anywhere text-term-muted">
+              {disagreement.detail}
+            </span>
           </li>
         ))}
       </ul>

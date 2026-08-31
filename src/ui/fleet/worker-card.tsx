@@ -10,8 +10,15 @@ import type {
 import { GrokEvent } from "@/ui/components/grok/grok-event";
 import { GrokMessage } from "@/ui/components/grok/grok-message";
 import { GrokTool } from "@/ui/components/grok/grok-tool";
-import { LifecycleRail, StageChip, stageAccent } from "@/ui/fleet/lifecycle-rail";
-import { WorkerTerminal, type TerminalReader } from "@/ui/fleet/worker-terminal";
+import {
+  LifecycleRail,
+  StageChip,
+  stageAccent,
+} from "@/ui/fleet/lifecycle-rail";
+import {
+  WorkerTerminal,
+  type TerminalReader,
+} from "@/ui/fleet/worker-terminal";
 import { ago } from "@/ui/lib/age";
 import { cn } from "@/ui/lib/utils";
 
@@ -100,7 +107,9 @@ function Recorded({ label, value }: { label: string; value: string | null }) {
           statement this row exists to make into something unreadable. */}
       <span
         className={cn(
-          value === null ? "shrink-0 text-term-faint italic" : "min-w-0 truncate text-term-fg",
+          value === null
+            ? "shrink-0 text-term-faint italic"
+            : "min-w-0 truncate text-term-fg",
         )}
         title={value ?? undefined}
       >
@@ -179,12 +188,17 @@ function Checks({ checks, nowMs }: { checks: ChecksSignal; nowMs: number }) {
     <span data-checks={checks.outcome} className="flex items-baseline gap-1.5">
       <span
         aria-hidden="true"
-        className={cn("size-1.5 shrink-0 self-center rounded-full", OUTCOME_PIP[checks.outcome])}
+        className={cn(
+          "size-1.5 shrink-0 self-center rounded-full",
+          OUTCOME_PIP[checks.outcome],
+        )}
       />
       <span className="text-term-fg">
         {`${checks.finished} of ${checks.total} checks · ${checks.outcome}`}
       </span>
-      <span className="shrink-0 text-term-faint">{ago(checks.asOf, nowMs)}</span>
+      <span className="shrink-0 text-term-faint">
+        {ago(checks.asOf, nowMs)}
+      </span>
     </span>
   );
 }
@@ -218,12 +232,16 @@ function Review({ review, nowMs }: { review: ReviewSignal; nowMs: number }) {
       data-review={review.comments === 0 ? "none" : "some"}
       className="flex items-baseline gap-1.5"
     >
-      <span className={review.comments === 0 ? "text-term-muted" : "text-term-fg"}>
+      <span
+        className={review.comments === 0 ? "text-term-muted" : "text-term-fg"}
+      >
         {review.comments === 0
           ? "nobody has commented"
           : `${review.comments} comment${review.comments === 1 ? "" : "s"} from a person`}
       </span>
-      <span className="shrink-0 text-term-faint">{ago(review.asOf, nowMs)}</span>
+      <span className="shrink-0 text-term-faint">
+        {ago(review.asOf, nowMs)}
+      </span>
     </span>
   );
 }
@@ -237,13 +255,25 @@ function Review({ review, nowMs }: { review: ReviewSignal; nowMs: number }) {
  * "pull request open" answers none of that. It wraps rather than truncating,
  * because the tail is the part that identifies it.
  */
-function PullRequestBlock({ pullRequest, nowMs }: { pullRequest: PullRequest; nowMs: number }) {
+function PullRequestBlock({
+  pullRequest,
+  nowMs,
+}: {
+  pullRequest: PullRequest;
+  nowMs: number;
+}) {
   return (
     <div
       data-pull-request={pullRequest.state}
       className="flex flex-col gap-0.5 border-t border-term-rule-soft pt-1.5"
     >
-      <GrokTool verb={pullRequest.state === "landed" ? "pull request landed" : "pull request open"}>
+      <GrokTool
+        verb={
+          pullRequest.state === "landed"
+            ? "pull request landed"
+            : "pull request open"
+        }
+      >
         {/* The address through `children` rather than `path`: the component
             paints a path, and this one has to be a link that can be opened. */}
         <a
@@ -286,7 +316,10 @@ function BriefBlock({ brief }: { brief: Brief }) {
         absence is a statement by the panel rather than by whoever dispatched it.
       */}
       {brief.summary === null ? (
-        <p data-brief="not-recorded" className="wrap-anywhere text-term-faint italic">
+        <p
+          data-brief="not-recorded"
+          className="wrap-anywhere text-term-faint italic"
+        >
           {`instructions ${NOT_RECORDED}`}
         </p>
       ) : (
@@ -306,14 +339,21 @@ function BriefBlock({ brief }: { brief: Brief }) {
       <details className="group/brief">
         <summary className="cursor-pointer list-none text-term-muted hover:text-term-fg-bright">
           dispatched with
-          <span aria-hidden="true" className="ms-1 inline-block group-open/brief:rotate-90">
+          <span
+            aria-hidden="true"
+            className="ms-1 inline-block group-open/brief:rotate-90"
+          >
             &rsaquo;
           </span>
         </summary>
         <div className="mt-1.5 flex flex-col gap-1.5 border-t border-term-rule-soft pt-1.5">
           {brief.text === null ? (
-            <p data-brief-text="not-recorded" className="text-term-faint italic">
-              The instructions themselves were not recorded; the pointer is below.
+            <p
+              data-brief-text="not-recorded"
+              className="text-term-faint italic"
+            >
+              The instructions themselves were not recorded; the pointer is
+              below.
             </p>
           ) : (
             // Pre-wrapped, because instructions are written with their line
@@ -383,8 +423,12 @@ export function WorkerCard({
 
       <p className="flex flex-wrap items-baseline gap-x-2 text-[12px] text-term-muted">
         <span className="text-term-fg">{worker.project}</span>
-        <span className="tracking-wide uppercase text-term-faint">{KIND_LABEL[worker.kind]}</span>
-        <span className="ms-auto text-term-faint">{ago(lifecycle.observedAt, nowMs)}</span>
+        <span className="tracking-wide uppercase text-term-faint">
+          {KIND_LABEL[worker.kind]}
+        </span>
+        <span className="ms-auto text-term-faint">
+          {ago(lifecycle.observedAt, nowMs)}
+        </span>
       </p>
 
       {/* The rail is drawn from what was recorded at dispatch, so a card

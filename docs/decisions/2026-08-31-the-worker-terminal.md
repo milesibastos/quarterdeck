@@ -120,7 +120,7 @@ command is started for a refusal - which the witness file is asserted on.
 
 `src/adapters/` was three files, one per reliability promise. It is now four,
 because there is a third promise. `contract.ts` refuses when the shape moves;
-`health.ts` degrades when a path moves; `terminal.ts` degrades *per worker*, and
+`health.ts` degrades when a path moves; `terminal.ts` degrades _per worker_, and
 is only asked when somebody opens a card. Folding it into either of the others
 would have put an on-demand read inside a module the first paint waits on.
 

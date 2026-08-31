@@ -26,7 +26,10 @@ import { startPanel, type Panel } from "./lib/server.ts";
 
 const nextPort = portsFor(import.meta.filename);
 
-const ANSWERABLE = { id: "wi-tidewater-126", since: "2099-01-01T07:20:05.000Z" };
+const ANSWERABLE = {
+  id: "wi-tidewater-126",
+  since: "2099-01-01T07:20:05.000Z",
+};
 
 /**
  * Two fleets reading the same fixture set, so both have the same deck item to
@@ -44,10 +47,12 @@ async function spoolDir(): Promise<string> {
 async function spool(dir: string): Promise<[string, string][]> {
   const names = (await readdir(dir)).sort();
   return Promise.all(
-    names.map(async (name): Promise<[string, string]> => [
-      name,
-      await readFile(join(dir, name), "utf8"),
-    ]),
+    names.map(
+      async (name): Promise<[string, string]> => [
+        name,
+        await readFile(join(dir, name), "utf8"),
+      ],
+    ),
   );
 }
 
@@ -81,7 +86,9 @@ function rawFleetRequest(
         let data = "";
         response.setEncoding("utf8");
         response.on("data", (chunk) => (data += chunk));
-        response.on("end", () => resolve({ status: response.statusCode ?? 0, body: data }));
+        response.on("end", () =>
+          resolve({ status: response.statusCode ?? 0, body: data }),
+        );
       },
     );
     request.on("error", reject);
@@ -112,7 +119,10 @@ async function answerAs(
     { "content-type": "application/json", [SESSION_HEADER]: secret },
     JSON.stringify(body),
   );
-  return { status: response.status, body: JSON.parse(response.body) as Record<string, unknown> };
+  return {
+    status: response.status,
+    body: JSON.parse(response.body) as Record<string, unknown>,
+  };
 }
 
 describe("two fleets, each with their own spool", () => {
@@ -140,7 +150,10 @@ describe("two fleets, each with their own spool", () => {
 
   test("an answer given while fleet A is selected lands only in A's spool", async () => {
     const secret = secretFrom(await pageAs(port, FLEET_A));
-    assert.ok(secret, "fleet A has a spool configured, so the control carries a secret");
+    assert.ok(
+      secret,
+      "fleet A has a spool configured, so the control carries a secret",
+    );
     const result = await answerAs(port, FLEET_A, secret!, {
       taskId: ANSWERABLE.id,
       since: ANSWERABLE.since,
@@ -200,7 +213,11 @@ describe("a fleet with no spool configured, alongside one that has", () => {
     const page = await pageAs(port, FLEET_B);
     assert.ok(page.includes(`data-answer-unavailable="${ANSWERABLE.id}"`));
     assert.ok(!page.includes(`data-answer-control="${ANSWERABLE.id}"`));
-    assert.equal(secretFrom(page), null, "no secret is handed out for a fleet that cannot act");
+    assert.equal(
+      secretFrom(page),
+      null,
+      "no secret is handed out for a fleet that cannot act",
+    );
   });
 
   test("refuses an answer posted while that fleet is selected, even with a valid session secret", async () => {
@@ -217,7 +234,10 @@ describe("a fleet with no spool configured, alongside one that has", () => {
       mode: "done",
     });
     assert.equal(result.status, 409);
-    assert.match(String(result.body.error), /nothing is configured for this panel to record/i);
+    assert.match(
+      String(result.body.error),
+      /nothing is configured for this panel to record/i,
+    );
   });
 
   test("still records normally on the fleet that does have a spool", async () => {

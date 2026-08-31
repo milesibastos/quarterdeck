@@ -212,7 +212,10 @@ export function GrokHeader({
             <span className="text-term-faint">{version}</span>
           </div>
           {headline ? (
-            <div className="mt-2 break-words font-semibold" style={{ color: AMBER }}>
+            <div
+              className="mt-2 break-words font-semibold"
+              style={{ color: AMBER }}
+            >
               {headline}
             </div>
           ) : null}

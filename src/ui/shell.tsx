@@ -203,7 +203,11 @@ export function Shell({
           started. It draws what the band above did not - the same fold, called
           once in `src/ui/needs-you/needs-you.ts`, so no row can fall between
           the two. */}
-      <DeckLens lens={document.deck} fleet={document.fleet.content} nowMs={nowMs} />
+      <DeckLens
+        lens={document.deck}
+        fleet={document.fleet.content}
+        nowMs={nowMs}
+      />
 
       {/* What finished. Below the fold and drawn at ordinary weight: it is a
           record rather than a call for attention, and the first screen belongs

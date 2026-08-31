@@ -8,7 +8,10 @@ import {
   type FleetSnapshot,
 } from "../src/adapters/contract.ts";
 import { readHealth, type HealthReading } from "../src/adapters/health.ts";
-import { projectDocument, withSnapshotUnreadable } from "../src/domain/project.ts";
+import {
+  projectDocument,
+  withSnapshotUnreadable,
+} from "../src/domain/project.ts";
 import { fixedClock } from "../src/providers/clock.ts";
 import {
   DOCUMENT_VERSION,
@@ -101,36 +104,129 @@ type Shape = {
  * document, and is asserted separately below.
  */
 const SHAPES: Readonly<Record<string, Shape>> = {
-  healthy: { fleet: ["fresh", 12], deck: ["fresh", 6], landed: ["fresh", 4], health: "fresh", omissions: ["not-shown", "unreadable", "unreadable"] },
+  healthy: {
+    fleet: ["fresh", 12],
+    deck: ["fresh", 6],
+    landed: ["fresh", 4],
+    health: "fresh",
+    omissions: ["not-shown", "unreadable", "unreadable"],
+  },
   // The large end of the range the layout has to survive; see
   // docs/decisions/2026-08-31-the-fold-line.md.
-  crowded: { fleet: ["fresh", 30], deck: ["fresh", 15], landed: ["fresh", 3], health: "fresh", omissions: ["not-looked-up", "not-looked-up", "not-shown"] },
-  empty: { fleet: ["fresh", 0], deck: ["fresh", 0], landed: ["fresh", 0], health: "fresh", omissions: [] },
-  stale: { fleet: ["stale", 2], deck: ["stale", 2], landed: ["stale", 0], health: "stale", omissions: [] },
-  malformed: { fleet: ["unreadable", 0], deck: ["unreadable", 0], landed: ["unreadable", 0], health: "fresh", omissions: [] },
-  "health-dark": { fleet: ["fresh", 3], deck: ["fresh", 3], landed: ["fresh", 0], health: "unreadable", omissions: [] },
-  "health-unread": { fleet: ["fresh", 3], deck: ["fresh", 3], landed: ["fresh", 0], health: "fresh", omissions: [] },
-  "deck-dark": { fleet: ["fresh", 3], deck: ["unreadable", 0], landed: ["unreadable", 1], health: "fresh", omissions: ["unreadable"] },
-  "deck-only": { fleet: ["fresh", 0], deck: ["fresh", 6], landed: ["fresh", 1], health: "fresh", omissions: [] },
-  "fleet-only": { fleet: ["fresh", 12], deck: ["fresh", 0], landed: ["fresh", 0], health: "fresh", omissions: ["not-looked-up", "not-looked-up"] },
-  "fleet-empty-stale": { fleet: ["stale", 0], deck: ["stale", 1], landed: ["stale", 0], health: "stale", omissions: [] },
+  crowded: {
+    fleet: ["fresh", 30],
+    deck: ["fresh", 15],
+    landed: ["fresh", 3],
+    health: "fresh",
+    omissions: ["not-looked-up", "not-looked-up", "not-shown"],
+  },
+  empty: {
+    fleet: ["fresh", 0],
+    deck: ["fresh", 0],
+    landed: ["fresh", 0],
+    health: "fresh",
+    omissions: [],
+  },
+  stale: {
+    fleet: ["stale", 2],
+    deck: ["stale", 2],
+    landed: ["stale", 0],
+    health: "stale",
+    omissions: [],
+  },
+  malformed: {
+    fleet: ["unreadable", 0],
+    deck: ["unreadable", 0],
+    landed: ["unreadable", 0],
+    health: "fresh",
+    omissions: [],
+  },
+  "health-dark": {
+    fleet: ["fresh", 3],
+    deck: ["fresh", 3],
+    landed: ["fresh", 0],
+    health: "unreadable",
+    omissions: [],
+  },
+  "health-unread": {
+    fleet: ["fresh", 3],
+    deck: ["fresh", 3],
+    landed: ["fresh", 0],
+    health: "fresh",
+    omissions: [],
+  },
+  "deck-dark": {
+    fleet: ["fresh", 3],
+    deck: ["unreadable", 0],
+    landed: ["unreadable", 1],
+    health: "fresh",
+    omissions: ["unreadable"],
+  },
+  "deck-only": {
+    fleet: ["fresh", 0],
+    deck: ["fresh", 6],
+    landed: ["fresh", 1],
+    health: "fresh",
+    omissions: [],
+  },
+  "fleet-only": {
+    fleet: ["fresh", 12],
+    deck: ["fresh", 0],
+    landed: ["fresh", 0],
+    health: "fresh",
+    omissions: ["not-looked-up", "not-looked-up"],
+  },
+  "fleet-empty-stale": {
+    fleet: ["stale", 0],
+    deck: ["stale", 1],
+    landed: ["stale", 0],
+    health: "stale",
+    omissions: [],
+  },
   // Every rail shape in its working, stopped and finished states, plus the two
   // ways a rail's length can be unknown; see tests/fleet-lens.test.ts.
-  rails: { fleet: ["fresh", 19], deck: ["fresh", 0], landed: ["fresh", 0], health: "fresh", omissions: ["not-looked-up", "not-looked-up"] },
+  rails: {
+    fleet: ["fresh", 19],
+    deck: ["fresh", 0],
+    landed: ["fresh", 0],
+    health: "fresh",
+    omissions: ["not-looked-up", "not-looked-up"],
+  },
   // The one set in upstream's real shape and real vocabulary; its projection is
   // asserted field by field in tests/fleet-source.test.ts.
-  "upstream-shape": { fleet: ["fresh", 8], deck: ["fresh", 5], landed: ["fresh", 1], health: "fresh", omissions: ["not-looked-up", "not-looked-up"] },
+  "upstream-shape": {
+    fleet: ["fresh", 8],
+    deck: ["fresh", 5],
+    landed: ["fresh", 1],
+    health: "fresh",
+    omissions: ["not-looked-up", "not-looked-up"],
+  },
   // A refusal quoting a 180-character token with no break opportunity in it.
   // The lens statuses are `malformed`'s; what this set is for is the width of
   // the sentence they carry.
-  "wide-detail": { fleet: ["unreadable", 0], deck: ["unreadable", 0], landed: ["unreadable", 0], health: "fresh", omissions: [] },
+  "wide-detail": {
+    fleet: ["unreadable", 0],
+    deck: ["unreadable", 0],
+    landed: ["unreadable", 0],
+    health: "fresh",
+    omissions: [],
+  },
   // Every lens dark at once, with nothing left over to draw: the page with the
   // least on it that the panel can still be asked to render.
-  "all-dark": { fleet: ["unreadable", 0], deck: ["unreadable", 0], landed: ["unreadable", 0], health: "unreadable", omissions: [] },
+  "all-dark": {
+    fleet: ["unreadable", 0],
+    deck: ["unreadable", 0],
+    landed: ["unreadable", 0],
+    health: "unreadable",
+    omissions: [],
+  },
 };
 
 test("every fixture set on disk is walked here", () => {
-  assert.deepEqual(fixtureSets(), [...Object.keys(SHAPES), "mismatched"].sort());
+  assert.deepEqual(
+    fixtureSets(),
+    [...Object.keys(SHAPES), "mismatched"].sort(),
+  );
 });
 
 describe("every fixture set produces the document it should", () => {
@@ -144,7 +240,10 @@ describe("every fixture set produces the document it should", () => {
         {
           fleet: [document.fleet.status.state, document.fleet.content.length],
           deck: [document.deck.status.state, document.deck.content.length],
-          landed: [document.landed.status.state, document.landed.content.length],
+          landed: [
+            document.landed.status.state,
+            document.landed.content.length,
+          ],
           health: document.health.status.state,
           omissions: document.omissions.map((omission) => omission.reason),
         },
@@ -154,7 +253,10 @@ describe("every fixture set produces the document it should", () => {
   }
 
   test("mismatched refuses instead of producing one", async () => {
-    await assert.rejects(() => documentOf("mismatched"), ContractIdentifierError);
+    await assert.rejects(
+      () => documentOf("mismatched"),
+      ContractIdentifierError,
+    );
   });
 });
 
@@ -162,7 +264,9 @@ describe("the fleet part", () => {
   test("carries every coarse stage, and the fine step where one is named", async () => {
     const { content } = (await documentOf("healthy")).fleet;
     assert.deepEqual(
-      content.map((w) => `${w.id} ${w.lifecycle.stage} ${w.lifecycle.step ?? "-"}`),
+      content.map(
+        (w) => `${w.id} ${w.lifecycle.stage} ${w.lifecycle.step ?? "-"}`,
+      ),
       [
         "wi-tidewater-114 dispatched -",
         "wi-tidewater-118 working -",
@@ -195,7 +299,10 @@ describe("the fleet part", () => {
     // are upstream's account of what it could not see, not a report from a
     // pipeline that ran. Nothing may infer a position from them.
     assert.equal(lost.lifecycle.step, null);
-    assert.equal(lost.lifecycle.detail, "no state source answered; its last line said review");
+    assert.equal(
+      lost.lifecycle.detail,
+      "no state source answered; its last line said review",
+    );
   });
 
   test("a worker is the whole shape, not a subset of it", async () => {
@@ -286,7 +393,10 @@ describe("the fleet part", () => {
     assert.match(full.text!, /hollow ahead of it/);
     // A card with a line to show and nothing behind the click.
     assert.equal(by("wi-tidewater-118").brief.text, null);
-    assert.equal(by("wi-tidewater-118").brief.summary, "Pin the redis image to a digest.");
+    assert.equal(
+      by("wi-tidewater-118").brief.summary,
+      "Pin the redis image to a digest.",
+    );
     // The pointer is still there when neither is.
     assert.deepEqual(by("wi-cordage-404").brief, {
       ref: "/anchorage/briefs/wi-cordage-404.md",
@@ -352,7 +462,9 @@ describe("the deck part", () => {
   test("says what project an item belongs to and whether it is research", async () => {
     const { content } = (await documentOf("healthy")).deck;
     assert.deepEqual(
-      content.map((item) => `${item.id} ${item.project ?? "-"} ${item.kind ?? "-"}`),
+      content.map(
+        (item) => `${item.id} ${item.project ?? "-"} ${item.kind ?? "-"}`,
+      ),
       [
         "wi-lamplight-231 lamplight build",
         "wi-cordage-412 cordage build",
@@ -373,7 +485,11 @@ describe("the deck part", () => {
     // Not the moment upstream looked, which is what it used to be: an item
     // queued a month ago would have read as having just arrived.
     assert.equal(undated.since, null);
-    assert.equal(content[0].since, "2099-01-01T09:10:00.000Z", "a row that did say still says");
+    assert.equal(
+      content[0].since,
+      "2099-01-01T09:10:00.000Z",
+      "a row that did say still says",
+    );
   });
 
   test("says what an item is blocked by", async () => {
@@ -382,7 +498,11 @@ describe("the deck part", () => {
       ids: ["wi-cordage-401"],
       reason: "Waits on the seam landing first",
     });
-    assert.equal(content[0].blocked, null, "an unblocked item carries no blocker");
+    assert.equal(
+      content[0].blocked,
+      null,
+      "an unblocked item carries no blocker",
+    );
   });
 
   test("says who a held item waits on, why, since when, and until when", async () => {
@@ -393,7 +513,11 @@ describe("the deck part", () => {
       deferredTo: "2099-01-04",
     });
     assert.equal(held.since, "2099-01-01T07:20:05.000Z", "the hold's age");
-    assert.equal(held.actionable, true, "upstream's own fold, carried not recomputed");
+    assert.equal(
+      held.actionable,
+      true,
+      "upstream's own fold, carried not recomputed",
+    );
   });
 
   test("carries a hold that waits on something other than a person", async () => {
@@ -420,7 +544,9 @@ describe("the health part", () => {
     });
     assert.deepEqual(content.overdue, {
       read: "ok",
-      overdue: [{ id: "wi-tidewater-126", waitingSince: "2019-03-04T09:00:00.000Z" }],
+      overdue: [
+        { id: "wi-tidewater-126", waitingSince: "2019-03-04T09:00:00.000Z" },
+      ],
     });
     assert.deepEqual(content.drift, {
       read: "ok",
@@ -458,13 +584,21 @@ describe("the health part", () => {
     // A queue that was read and found empty, and a home held with nobody away.
     const healthy = (await documentOf("healthy")).health.content;
     assert.deepEqual(healthy.queue, { read: "ok", queued: 0 });
-    assert.deepEqual(healthy.attendance, { read: "ok", away: false, locked: true });
+    assert.deepEqual(healthy.attendance, {
+      read: "ok",
+      away: false,
+      locked: true,
+    });
 
     // A queue that is not draining, and an operator who is away with the home
     // unlocked. Both facts move independently of each other.
     const stale = (await documentOf("stale")).health.content;
     assert.deepEqual(stale.queue, { read: "ok", queued: 4 });
-    assert.deepEqual(stale.attendance, { read: "ok", away: true, locked: false });
+    assert.deepEqual(stale.attendance, {
+      read: "ok",
+      away: true,
+      locked: false,
+    });
   });
 
   test("a health file predating a signal darkens that signal and no other", async () => {
@@ -536,7 +670,11 @@ describe("the landed part", () => {
     // the mate's work over the parent's unreadable backlog is exactly how a
     // prior board lost it.
     const { content, status } = (await documentOf("deck-dark")).landed;
-    assert.equal(status.state, "unreadable", "this home's landed work is gone with the backlog");
+    assert.equal(
+      status.state,
+      "unreadable",
+      "this home's landed work is gone with the backlog",
+    );
     assert.deepEqual(
       content.map((item) => item.id),
       ["wi-kelpwick-031"],
@@ -579,20 +717,36 @@ describe("the omissions", () => {
     // independent, so a check having been read must not hide the review that
     // was not.
     const { fleet, omissions } = await documentOf("crowded");
-    const windlass142 = fleet.content.find((worker) => worker.id === "wi-windlass-142");
+    const windlass142 = fleet.content.find(
+      (worker) => worker.id === "wi-windlass-142",
+    );
     assert.equal(windlass142?.pullRequest?.checks.read, "unreadable");
     assert.equal(windlass142?.pullRequest?.review.read, "not-looked-up");
 
-    const checks = omissions.find((omission) => omission.what === "pull request checks");
-    const review = omissions.find((omission) => omission.what === "pull request review comments");
-    assert.ok(review, "the unread review is named even though its checks were read");
-    assert.match(checks!.detail, /1 pull request/, "a read-and-failed check does not count as not looked up");
+    const checks = omissions.find(
+      (omission) => omission.what === "pull request checks",
+    );
+    const review = omissions.find(
+      (omission) => omission.what === "pull request review comments",
+    );
+    assert.ok(
+      review,
+      "the unread review is named even though its checks were read",
+    );
+    assert.match(
+      checks!.detail,
+      /1 pull request/,
+      "a read-and-failed check does not count as not looked up",
+    );
     assert.match(review!.detail, /2 pull requests/);
   });
 
   test("an unreadable backlog is named, and nothing is silently dropped", async () => {
     const { omissions } = await documentOf("deck-dark");
-    assert.deepEqual(omissions.map((omission) => omission.reason), ["unreadable"]);
+    assert.deepEqual(
+      omissions.map((omission) => omission.reason),
+      ["unreadable"],
+    );
   });
 
   test("nothing left out is an empty list rather than a silence", async () => {
@@ -607,14 +761,27 @@ describe("the omissions", () => {
     // rule for the thing prior boards lost - one home's landed list would look
     // exactly like a board that had dropped the other.
     const documents = await Promise.all(Object.keys(SHAPES).map(documentOf));
-    const reasons = new Set(documents.flatMap(({ omissions }) => omissions.map((o) => o.reason)));
-    assert.deepEqual([...reasons].sort(), ["not-looked-up", "not-shown", "unreadable"]);
+    const reasons = new Set(
+      documents.flatMap(({ omissions }) => omissions.map((o) => o.reason)),
+    );
+    assert.deepEqual([...reasons].sort(), [
+      "not-looked-up",
+      "not-shown",
+      "unreadable",
+    ]);
 
     const homes = documents.flatMap(({ landed }) =>
-      landed.content.filter((item) => item.home !== null).map((item) => item.home),
+      landed.content
+        .filter((item) => item.home !== null)
+        .map((item) => item.home),
     );
-    assert.ok(new Set(homes).size > 1, "landed work comes from more than one home");
-    const wheres = new Set(documents.flatMap(({ landed }) => landed.content.map((i) => i.where)));
+    assert.ok(
+      new Set(homes).size > 1,
+      "landed work comes from more than one home",
+    );
+    const wheres = new Set(
+      documents.flatMap(({ landed }) => landed.content.map((i) => i.where)),
+    );
     assert.deepEqual([...wheres].sort(), ["second-mate", "this-home"]);
   });
 });
@@ -647,15 +814,26 @@ describe("degradation is per lens, not per document", () => {
     const { status, content } = (await documentOf("stale")).fleet;
     assert.equal(status.state, "stale");
     assert.ok(status.state === "stale" && status.ageMs > 60_000);
-    assert.ok(status.state === "stale" && status.detail.includes("freshness window"));
+    assert.ok(
+      status.state === "stale" && status.detail.includes("freshness window"),
+    );
     assert.equal(content.length, 2, "stale content is still worth showing");
   });
 
   test("last known good survives a snapshot that stops parsing", async () => {
     const good = await documentOf("healthy");
-    const document = withSnapshotUnreadable(good, "truncated", await healthOf("healthy"), OPTIONS);
+    const document = withSnapshotUnreadable(
+      good,
+      "truncated",
+      await healthOf("healthy"),
+      OPTIONS,
+    );
     assert.equal(document.fleet.status.state, "unreadable");
-    assert.equal(document.fleet.content.length, 12, "the fleet is still on screen");
+    assert.equal(
+      document.fleet.content.length,
+      12,
+      "the fleet is still on screen",
+    );
     assert.equal(document.deck.content.length, 6, "and so is the deck");
   });
 });

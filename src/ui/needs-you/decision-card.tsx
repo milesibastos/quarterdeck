@@ -102,25 +102,37 @@ export function DecisionCard({
       {hold !== null && (
         <div className="mt-1.5 space-y-0.5">
           <p className="text-[13px] text-term-fg">
-            Waiting on <span className="font-semibold text-term-fg-bright">{hold.waitingOn}</span>
+            Waiting on{" "}
+            <span className="font-semibold text-term-fg-bright">
+              {hold.waitingOn}
+            </span>
           </p>
           {/* Upstream's own words, unedited: a paraphrase of a reason is a
               second-hand account of why someone stopped. */}
           {hold.reason !== null && (
-            <p className="text-[13px] wrap-anywhere text-term-muted">{hold.reason}</p>
+            <p className="text-[13px] wrap-anywhere text-term-muted">
+              {hold.reason}
+            </p>
           )}
           {hold.deferredTo !== null && (
             <p className="text-[12px] text-term-faint">
-              deferred until <time dateTime={hold.deferredTo}>{hold.deferredTo}</time>
+              deferred until{" "}
+              <time dateTime={hold.deferredTo}>{hold.deferredTo}</time>
             </p>
           )}
-          <AnswerControl taskId={item.id} since={item.since ?? ""} session={session} />
+          <AnswerControl
+            taskId={item.id}
+            since={item.since ?? ""}
+            session={session}
+          />
         </div>
       )}
 
       {blocking.length > 0 && (
         <div className="mt-1.5">
-          <p className="text-[12px] tracking-wide text-term-muted uppercase">Blocked by</p>
+          <p className="text-[12px] tracking-wide text-term-muted uppercase">
+            Blocked by
+          </p>
           <ul className="mt-0.5 space-y-0.5">
             {blocking.map((blocker) => (
               <BlockerLine key={blocker.id} blocker={blocker} />

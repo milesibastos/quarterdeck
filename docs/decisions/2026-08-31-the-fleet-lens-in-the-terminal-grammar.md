@@ -27,16 +27,16 @@ The instruction was to compose the vendored components before writing anything
 new. Three of them carry this lens's content with props the document actually
 holds, and they are mounted:
 
-| Component | Where | Why it fits |
-| --- | --- | --- |
-| `GrokEvent` | the worker's detail line | `◆ <what upstream says it is doing>`. Its `hooks` and `elapsed` are optional and are not passed, because the document has neither. |
-| `GrokTool` (line) | every pointer, the four dispatch records, the pull request address | a dim verb and a value is exactly the shape of `in <worktree>` and `branch <name>`. The value goes through `children` rather than `path` where it has to carry its own tone - a pointer that stopped resolving, a link that can be opened. |
-| `GrokMessage` (user) | the brief's summary | `❯ <what the worker was told>`. An instruction drawn as the prompt it was. |
+| Component            | Where                                                              | Why it fits                                                                                                                                                                                                                                |
+| -------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GrokEvent`          | the worker's detail line                                           | `◆ <what upstream says it is doing>`. Its `hooks` and `elapsed` are optional and are not passed, because the document has neither.                                                                                                         |
+| `GrokTool` (line)    | every pointer, the four dispatch records, the pull request address | a dim verb and a value is exactly the shape of `in <worktree>` and `branch <name>`. The value goes through `children` rather than `path` where it has to carry its own tone - a pointer that stopped resolving, a link that can be opened. |
+| `GrokMessage` (user) | the brief's summary                                                | `❯ <what the worker was told>`. An instruction drawn as the prompt it was.                                                                                                                                                                 |
 
 Six were considered and are **not** mounted. Each is refused for the same
 reason - it can only be drawn by asserting something the panel does not know -
-and that reason outranks the letter of the component map: *no key hint,
-affordance or label that does not do what it says.*
+and that reason outranks the letter of the component map: _no key hint,
+affordance or label that does not do what it says._
 
 - **`GrokThinking` and `GrokWorking`.** Both count elapsed time from the moment
   they mount, so a card opened five minutes ago would claim a worker has been
@@ -45,7 +45,7 @@ affordance or label that does not do what it says.*
   that suppresses any of it.
 - **`GrokThought`.** Its label is either `Thought for <elapsed>` or `Thinking…`.
   The document carries no per-step duration and no claim that a worker is
-  reasoning right now; the projection reads a *step name* out of upstream's
+  reasoning right now; the projection reads a _step name_ out of upstream's
   prose, which is a much weaker thing. Drawing "Thought for 0.2s" over it would
   be inventing the number the component exists to show.
 - **`GrokTurnEnd`.** "Turn completed in 8.0s." There is no turn duration
@@ -53,10 +53,10 @@ affordance or label that does not do what it says.*
   seen, not how long it took.
 - **`GrokPlan`.** The closest shape to the rail, and unusable as a mount: it
   hardwires an action row - `a approve | s request changes | c comment | q quit
-  plan` - a `[↗]` open mark that opens nothing, and a composer in plan-approval
+plan` - a `[↗]` open mark that opens nothing, and a composer in plan-approval
   mode. None of them is behind a prop. Mounting it would put four keys on every
   worker card that do nothing, which is the defect this project exists to
-  prevent. Its *frame* is borrowed instead: the rail is drawn as a bordered box
+  prevent. Its _frame_ is borrowed instead: the rail is drawn as a bordered box
   with a `─ <name>` head, in this directory's own markup.
 - **`GrokSessionActive`.** Takes no props at all; it is a canned transcript
   about a theme toggle. There is nothing to give it.
@@ -100,8 +100,8 @@ check U+E0A0 failed when the frame was converted.
 **The stage tones are the panel's own status tokens, not `--term-*`.** This is
 deliberate and it is countable.
 
-The terminal set has four saturated stops, and `--term-accent` is *the same
-stop* as `--term-danger` - the trade-off the foundation already recorded. The
+The terminal set has four saturated stops, and `--term-accent` is _the same
+stop_ as `--term-danger` - the trade-off the foundation already recorded. The
 panel needs five: `working`, `pr-open`, `held`, `waiting` and `failed` all want
 a hue, and `blocked` and `landed` want a fifth. A stage vocabulary drawn from
 `--term-*` alone would paint `blocked` exactly like `failed`, and the whole
@@ -128,7 +128,7 @@ decision, and the argument above stands without it.
 ### Where the wireframe won
 
 **The rail is still a horizontal track, not a numbered column.** `GrokPlan`'s
-list grammar - one numbered row per step - is a better *reading* of a rail, and
+list grammar - one numbered row per step - is a better _reading_ of a rail, and
 it is six rows tall. The card's proportions are the wireframe's, this band peeks
 under the fold rather than owning it, and eleven cards each six rows taller is a
 different page. So the rail borrows the frame and the `─ <name>` head and keeps

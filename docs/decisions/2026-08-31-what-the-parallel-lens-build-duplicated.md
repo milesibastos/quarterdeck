@@ -21,12 +21,12 @@ a day apart. That is the cost of the fan-out, paid here.
 The baseline on `main` at c2d0aca was 25 printed entries, which is 21 distinct
 findings once each duplication pair is counted once rather than once per file:
 
-| Kind | Distinct | Printed |
-| --- | --- | --- |
-| duplication (`identical_code`, `similar_code`) | 6 pairs | 10 |
-| `function_complexity` | 4 | 4 |
-| `return_statements` | 10 | 10 |
-| `file_complexity` | 1 | 1 |
+| Kind                                           | Distinct | Printed |
+| ---------------------------------------------- | -------- | ------- |
+| duplication (`identical_code`, `similar_code`) | 6 pairs  | 10      |
+| `function_complexity`                          | 4        | 4       |
+| `return_statements`                            | 10       | 10      |
+| `file_complexity`                              | 1        | 1       |
 
 ### Four shapes the task brief did not carry
 
@@ -132,11 +132,11 @@ sentences more than it is worth one parameterised one.
 
 `.qlty/qlty.toml` carries the full reasoning beside each pattern. In summary:
 
-| Pattern | Findings | Why |
-| --- | --- | --- |
-| `src/ui/components/grok/**` | 2 duplication, 2 complexity, 2 returns | Vendored from brainless and re-tokenised; editing them forks upstream. |
-| `src/adapters/health.ts` | file complexity 86, 1 returns | The quarantined module. Invariant 4 confines fleet-internal paths to it, and the complexity is in the half that cannot leave. |
-| `src/ui/keyboard-help.tsx`, `src/ui/fleet-picker.tsx` | 2 complexity, 1 returns | qlty folds nested closures into the component that declares them, which measures the React idiom rather than these files. |
+| Pattern                                               | Findings                               | Why                                                                                                                           |
+| ----------------------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `src/ui/components/grok/**`                           | 2 duplication, 2 complexity, 2 returns | Vendored from brainless and re-tokenised; editing them forks upstream.                                                        |
+| `src/adapters/health.ts`                              | file complexity 86, 1 returns          | The quarantined module. Invariant 4 confines fleet-internal paths to it, and the complexity is in the half that cannot leave. |
+| `src/ui/keyboard-help.tsx`, `src/ui/fleet-picker.tsx` | 2 complexity, 1 returns                | qlty folds nested closures into the component that declares them, which measures the React idiom rather than these files.     |
 
 Two things were established by experiment rather than assumed, and are recorded
 here so nobody repeats them:
@@ -175,13 +175,13 @@ claim none had been loosened.
 A smell fires at the threshold, not past it, so 6 flagged every function with
 exactly six returns. Measured against these six:
 
-| Function | File |
-| --- | --- |
-| `keyedAnswerLine`, `submitIntent` | `src/adapters/intent.ts` |
-| `read` | `src/adapters/terminal.ts` |
-| `recheck` | `src/app/api/act/[...intent]/route.ts` |
-| `ago` | `src/ui/lib/age.ts` |
-| `AnswerControl` | `src/ui/needs-you/answer-control.tsx` |
+| Function                          | File                                   |
+| --------------------------------- | -------------------------------------- |
+| `keyedAnswerLine`, `submitIntent` | `src/adapters/intent.ts`               |
+| `read`                            | `src/adapters/terminal.ts`             |
+| `recheck`                         | `src/app/api/act/[...intent]/route.ts` |
+| `ago`                             | `src/ui/lib/age.ts`                    |
+| `AnswerControl`                   | `src/ui/needs-you/answer-control.tsx`  |
 
 Four are refusal ladders: one early return per distinct reason to refuse, each
 carrying the sentence an operator reads when it fires. `ago` is a ladder of

@@ -50,14 +50,21 @@ const CURRENT = "2099-01-01T09:15:00.000Z";
 const LONG_AGO = "2099-01-01T08:00:00.000Z";
 
 /** What the snapshot half of the document can be. */
-type SnapshotShape = "fresh" | "stale" | "deck-dark" | "stale-deck-dark" | "dark";
+type SnapshotShape =
+  | "fresh"
+  | "stale"
+  | "deck-dark"
+  | "stale-deck-dark"
+  | "dark";
 /** What the health half can be, independently. */
 type HealthShape = "fresh" | "stale" | "dark";
 
 /** The three lens statuses a cell should produce, in the shell's order. */
 type Statuses = readonly [fleet: string, deck: string, health: string];
 
-const SNAPSHOT_STATUSES: Readonly<Record<SnapshotShape, readonly [string, string]>> = {
+const SNAPSHOT_STATUSES: Readonly<
+  Record<SnapshotShape, readonly [string, string]>
+> = {
   fresh: ["fresh", "fresh"],
   stale: ["stale", "stale"],
   "deck-dark": ["fresh", "unreadable"],
@@ -103,7 +110,10 @@ async function compose(
       generated: string;
       backlog: { present: boolean };
     };
-    parsed.generated = snapshot === "stale" || snapshot === "stale-deck-dark" ? LONG_AGO : CURRENT;
+    parsed.generated =
+      snapshot === "stale" || snapshot === "stale-deck-dark"
+        ? LONG_AGO
+        : CURRENT;
     parsed.backlog.present = !snapshot.endsWith("deck-dark");
     await writeFile(file.snapshot, JSON.stringify(parsed, null, 2));
   }
@@ -119,7 +129,11 @@ async function compose(
 
 /** The status the shell put on one lens, or null when that lens is absent. */
 function lensStatus(html: string, name: string): string | null {
-  return new RegExp(`data-lens="${name}" data-lens-status="([a-z]+)"`).exec(html)?.[1] ?? null;
+  return (
+    new RegExp(`data-lens="${name}" data-lens-status="([a-z]+)"`).exec(
+      html,
+    )?.[1] ?? null
+  );
 }
 
 function statuses(html: string): Statuses {
@@ -168,7 +182,8 @@ describe("every combination of degraded lenses the panel can reach", () => {
         ] as unknown as Statuses;
 
         const html = await until(
-          async () => (await (await fetch(panel.url)).text()).replaceAll("<!-- -->", ""),
+          async () =>
+            (await (await fetch(panel.url)).text()).replaceAll("<!-- -->", ""),
           (text) => statuses(text).join(",") === want.join(","),
         );
 
@@ -182,7 +197,10 @@ describe("every combination of degraded lenses the panel can reach", () => {
             `${name} should still be framed when snapshot is ${snapshot} and health is ${health}`,
           );
         }
-        assert.ok(html.includes("Quarterdeck"), "and the page is still the panel");
+        assert.ok(
+          html.includes("Quarterdeck"),
+          "and the page is still the panel",
+        );
       });
     }
   }

@@ -1,11 +1,25 @@
 import assert from "node:assert/strict";
-import { cp, mkdir, mkdtemp, readdir, rm, utimes, writeFile } from "node:fs/promises";
+import {
+  cp,
+  mkdir,
+  mkdtemp,
+  readdir,
+  rm,
+  utimes,
+  writeFile,
+} from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { after, describe, test } from "node:test";
-import { parseSnapshot, type SnapshotSource } from "../src/adapters/contract.ts";
-import { readFleetHomeHealth, type HealthReading } from "../src/adapters/health.ts";
+import {
+  parseSnapshot,
+  type SnapshotSource,
+} from "../src/adapters/contract.ts";
+import {
+  readFleetHomeHealth,
+  type HealthReading,
+} from "../src/adapters/health.ts";
 import { loadConfig } from "../src/config/index.ts";
 import { projectDocument } from "../src/domain/project.ts";
 import { fixedClock } from "../src/providers/clock.ts";
@@ -45,7 +59,8 @@ function deadline(): AbortSignal {
 
 const temporaries: string[] = [];
 after(async () => {
-  for (const dir of temporaries) await rm(dir, { recursive: true, force: true });
+  for (const dir of temporaries)
+    await rm(dir, { recursive: true, force: true });
 });
 
 /** A private copy of one fixture home, safe to break. */
@@ -72,7 +87,11 @@ async function beacon(home: string, ageMs: number): Promise<void> {
 }
 
 function health(reading: HealthReading): Health {
-  assert.equal(reading.read, "ok", "the reading itself should have been readable");
+  assert.equal(
+    reading.read,
+    "ok",
+    "the reading itself should have been readable",
+  );
   return (reading as { health: Health }).health;
 }
 
@@ -123,7 +142,10 @@ describe("a fleet home that is running normally", () => {
 
     // The set's committed queue file carries two lines of notification and one
     // blank line between them, which the count must not include.
-    assert.deepEqual(health(await readHome(home)).queue, { read: "ok", queued: 2 });
+    assert.deepEqual(health(await readHome(home)).queue, {
+      read: "ok",
+      queued: 2,
+    });
   });
 
   test("no away marker and no lock read as nobody away and the home unheld", async () => {
@@ -149,7 +171,9 @@ describe("a fleet home with something wrong in it", () => {
     // than as a worker gone quiet, so it is not reported either.
     assert.deepEqual(health(await readHome(home)).overdue, {
       read: "ok",
-      overdue: [{ id: "wi-brightwater-207", waitingSince: "2099-01-01T09:05:30.000Z" }],
+      overdue: [
+        { id: "wi-brightwater-207", waitingSince: "2099-01-01T09:05:30.000Z" },
+      ],
     });
   });
 
@@ -162,7 +186,8 @@ describe("a fleet home with something wrong in it", () => {
     assert.deepEqual(drift.read === "ok" ? drift.disagreements : [], [
       {
         record: "state/wi-brightwater-211.status",
-        detail: "wi-brightwater-211 is still held while its status log records the decision answered.",
+        detail:
+          "wi-brightwater-211 is still held while its status log records the decision answered.",
       },
       {
         record: "data/backlog.md",
@@ -213,7 +238,10 @@ describe("a fleet home with something wrong in it", () => {
     const home = await copyHome("adrift");
     await beacon(home, 30_000);
 
-    assert.deepEqual(health(await readHome(home)).queue, { read: "ok", queued: 0 });
+    assert.deepEqual(health(await readHome(home)).queue, {
+      read: "ok",
+      queued: 0,
+    });
   });
 
   test("a queue file that was never created reads the same as an empty one", async () => {
@@ -225,7 +253,10 @@ describe("a fleet home with something wrong in it", () => {
     // its absence under a state directory that reads fine is "not there yet",
     // not a failure - unlike the same absence when the directory itself is
     // gone, covered below.
-    assert.deepEqual(health(await readHome(home)).queue, { read: "ok", queued: 0 });
+    assert.deepEqual(health(await readHome(home)).queue, {
+      read: "ok",
+      queued: 0,
+    });
   });
 
   test("away mode on and the home locked are both read from their markers' presence", async () => {
@@ -282,7 +313,8 @@ describe("a fleet that has moved underneath the panel", () => {
     const signals = health(await readHome(home));
     assert.equal(signals.queue.read, "unreadable");
     assert.ok(
-      signals.queue.read === "unreadable" && signals.queue.detail.includes(".wake-queue"),
+      signals.queue.read === "unreadable" &&
+        signals.queue.detail.includes(".wake-queue"),
       "the operator is told which path did not answer",
     );
     assert.equal(signals.supervisor.read, "ok");
@@ -297,7 +329,8 @@ describe("a fleet that has moved underneath the panel", () => {
     const supervisor = health(await readHome(home)).supervisor;
     assert.equal(supervisor.read, "unreadable");
     assert.ok(
-      supervisor.read === "unreadable" && supervisor.detail.includes(".last-watcher-beat"),
+      supervisor.read === "unreadable" &&
+        supervisor.detail.includes(".last-watcher-beat"),
       "the operator is told which path did not answer",
     );
   });
@@ -347,10 +380,13 @@ describe("a fleet that has moved underneath the panel", () => {
     await beacon(home, 30_000);
     await writeFile(
       join(home, "state", "wi-tidewater-114.busy-state"),
-      "v2 {\"state\": \"idle\", \"since\": \"long ago\"}\n",
+      'v2 {"state": "idle", "since": "long ago"}\n',
     );
 
-    assert.deepEqual(health(await readHome(home)).overdue, { read: "ok", overdue: [] });
+    assert.deepEqual(health(await readHome(home)).overdue, {
+      read: "ok",
+      overdue: [],
+    });
   });
 });
 
@@ -380,7 +416,10 @@ describe("the health lens going dark", () => {
    */
   test("leaves the fleet and the deck exactly as they were", async () => {
     const snapshot = parseSnapshot(
-      readFileSync(join(REPO_ROOT, "fixtures", "healthy", "snapshot.json"), "utf8"),
+      readFileSync(
+        join(REPO_ROOT, "fixtures", "healthy", "snapshot.json"),
+        "utf8",
+      ),
       "fixture:healthy",
     );
     const reading = await readFleetHomeHealth(
@@ -401,7 +440,10 @@ describe("the health lens going dark", () => {
     const home = await copyHome("adrift");
     await beacon(home, 30_000);
     const snapshot = parseSnapshot(
-      readFileSync(join(REPO_ROOT, "fixtures", "healthy", "snapshot.json"), "utf8"),
+      readFileSync(
+        join(REPO_ROOT, "fixtures", "healthy", "snapshot.json"),
+        "utf8",
+      ),
       "fixture:healthy",
     );
 
@@ -470,7 +512,9 @@ test("a configured fleet home is what the panel's own document is built from", a
   });
   assert.deepEqual(document.health.content.overdue, {
     read: "ok",
-    overdue: [{ id: "wi-brightwater-207", waitingSince: "2099-01-01T09:05:30.000Z" }],
+    overdue: [
+      { id: "wi-brightwater-207", waitingSince: "2099-01-01T09:05:30.000Z" },
+    ],
   });
   assert.equal(document.health.status.state, "fresh");
   assert.equal(document.fleet.status.state, "fresh");

@@ -112,14 +112,19 @@ export function SnapshotBadge({
       )}
     >
       <p className="flex min-w-0 flex-wrap items-center gap-x-2 font-mono text-xs tracking-wide">
-        <span aria-hidden className={cn("size-2 shrink-0 rounded-full", DOT[age])} />
+        <span
+          aria-hidden
+          className={cn("size-2 shrink-0 rounded-full", DOT[age])}
+        />
         <span className="uppercase">{`Snapshot · ${ago(asOf, nowMs)}`}</span>
         <span data-snapshot-word className="font-medium uppercase">
           {WORD[age]}
         </span>
       </p>
 
-      <p className="text-xs wrap-anywhere text-muted-foreground">{MEANING[age]}</p>
+      <p className="text-xs wrap-anywhere text-muted-foreground">
+        {MEANING[age]}
+      </p>
 
       <HowToRebuild rebuild={rebuild} />
     </div>
@@ -150,7 +155,8 @@ function Unread({ rebuild }: { rebuild: Rebuild | null }) {
       </p>
 
       <p className="text-xs wrap-anywhere text-muted-foreground">
-        Nothing on this page is dated, because there is no reading to date it from.
+        Nothing on this page is dated, because there is no reading to date it
+        from.
       </p>
 
       <HowToRebuild rebuild={rebuild} />
@@ -163,7 +169,8 @@ function HowToRebuild({ rebuild }: { rebuild: Rebuild | null }) {
   if (rebuild === null) {
     return (
       <p className="text-xs wrap-anywhere text-muted-foreground">
-        No command here makes a newer one; the panel redraws when its source changes.
+        No command here makes a newer one; the panel redraws when its source
+        changes.
       </p>
     );
   }

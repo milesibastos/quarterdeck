@@ -24,4 +24,5 @@ export const ORDER_UNCONFIRMED =
   "This panel cannot say anything merged until a later reading shows it.";
 
 /** Under the button: who performs the verb on it, since it is not this page. */
-export const ORDER_EXPLAINER = "Records an order; the fleet merges it, and refuses if it may not.";
+export const ORDER_EXPLAINER =
+  "Records an order; the fleet merges it, and refuses if it may not.";

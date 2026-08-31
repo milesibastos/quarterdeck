@@ -18,7 +18,10 @@ const DEFAULT: GrokSlashCommand[] = [
   { name: "/docs", description: "Open How-to Guides or online Build docs" },
   { name: "/home", description: "Return to the welcome screen" },
   { name: "/new", description: "Start a new session" },
-  { name: "/fork", description: "Branch the current session into a peer agent" },
+  {
+    name: "/fork",
+    description: "Branch the current session into a peer agent",
+  },
 ];
 
 const ACTIVE = "var(--term-fg)";

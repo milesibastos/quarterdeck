@@ -116,7 +116,11 @@ const HOST = "127.0.0.1";
  */
 const FLEET_SEPARATOR = ":";
 
-function intFromEnv(env: NodeJS.ProcessEnv, name: string, fallback: number): number {
+function intFromEnv(
+  env: NodeJS.ProcessEnv,
+  name: string,
+  fallback: number,
+): number {
   const raw = env[name];
   if (raw === undefined || raw === "") return fallback;
   const value = Number(raw);
@@ -271,7 +275,10 @@ function fleetsFromEnv(env: NodeJS.ProcessEnv): readonly FleetRef[] {
  * will be asked for a fleet it no longer has. Showing the first one - and
  * saying so, which is the picker's job - beats an error page.
  */
-export function fleetById(config: Config, id: string | null | undefined): FleetRef {
+export function fleetById(
+  config: Config,
+  id: string | null | undefined,
+): FleetRef {
   return config.fleets.find((fleet) => fleet.id === id) ?? config.fleets[0];
 }
 

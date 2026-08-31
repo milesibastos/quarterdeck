@@ -213,7 +213,13 @@ export function requestIdFor(parts: {
   const digest = createHash("sha256");
   // Length-prefixed, so no combination of field contents can be re-cut into a
   // different combination that digests the same.
-  for (const field of [parts.taskId, parts.since, parts.answer, parts.label, parts.mode]) {
+  for (const field of [
+    parts.taskId,
+    parts.since,
+    parts.answer,
+    parts.label,
+    parts.mode,
+  ]) {
     digest.update(`${Buffer.byteLength(field)}:${field}`);
   }
   return digest.digest("hex").slice(0, 32);
@@ -275,7 +281,9 @@ export const MERGE_RECORD_SUFFIX = ".merge-order-v1";
  * format any other way, so the writer itself does not know what an answer is -
  * it looks the format up, checks it, and links the bytes into place.
  */
-const FORMATS: { readonly [K in IntentKind]: RecordFormat<Extract<Intent, { kind: K }>> } = {
+const FORMATS: {
+  readonly [K in IntentKind]: RecordFormat<Extract<Intent, { kind: K }>>;
+} = {
   "answer-decision": {
     suffix: RECORD_SUFFIX,
     line: (intent) => keyedAnswerLine(intent),
@@ -317,13 +325,21 @@ export function keyedAnswerLine(
   ];
   for (const [name, value] of fields) {
     if (/[\t\n\r]/.test(value)) {
-      return { ok: false, detail: `The ${name} may not contain a tab or a line break.` };
+      return {
+        ok: false,
+        detail: `The ${name} may not contain a tab or a line break.`,
+      };
     }
   }
-  if (intent.taskId.trim() === "") return { ok: false, detail: "The task id is empty." };
-  if (intent.answer.trim() === "") return { ok: false, detail: "The answer is empty." };
+  if (intent.taskId.trim() === "")
+    return { ok: false, detail: "The task id is empty." };
+  if (intent.answer.trim() === "")
+    return { ok: false, detail: "The answer is empty." };
   if (!CLOSE_MODES.includes(intent.mode)) {
-    return { ok: false, detail: `"${intent.mode}" is not a close mode the fleet accepts.` };
+    return {
+      ok: false,
+      detail: `"${intent.mode}" is not a close mode the fleet accepts.`,
+    };
   }
   if (Buffer.byteLength(intent.answer) > MAX_ANSWER_BYTES) {
     return {
@@ -354,15 +370,21 @@ export function keyedAnswerLine(
  * and repository out of the address it is given, so an address that is not one
  * is a merge aimed at a repository nobody named.
  */
-export function mergeOrderLine(intent: MergeIntent): Refusal & { readonly line?: string } {
+export function mergeOrderLine(
+  intent: MergeIntent,
+): Refusal & { readonly line?: string } {
   for (const [name, value] of [
     ["task id", intent.taskId],
     ["pull request address", intent.url],
   ] as const) {
     if (/[\t\n\r]/.test(value)) {
-      return { ok: false, detail: `The ${name} may not contain a tab or a line break.` };
+      return {
+        ok: false,
+        detail: `The ${name} may not contain a tab or a line break.`,
+      };
     }
-    if (value.trim() === "") return { ok: false, detail: `The ${name} is empty.` };
+    if (value.trim() === "")
+      return { ok: false, detail: `The ${name} is empty.` };
   }
   let parsed: URL;
   try {
@@ -370,7 +392,8 @@ export function mergeOrderLine(intent: MergeIntent): Refusal & { readonly line?:
   } catch {
     return {
       ok: false,
-      detail: "The pull request address is not a full address, and this panel will not guess one.",
+      detail:
+        "The pull request address is not a full address, and this panel will not guess one.",
     };
   }
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {

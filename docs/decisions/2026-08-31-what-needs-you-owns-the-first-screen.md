@@ -159,7 +159,7 @@ that behaves differently from the deck and fleet lenses, which already show a
 real count off last-known-good content when their own reads fail. An operator
 who learns the rule in one lens and finds it does not hold in the next has been
 misled by the inconsistency itself - and the danger this band guards against is
-a *silent* undercount; a count that announces the read failed and may be short
+a _silent_ undercount; a count that announces the read failed and may be short
 is the opposite of silent.
 
 **Three focus stops went away with the scroll areas.** Each lens body carried

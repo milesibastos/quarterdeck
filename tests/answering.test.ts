@@ -25,7 +25,10 @@ import { startPanel, type Panel } from "./lib/server.ts";
 const nextPort = portsFor(import.meta.filename);
 
 /** The deck's three held items, from the `healthy` fixture set. */
-const ANSWERABLE = { id: "wi-tidewater-126", since: "2099-01-01T07:20:05.000Z" };
+const ANSWERABLE = {
+  id: "wi-tidewater-126",
+  since: "2099-01-01T07:20:05.000Z",
+};
 const ANSWERABLE_IN_FLIGHT = "wi-driftwood-540";
 const HELD_BY_SOMETHING_ELSE = "wi-brackish-277";
 const NOT_HELD = "wi-lamplight-231";
@@ -38,10 +41,12 @@ async function spoolDir(): Promise<string> {
 async function spool(dir: string): Promise<[string, string][]> {
   const names = (await readdir(dir)).sort();
   return Promise.all(
-    names.map(async (name): Promise<[string, string]> => [
-      name,
-      await readFile(join(dir, name), "utf8"),
-    ]),
+    names.map(
+      async (name): Promise<[string, string]> => [
+        name,
+        await readFile(join(dir, name), "utf8"),
+      ],
+    ),
   );
 }
 
@@ -58,7 +63,10 @@ async function html(panel: Panel): Promise<string> {
  */
 function secretFrom(page: string): string {
   const match = /\\?"secret\\?":\\?"([A-Za-z0-9_-]{20,})\\?"/.exec(page);
-  assert.ok(match, "the page carries the session secret once a spool is configured");
+  assert.ok(
+    match,
+    "the page carries the session secret once a spool is configured",
+  );
   return match[1];
 }
 
@@ -73,7 +81,10 @@ async function answer(
     headers: { "content-type": "application/json", [SESSION_HEADER]: secret },
     body: JSON.stringify(body),
   });
-  return { status: response.status, body: (await response.json()) as Record<string, unknown> };
+  return {
+    status: response.status,
+    body: (await response.json()) as Record<string, unknown>,
+  };
 }
 
 describe("the answer control in the deck", () => {
@@ -122,7 +133,10 @@ describe("the answer control in the deck", () => {
     const page = await html(panel);
     assert.ok(page.includes('data-close-mode="done"'));
     assert.ok(page.includes('data-close-mode="release"'));
-    assert.ok(page.includes("completes this item"), "what each close does, on the card");
+    assert.ok(
+      page.includes("completes this item"),
+      "what each close does, on the card",
+    );
     assert.ok(page.includes("lifts the hold so the work resumes"));
   });
 });
@@ -158,7 +172,11 @@ describe("recording an answer", () => {
     const records = await spool(dir);
     assert.equal(records.length, 1, "one answer, one record");
     const [name, content] = records[0];
-    assert.match(name, /^[0-9a-f]{32}\.keyed-answer-v1$/, "named by the request identity");
+    assert.match(
+      name,
+      /^[0-9a-f]{32}\.keyed-answer-v1$/,
+      "named by the request identity",
+    );
     // `<task-id>\t<answer>\t<label>\t<mode>` and one newline. The key IS the
     // task id: no mapping, no derived identity, no second line for the intake
     // to read as a bogus key.
@@ -178,7 +196,9 @@ describe("recording an answer", () => {
     });
     assert.equal(result.status, 200);
     const records = await spool(dir);
-    const released = records.find(([, content]) => content.includes(ANSWERABLE_IN_FLIGHT));
+    const released = records.find(([, content]) =>
+      content.includes(ANSWERABLE_IN_FLIGHT),
+    );
     assert.ok(released);
     assert.ok(
       released[1].endsWith("\trelease\n"),
@@ -217,7 +237,11 @@ describe("recording an answer", () => {
     });
     assert.equal(result.status, 200);
     const records = await spool(dir);
-    assert.ok(records.some(([, content]) => content.startsWith("wi-nothing-here-999\t")));
+    assert.ok(
+      records.some(([, content]) =>
+        content.startsWith("wi-nothing-here-999\t"),
+      ),
+    );
   });
 });
 
@@ -255,8 +279,16 @@ describe("replaying an answer", () => {
 
     const second = await answer(panel, secret, request);
     assert.equal(second.status, 200);
-    assert.equal(second.body.duplicate, true, "the replay is recognised as one");
-    assert.equal(second.body.requestId, first.body.requestId, "and has the same identity");
+    assert.equal(
+      second.body.duplicate,
+      true,
+      "the replay is recognised as one",
+    );
+    assert.equal(
+      second.body.requestId,
+      first.body.requestId,
+      "and has the same identity",
+    );
 
     // The acceptance is the disk, not the reply: byte for byte, name for name,
     // the spool is what it was before the replay arrived.
@@ -292,13 +324,20 @@ describe("replaying an answer", () => {
   });
 
   test("a different answer to the same question is a different record", async () => {
-    const changed = await answer(panel, secret, { ...request, answer: "On reflection, rename it." });
+    const changed = await answer(panel, secret, {
+      ...request,
+      answer: "On reflection, rename it.",
+    });
     assert.equal(changed.status, 200);
     assert.equal(changed.body.duplicate, false);
     assert.notEqual(changed.body.requestId, undefined);
     const contents = (await spool(dir)).map(([, content]) => content);
-    assert.ok(contents.some((line) => line.includes("Keep the current names.")));
-    assert.ok(contents.some((line) => line.includes("On reflection, rename it.")));
+    assert.ok(
+      contents.some((line) => line.includes("Keep the current names.")),
+    );
+    assert.ok(
+      contents.some((line) => line.includes("On reflection, rename it.")),
+    );
     // What a changed answer MEANS is the intake's to decide, not this panel's:
     // it rejects a decision that contradicts the one already recorded. The
     // panel's job ended at recording what the operator said.
@@ -436,9 +475,16 @@ describe("a panel with nowhere to record an answer", () => {
     // and it names the reason rather than failing obscurely.
     const response = await fetch(`${panel.url}/api/act/answer-decision`, {
       method: "POST",
-      headers: { "content-type": "application/json", [SESSION_HEADER]: "not-the-secret" },
+      headers: {
+        "content-type": "application/json",
+        [SESSION_HEADER]: "not-the-secret",
+      },
       body: JSON.stringify({}),
     });
-    assert.equal(response.status, 403, "the acting guard is still in front of it");
+    assert.equal(
+      response.status,
+      403,
+      "the acting guard is still in front of it",
+    );
   });
 });

@@ -26,7 +26,7 @@ rows that are genuinely stuck.
 
 The fleet is in the document. Reading it here costs the deck nothing that
 matters: `src/ui/` may see the whole document, invariant 6 is about not reaching
-*past* it, and no adapter, path or fetch enters the lens. What it buys is the
+_past_ it, and no adapter, path or fetch enters the lens. What it buys is the
 one thing the row is for - `wi-cordage-401 landed; no longer blocking` instead
 of a badge that stays lit forever.
 
@@ -34,12 +34,12 @@ of a badge that stays lit forever.
 
 Per blocker id, in `src/ui/deck/deck-groups.ts`:
 
-| Where the id is found | What the lens says |
-| --- | --- |
-| In the deck | Still blocking. Names it by its title and deck state. |
-| In the fleet, `landed` | Cleared. The item leaves the blocked pile and the row says what landed. |
+| Where the id is found         | What the lens says                                                                         |
+| ----------------------------- | ------------------------------------------------------------------------------------------ |
+| In the deck                   | Still blocking. Names it by its title and deck state.                                      |
+| In the fleet, `landed`        | Cleared. The item leaves the blocked pile and the row says what landed.                    |
 | In the fleet, any other stage | Still blocking. Names its project and stage - `failed` blocks as surely as `working` does. |
-| In neither | Still blocking. Names the bare id, and claims nothing else. |
+| In neither                    | Still blocking. Names the bare id, and claims nothing else.                                |
 
 `landed` is the only stage that means done, and an unknown blocker is not a
 cleared one. Both directions of that rule are tested through the built server:

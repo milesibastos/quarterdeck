@@ -423,9 +423,7 @@
         "state": "queued",
         "priority": "next",
         "since": "2099-01-01T08:55:00.000Z",
-        "blocked_by_ids": [
-          "wi-cordage-401"
-        ],
+        "blocked_by_ids": ["wi-cordage-401"],
         "blocked_reason": "Waits on the seam landing first",
         "hold_kind": null,
         "hold_reason": null,
@@ -548,14 +546,8 @@
         "completion": null
       }
     ],
-    "truncated": [
-      "/anchorage/homes/brackish"
-    ],
-    "unreadable": [
-      "/anchorage/homes/shoalwater"
-    ],
-    "partial": [
-      "/anchorage/homes/driftwood"
-    ]
+    "truncated": ["/anchorage/homes/brackish"],
+    "unreadable": ["/anchorage/homes/shoalwater"],
+    "partial": ["/anchorage/homes/driftwood"]
   }
 }

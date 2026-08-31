@@ -29,7 +29,6 @@ export type GrokProject = {
   data?: Record<string, string | undefined>;
 };
 
-
 export function GrokProjectPicker({
   title = "Run Grok Build in a project directory?",
   description = "This gives Grok Build full context of your codebase for better results.",
@@ -64,7 +63,7 @@ export function GrokProjectPicker({
         <>
           <span style={{ color: FG }}>{p.name}</span>
           {p.meta ? <span style={{ color: DIM }}> ({p.meta})</span> : null}
-          {p.path ? <span style={{ color: DIM }}>  {p.path}</span> : null}
+          {p.path ? <span style={{ color: DIM }}> {p.path}</span> : null}
         </>
       ),
     })),
@@ -119,7 +118,8 @@ export function GrokProjectPicker({
       <div role="radiogroup" aria-label={title} className="space-y-0.5">
         {options.map((opt) => {
           const active = sel === opt.index;
-          const prefix = opt.index === customIndex ? "z" : String(opt.index + 1);
+          const prefix =
+            opt.index === customIndex ? "z" : String(opt.index + 1);
           return (
             <div
               key={opt.key}
@@ -131,9 +131,7 @@ export function GrokProjectPicker({
               onKeyDown={(e) => onKey(e, opt.index)}
               onClick={() => {
                 setSel(opt.index);
-                onChoose?.(
-                  opt.index === customIndex ? "custom" : opt.index,
-                );
+                onChoose?.(opt.index === customIndex ? "custom" : opt.index);
               }}
               className={cn(
                 "flex cursor-pointer items-baseline gap-2 outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -144,8 +142,8 @@ export function GrokProjectPicker({
               <span aria-hidden className="shrink-0 tabular-nums">
                 {prefix}{" "}
                 <span style={{ color: active ? FG : DIM }}>
-                    {active ? "(●)" : "(○)"}
-                  </span>
+                  {active ? "(●)" : "(○)"}
+                </span>
               </span>
               <span className="min-w-0 truncate">{opt.label}</span>
             </div>

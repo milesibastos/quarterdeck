@@ -1,7 +1,12 @@
 import assert from "node:assert/strict";
 import { join } from "node:path";
 import { test } from "node:test";
-import { CHECKS, plantedTrees, runChecks, type CheckName } from "./lib/invariants.ts";
+import {
+  CHECKS,
+  plantedTrees,
+  runChecks,
+  type CheckName,
+} from "./lib/invariants.ts";
 import { formatViolation, formatViolations } from "./lib/violation.ts";
 import { REPO_ROOT } from "./lib/server.ts";
 
@@ -15,11 +20,7 @@ const VIOLATIONS_ROOT = join(REPO_ROOT, "tests", "violations");
 
 test("src/ satisfies every invariant", () => {
   const violations = runChecks(join(REPO_ROOT, "src"));
-  assert.deepEqual(
-    violations,
-    [],
-    `\n\n${formatViolations(violations)}\n`,
-  );
+  assert.deepEqual(violations, [], `\n\n${formatViolations(violations)}\n`);
 });
 
 test("every check has a planted violation to prove it works", () => {
@@ -51,15 +52,12 @@ test("no-egress finds a URL past JSX prose and a comment, not inside one", () =>
   // of a real violation, proving neither desyncs comment/string classification
   // for what follows.
   const found = runChecks(join(VIOLATIONS_ROOT, "no-egress"));
-  assert.deepEqual(
-    found.map((v) => `${v.file}:${v.line}`).sort(),
-    [
-      "src/adapters/health.ts:2",
-      "src/ui/apostrophe.tsx:10",
-      "src/ui/fonts/fonts.ts:2",
-      "src/ui/fonts/fonts.ts:5",
-    ],
-  );
+  assert.deepEqual(found.map((v) => `${v.file}:${v.line}`).sort(), [
+    "src/adapters/health.ts:2",
+    "src/ui/apostrophe.tsx:10",
+    "src/ui/fonts/fonts.ts:2",
+    "src/ui/fonts/fonts.ts:5",
+  ]);
 });
 
 test("a .ts file's generic arrow does not swallow a later comment as code", () => {

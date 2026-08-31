@@ -79,14 +79,19 @@ describe("the order of the bands, at the large end of the range", () => {
     // page rather than a part of it, so it carries no lens envelope and no
     // trust word of its own.
     for (const band of bands(html)) {
-      assert.ok(bar > html.indexOf(`data-lens="${band}"`), `the bar comes after ${band}`);
+      assert.ok(
+        bar > html.indexOf(`data-lens="${band}"`),
+        `the bar comes after ${band}`,
+      );
     }
     assert.ok(!/data-lens="disclosure"/.test(html), "the bar is not a lens");
   });
 
   test("only the first band is drawn as the dominant one", async () => {
     const html = await body(panel);
-    const primary = [...html.matchAll(/data-lens="([a-z-]+)"[^>]*data-prominence="primary"/g)];
+    const primary = [
+      ...html.matchAll(/data-lens="([a-z-]+)"[^>]*data-prominence="primary"/g),
+    ];
     assert.deepEqual(
       primary.map((match) => match[1]),
       ["needs-you"],
@@ -98,7 +103,10 @@ describe("the order of the bands, at the large end of the range", () => {
     const html = await body(panel);
     // The header count is how an operator knows whether what is on screen is
     // all of it, without scrolling to the bottom of a band to find out.
-    assert.match(lens(html, "needs-you"), /Current<\/span>[\s\S]{0,80}4 decisions/);
+    assert.match(
+      lens(html, "needs-you"),
+      /Current<\/span>[\s\S]{0,80}4 decisions/,
+    );
     assert.match(lens(html, "fleet"), /Current<\/span>[\s\S]{0,80}30 workers/);
     assert.match(lens(html, "deck"), /Current<\/span>[\s\S]{0,80}11 items/);
   });
@@ -121,10 +129,18 @@ describe("the accessibility of a page that changes under the reader", () => {
 
   test("the headings form an outline with no level skipped", async () => {
     const levels = headings(await body(panel));
-    assert.equal(levels.filter((level) => level === 1).length, 1, "one page, one h1");
+    assert.equal(
+      levels.filter((level) => level === 1).length,
+      1,
+      "one page, one h1",
+    );
     // Five bands, and the disclosure bar - which is not a band but is a
     // top-level part of the page and so sits at the same level as one.
-    assert.equal(levels.filter((level) => level === 2).length, 6, "one h2 per band, plus the bar");
+    assert.equal(
+      levels.filter((level) => level === 2).length,
+      6,
+      "one h2 per band, plus the bar",
+    );
     assert.equal(levels[0], 1, "and the page's own heading comes first");
     for (const [index, level] of levels.entries()) {
       const previous = levels[index - 1] ?? 1;
@@ -160,7 +176,10 @@ describe("the accessibility of a page that changes under the reader", () => {
       );
       // The focus stop went with the scroll area it existed for. A region that
       // does not scroll and takes focus anyway is a stop on the way to nothing.
-      assert.ok(!region.includes('tabindex="0"'), `${name}'s body is not a focus stop`);
+      assert.ok(
+        !region.includes('tabindex="0"'),
+        `${name}'s body is not a focus stop`,
+      );
     }
   });
 
@@ -187,7 +206,10 @@ describe("a status line the panel did not write", () => {
     // The recorded bug: upstream's refusal quotes what it refused, the fixture
     // makes that a 180-character run with no space, hyphen or slash in it, and
     // `break-words` leaves such a run wider than the column it sits in.
-    assert.ok(/[A-Z0-9]{120,}/.test(detail[2]), "the detail carries the unbroken run");
+    assert.ok(
+      /[A-Z0-9]{120,}/.test(detail[2]),
+      "the detail carries the unbroken run",
+    );
     assert.ok(
       detail[1].includes("wrap-anywhere"),
       "and the element may break it anywhere, which is what keeps it inside the frame",
@@ -204,7 +226,9 @@ describe("the theme", () => {
 
   /** The stylesheet the page links, fetched from the server that served it. */
   async function stylesheet(): Promise<string> {
-    const href = /<link rel="stylesheet" href="([^"]+\.css)"/.exec(await body(panel))?.[1];
+    const href = /<link rel="stylesheet" href="([^"]+\.css)"/.exec(
+      await body(panel),
+    )?.[1];
     assert.ok(href, "the page links a stylesheet");
     return (await fetch(`${panel.url}${href}`)).text();
   }
@@ -220,7 +244,10 @@ describe("the theme", () => {
     // The class this used to be. A `.dark` selector surviving anywhere would
     // mean a second copy of the mapping, which is the drift the old decision
     // refused a media query to avoid; there is one copy now, not two.
-    assert.ok(!/\.dark[\s,{]/.test(css), "and no class decides the theme any more");
+    assert.ok(
+      !/\.dark[\s,{]/.test(css),
+      "and no class decides the theme any more",
+    );
   });
 
   test("declares a colour scheme in both directions", async () => {
@@ -230,7 +257,9 @@ describe("the theme", () => {
     // already the right one.
     assert.ok(/:root\{[^}]*color-scheme:\s*light/.test(css));
     assert.ok(
-      /@media \(prefers-color-scheme:\s*dark\)\{:root\{[^}]*color-scheme:\s*dark/.test(css),
+      /@media \(prefers-color-scheme:\s*dark\)\{:root\{[^}]*color-scheme:\s*dark/.test(
+        css,
+      ),
     );
   });
 

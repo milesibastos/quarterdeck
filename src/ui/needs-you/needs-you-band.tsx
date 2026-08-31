@@ -56,7 +56,11 @@ import { needsYou } from "@/ui/needs-you/needs-you";
  * information here, and "0 to merge" beside two decisions reads as a reassurance
  * nobody counted.
  */
-function sizeOf(count: number, actionable: number, merges: number): string | null {
+function sizeOf(
+  count: number,
+  actionable: number,
+  merges: number,
+): string | null {
   const parts: string[] = [];
   if (count > 0) {
     parts.push(count === 1 ? "1 decision" : `${count} decisions`);
@@ -105,7 +109,9 @@ function NothingNeedsYou({
       data-needs-you-empty="none"
       className="border-l-2 border-term-rule py-6 pl-3 font-mono text-[13px] leading-[1.55]"
     >
-      <p className="font-display text-xl tracking-wide text-term-fg-bright">Nothing needs you</p>
+      <p className="font-display text-xl tracking-wide text-term-fg-bright">
+        Nothing needs you
+      </p>
       {/* Says where the zero came from, and claims nothing about how fresh
           the deck was while doing it - the trust word in the header above is
           the only thing on this page entitled to make that claim. */}
@@ -178,11 +184,18 @@ export function NeedsYouBand({
       )}
 
       {decisions.length === 0 && merges.length === 0 ? (
-        <NothingNeedsYou status={lens.status} deckSize={lens.content.length} nowMs={nowMs} />
+        <NothingNeedsYou
+          status={lens.status}
+          deckSize={lens.content.length}
+          nowMs={nowMs}
+        />
       ) : (
         <>
           {decisions.length > 0 && (
-            <ul data-needs-group="decisions" className="card-grid [--qd-card-min:24rem]">
+            <ul
+              data-needs-group="decisions"
+              className="card-grid [--qd-card-min:24rem]"
+            >
               {decisions.map((row) => (
                 <DecisionCard
                   key={row.item.id}
@@ -202,7 +215,10 @@ export function NeedsYouBand({
             work up, and a green pull request is not.
           */}
           {merges.length > 0 && (
-            <ul data-needs-group="merges" className="card-grid [--qd-card-min:24rem]">
+            <ul
+              data-needs-group="merges"
+              className="card-grid [--qd-card-min:24rem]"
+            >
               {merges.map((worker) => (
                 <MergeCard
                   key={worker.id}

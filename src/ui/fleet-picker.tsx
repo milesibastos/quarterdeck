@@ -2,7 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { FLEET_COOKIE, FLEET_COOKIE_MAX_AGE_SECONDS } from "@/types/selection.ts";
+import {
+  FLEET_COOKIE,
+  FLEET_COOKIE_MAX_AGE_SECONDS,
+} from "@/types/selection.ts";
 import { GrokProjectPicker } from "@/ui/components/grok/grok-project-picker";
 import { GrokStatus } from "@/ui/components/grok/grok-status";
 import { cn } from "@/ui/lib/utils";
@@ -191,30 +194,30 @@ export function FleetPicker({
             shut disclosure out of the focus order and out of the accessibility
             tree at the same time. */}
         <div id="fleet-chooser" ref={list} hidden={!choosing} className="pt-1">
-            <GrokProjectPicker
-              title="Fleet"
-              description="Which fleet the panel is reading. Remembered in this browser."
-              projects={fleets.map((fleet) => ({
-                id: fleet.id,
-                name: fleet.label,
-                // The id only when it is not just the label again: it is what
-                // the cookie and the change stream carry, so it is worth
-                // showing when the two differ and noise when they do not.
-                path: fleet.id === fleet.label ? undefined : fleet.id,
-                meta: fleet.id === showing ? "showing" : undefined,
-                current: fleet.id === showing,
-                data: { "data-fleet-choice": fleet.id },
-              }))}
-              defaultSelected={Math.max(
-                0,
-                fleets.findIndex((fleet) => fleet.id === (wanted ?? showing)),
-              )}
-              custom={false}
-              onChoose={(index) => {
-                if (index === "custom") return;
-                select(fleets[index].id);
-              }}
-            />
+          <GrokProjectPicker
+            title="Fleet"
+            description="Which fleet the panel is reading. Remembered in this browser."
+            projects={fleets.map((fleet) => ({
+              id: fleet.id,
+              name: fleet.label,
+              // The id only when it is not just the label again: it is what
+              // the cookie and the change stream carry, so it is worth
+              // showing when the two differ and noise when they do not.
+              path: fleet.id === fleet.label ? undefined : fleet.id,
+              meta: fleet.id === showing ? "showing" : undefined,
+              current: fleet.id === showing,
+              data: { "data-fleet-choice": fleet.id },
+            }))}
+            defaultSelected={Math.max(
+              0,
+              fleets.findIndex((fleet) => fleet.id === (wanted ?? showing)),
+            )}
+            custom={false}
+            onChoose={(index) => {
+              if (index === "custom") return;
+              select(fleets[index].id);
+            }}
+          />
         </div>
       </nav>
 

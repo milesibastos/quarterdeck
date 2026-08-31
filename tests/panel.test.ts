@@ -39,7 +39,9 @@ function workerCards(html: string): number {
 /** The status the shell put on one lens, or null when that lens is absent. */
 function lensStatus(html: string, name: string): string | null {
   return (
-    new RegExp(`data-lens="${name}" data-lens-status="([a-z]+)"`).exec(html)?.[1] ?? null
+    new RegExp(`data-lens="${name}" data-lens-status="([a-z]+)"`).exec(
+      html,
+    )?.[1] ?? null
   );
 }
 
@@ -52,26 +54,42 @@ describe("the healthy fleet", () => {
 
   test("mounts every band, each from its own directory", async () => {
     const html = await body(panel);
-    assert.ok(html.includes('data-lens="needs-you"'), "the band that owns the first screen");
+    assert.ok(
+      html.includes('data-lens="needs-you"'),
+      "the band that owns the first screen",
+    );
     assert.ok(html.includes('data-lens="fleet"'));
     assert.ok(html.includes("Queued"), "the deck lens drew its own piles");
-    assert.ok(html.includes('data-lens="landed"'), "what finished, below the fold");
+    assert.ok(
+      html.includes('data-lens="landed"'),
+      "what finished, below the fold",
+    );
     assert.ok(html.includes('data-signal="supervisor"'));
     // Not a lens: a statement about the page rather than a part of it, and the
     // last thing on it. See `src/ui/disclosure-bar.tsx`.
-    assert.ok(html.includes("data-disclosure"), "the bar naming what is not here");
+    assert.ok(
+      html.includes("data-disclosure"),
+      "the bar naming what is not here",
+    );
   });
 
   test("hands each lens the part of the document it reads", async () => {
     const html = await body(panel);
     assert.equal(workerCards(html), 12);
-    assert.ok(html.includes("Settle the hold vocabulary"), "a deck item the document carries");
+    assert.ok(
+      html.includes("Settle the hold vocabulary"),
+      "a deck item the document carries",
+    );
   });
 
   test("says every lens is current", async () => {
     const html = await body(panel);
     for (const lens of ["needs-you", "fleet", "deck", "landed", "shipshape"]) {
-      assert.equal(lensStatus(html, lens), "fresh", `${lens} should be current`);
+      assert.equal(
+        lensStatus(html, lens),
+        "fresh",
+        `${lens} should be current`,
+      );
     }
   });
 });
@@ -86,13 +104,25 @@ describe("the empty fleet", () => {
   test("renders a definitive empty state, not a degraded one", async () => {
     const html = await body(panel);
     assert.equal(workerCards(html), 0);
-    assert.ok(html.includes("No workers under way"), "a definitive empty state, in words");
-    assert.ok(html.includes("Nothing queued, blocked or held."), "a definitive empty deck");
     assert.ok(
-      html.includes("Nothing has landed: the read carried no finished work, here or in a mate's home."),
+      html.includes("No workers under way"),
+      "a definitive empty state, in words",
+    );
+    assert.ok(
+      html.includes("Nothing queued, blocked or held."),
+      "a definitive empty deck",
+    );
+    assert.ok(
+      html.includes(
+        "Nothing has landed: the read carried no finished work, here or in a mate's home.",
+      ),
       "a definitive empty landed band",
     );
-    assert.equal(lensStatus(html, "fleet"), "fresh", "an empty fleet is not a degraded one");
+    assert.equal(
+      lensStatus(html, "fleet"),
+      "fresh",
+      "an empty fleet is not a degraded one",
+    );
   });
 });
 
@@ -148,7 +178,11 @@ describe("a snapshot this build does not understand", () => {
   test("renders no lens at all", async () => {
     const html = await body(panel);
     for (const lens of ["fleet", "deck", "shipshape"]) {
-      assert.equal(lensStatus(html, lens), null, "a refused snapshot renders nothing");
+      assert.equal(
+        lensStatus(html, lens),
+        null,
+        "a refused snapshot renders nothing",
+      );
     }
   });
 });
@@ -157,21 +191,30 @@ describe("per-lens degradation", () => {
   test("shipshape goes dark while fleet and deck render normally", async () => {
     // The health-dark set has no health file at all: the quarantined module
     // degrades rather than throwing, and only its own lens notices.
-    const panel = await startPanel({ port: nextPort(), fixtureSet: "health-dark" });
+    const panel = await startPanel({
+      port: nextPort(),
+      fixtureSet: "health-dark",
+    });
     try {
       const html = await body(panel);
       assert.equal(lensStatus(html, "shipshape"), "unreadable");
       assert.equal(lensStatus(html, "fleet"), "fresh");
       assert.equal(lensStatus(html, "deck"), "fresh");
       assert.equal(workerCards(html), 3, "the fleet lens still renders");
-      assert.ok(html.includes("Settle the hold vocabulary"), "the deck lens still renders");
+      assert.ok(
+        html.includes("Settle the hold vocabulary"),
+        "the deck lens still renders",
+      );
     } finally {
       await panel.stop();
     }
   });
 
   test("the deck goes dark on its own when upstream could not read the backlog", async () => {
-    const panel = await startPanel({ port: nextPort(), fixtureSet: "deck-dark" });
+    const panel = await startPanel({
+      port: nextPort(),
+      fixtureSet: "deck-dark",
+    });
     try {
       const html = await body(panel);
       assert.equal(lensStatus(html, "deck"), "unreadable");
@@ -226,8 +269,13 @@ describe("the deck lens", () => {
 
   /** The rows of one pile, in the order the lens drew them. */
   function pile(html: string, name: string): string[] {
-    const section = new RegExp(`data-deck-group="${name}"(.*?)</section>`, "s").exec(html)?.[1];
-    return [...(section ?? "").matchAll(/data-deck-item="([^"]+)"/g)].map((match) => match[1]);
+    const section = new RegExp(
+      `data-deck-group="${name}"(.*?)</section>`,
+      "s",
+    ).exec(html)?.[1];
+    return [...(section ?? "").matchAll(/data-deck-item="([^"]+)"/g)].map(
+      (match) => match[1],
+    );
   }
 
   test("sorts what is queued, blocked and held into piles of their own", async () => {
@@ -236,7 +284,10 @@ describe("the deck lens", () => {
     // deliberately not here; what is left in this pile waits on something that
     // is not a person, and nobody can answer it. See tests/needs-you.test.ts.
     assert.deepEqual(pile(html, "held"), ["wi-brackish-277"]);
-    assert.deepEqual(pile(html, "queued"), ["wi-lamplight-231", "wi-cordage-412"]);
+    assert.deepEqual(pile(html, "queued"), [
+      "wi-lamplight-231",
+      "wi-cordage-412",
+    ]);
     assert.deepEqual(pile(html, "in-flight"), ["wi-saltmarsh-318"]);
   });
 
@@ -244,14 +295,21 @@ describe("the deck lens", () => {
     const html = await body(panel);
     assert.ok(html.includes("Waiting on "));
     assert.ok(html.includes("captain"), "who it waits on");
-    assert.ok(html.includes("Needs a naming decision"), "upstream's own words for why");
-    assert.ok(html.includes("deferred until "), "a deferral is a date, not an age");
+    assert.ok(
+      html.includes("Needs a naming decision"),
+      "upstream's own words for why",
+    );
+    assert.ok(
+      html.includes("deferred until "),
+      "a deferral is a date, not an age",
+    );
     assert.ok(html.includes("2099-01-04"));
   });
 
   /** One row's visible words, tags and React's SSR comments taken out. */
   function rowText(html: string, id: string): string {
-    const row = new RegExp(`data-deck-item="${id}"(.*?)</li>`, "s").exec(html)?.[1] ?? "";
+    const row =
+      new RegExp(`data-deck-item="${id}"(.*?)</li>`, "s").exec(html)?.[1] ?? "";
     return row
       .replace(/<!--.*?-->/g, "")
       .replace(/<[^>]*>/g, " ")
@@ -263,10 +321,16 @@ describe("the deck lens", () => {
     const html = await body(panel);
     // Enough identity to recognise a piece of work by: two rows with similar
     // titles are different jobs, and the project is what tells them apart.
-    assert.ok(rowText(html, "wi-tidewater-126").includes("tidewater \u00b7 research"));
-    assert.ok(rowText(html, "wi-lamplight-231").includes("lamplight \u00b7 build"));
+    assert.ok(
+      rowText(html, "wi-tidewater-126").includes("tidewater \u00b7 research"),
+    );
+    assert.ok(
+      rowText(html, "wi-lamplight-231").includes("lamplight \u00b7 build"),
+    );
     // A kind nobody recognised is building, and still has its project.
-    assert.ok(rowText(html, "wi-driftwood-540").includes("driftwood \u00b7 build"));
+    assert.ok(
+      rowText(html, "wi-driftwood-540").includes("driftwood \u00b7 build"),
+    );
   });
 
   test("a row that named neither project nor kind invents neither", async () => {
@@ -276,14 +340,23 @@ describe("the deck lens", () => {
       text.includes("queued \u00b7 wi-brackish-277"),
       "the state runs straight into the id, with nothing guessed in between",
     );
-    assert.ok(!text.includes("build") && !text.includes("research"), "no kind is claimed");
+    assert.ok(
+      !text.includes("build") && !text.includes("research"),
+      "no kind is claimed",
+    );
   });
 
   test("a row with no start date is not dated anyway", async () => {
     const text = rowText(await body(panel), "wi-brackish-277");
     assert.ok(text.includes("no start date"), "the absence, said in words");
-    assert.ok(!/\d+[smhdy] ago/.test(text), "and no age invented from the moment we read");
-    assert.ok(!text.includes("just now"), "nor the read's own moment dressed as an arrival");
+    assert.ok(
+      !/\d+[smhdy] ago/.test(text),
+      "and no age invented from the moment we read",
+    );
+    assert.ok(
+      !text.includes("just now"),
+      "nor the read's own moment dressed as an arrival",
+    );
   });
 
   test("a blocker that has landed does not keep an item looking blocked", async () => {
@@ -297,24 +370,36 @@ describe("the deck lens", () => {
   test("a blocker it cannot settle still blocks, named by its identity", async () => {
     // The same deck with no fleet beside it: nothing can say the blocker
     // finished, so the honest answer is that the item is still blocked.
-    const alone = await startPanel({ port: nextPort(), fixtureSet: "deck-only" });
+    const alone = await startPanel({
+      port: nextPort(),
+      fixtureSet: "deck-only",
+    });
     try {
       const html = await body(alone);
       assert.deepEqual(pile(html, "blocked"), ["wi-cordage-412"]);
       assert.ok(html.includes("Blocked by"));
       assert.ok(html.includes("wi-cordage-401"), "names the work it waits on");
-      assert.ok(html.includes("Waits on the seam landing first"), "and upstream's reason");
+      assert.ok(
+        html.includes("Waits on the seam landing first"),
+        "and upstream's reason",
+      );
     } finally {
       await alone.stop();
     }
   });
 
   test("says a deck it could not read is unknown, not empty", async () => {
-    const dark = await startPanel({ port: nextPort(), fixtureSet: "deck-dark" });
+    const dark = await startPanel({
+      port: nextPort(),
+      fixtureSet: "deck-dark",
+    });
     try {
       const html = await body(dark);
       assert.ok(html.includes("the deck could not be read"));
-      assert.ok(!html.includes("Nothing queued, blocked or held."), "not a definitive empty deck");
+      assert.ok(
+        !html.includes("Nothing queued, blocked or held."),
+        "not a definitive empty deck",
+      );
     } finally {
       await dark.stop();
     }

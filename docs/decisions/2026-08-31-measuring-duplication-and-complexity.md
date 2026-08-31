@@ -105,9 +105,9 @@ same 8,059 lines.)
 
 **Duplication: two clusters, and only one of them crosses a file.**
 
-| Where | What |
-| --- | --- |
-| `src/ui/components/grok/grok-write.tsx` 51 and 66 | 16 similar lines, mass 83. The `before` and `after` line maps, written twice. |
+| Where                                                                 | What                                                                                                                                                              |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/ui/components/grok/grok-write.tsx` 51 and 66                     | 16 similar lines, mass 83. The `before` and `after` line maps, written twice.                                                                                     |
 | `src/ui/disclosure-bar.tsx` 138 / `src/ui/landed/landed-lens.tsx` 178 | 22 similar lines, mass 86. `NothingOmitted` and `NothingLanded`: the same empty state, distinguishing "unreadable" from "genuinely empty", with different labels. |
 
 Two clusters across five lenses rewritten in parallel is a good result, and the
@@ -116,13 +116,13 @@ idea drawn twice, which is the shape that becomes a shared component later.
 
 **Complexity: four functions and one file over threshold.**
 
-| Where | Count | Threshold |
-| --- | --- | --- |
-| `GrokProjectPicker` (`grok-project-picker.tsx` 33) | 34 | 18 |
-| `KeyboardHelp` (`keyboard-help.tsx` 78) | 33 | 18 |
-| `GrokSettings` (`grok-settings.tsx` 85) | 24 | 18 |
-| `FleetPicker` (`fleet-picker.tsx` 83) | 19 | 18 |
-| `src/adapters/health.ts` (whole file) | 86 | 50 |
+| Where                                              | Count | Threshold |
+| -------------------------------------------------- | ----- | --------- |
+| `GrokProjectPicker` (`grok-project-picker.tsx` 33) | 34    | 18        |
+| `KeyboardHelp` (`keyboard-help.tsx` 78)            | 33    | 18        |
+| `GrokSettings` (`grok-settings.tsx` 85)            | 24    | 18        |
+| `FleetPicker` (`fleet-picker.tsx` 83)              | 19    | 18        |
+| `src/adapters/health.ts` (whole file)              | 86    | 50        |
 
 Plus nine "many returns" findings at counts of 6 and 7 against a threshold of 6 -
 `idleSinceMs`, `keyedAnswerLine`, `submitIntent`, `terminal read`, `recheck`,
@@ -139,13 +139,13 @@ The question was whether `src/ui/components/grok/` - code we own but did not
 write - dominates the numbers badly enough to deserve a permanent exclusion.
 Measured, it does not:
 
-| | grok | all of `src/` | grok's share |
-| --- | --- | --- | --- |
-| Lines of code | 1,929 | 7,932 | 24% |
-| Total complexity | 195 | 837 | 23% |
-| Findings | 6 | 18 | 33% |
+|                  | grok  | all of `src/` | grok's share |
+| ---------------- | ----- | ------------- | ------------ |
+| Lines of code    | 1,929 | 7,932         | 24%          |
+| Total complexity | 195   | 837           | 23%          |
+| Findings         | 6     | 18            | 33%          |
 
-Its complexity per line is very slightly *better* than the project average. It
+Its complexity per line is very slightly _better_ than the project average. It
 carries a third of the findings on a quarter of the lines, which is a mild
 over-representation, not a distortion - the number that would justify excluding
 it is not there.

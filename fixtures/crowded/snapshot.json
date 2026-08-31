@@ -955,9 +955,7 @@
         "state": "queued",
         "priority": "next",
         "since": "2099-01-01T07:45:00.000Z",
-        "blocked_by_ids": [
-          "wi-cordage-419"
-        ],
+        "blocked_by_ids": ["wi-cordage-419"],
         "blocked_reason": "Waits on the spool question",
         "hold_kind": null,
         "hold_reason": null,
@@ -1083,9 +1081,7 @@
         "state": "queued",
         "priority": "later",
         "since": "2099-01-01T05:15:00.000Z",
-        "blocked_by_ids": [
-          "wi-windlass-190"
-        ],
+        "blocked_by_ids": ["wi-windlass-190"],
         "blocked_reason": "Waits on the reader split",
         "hold_kind": null,
         "hold_reason": null,
@@ -1165,9 +1161,7 @@
         }
       }
     ],
-    "truncated": [
-      "/anchorage/homes/shoalwater"
-    ],
+    "truncated": ["/anchorage/homes/shoalwater"],
     "unreadable": [],
     "partial": []
   }

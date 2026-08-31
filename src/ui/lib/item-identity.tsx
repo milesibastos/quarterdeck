@@ -57,9 +57,16 @@ export function ItemIdentity({
       reads as a day rather than as an hour count measured from a midnight the
       record never stated.
     */
-    <p className={cn("mt-0.5 text-[12px] wrap-anywhere text-term-faint", className)}>
+    <p
+      className={cn(
+        "mt-0.5 text-[12px] wrap-anywhere text-term-faint",
+        className,
+      )}
+    >
       <span className={item.since === null ? undefined : emphasis}>
-        {item.since === null ? "no start date" : agoAtPrecision(item.since, nowMs)}
+        {item.since === null
+          ? "no start date"
+          : agoAtPrecision(item.since, nowMs)}
       </span>
       {` · ${STATE_WORDS[item.state]}`}
       {item.project !== null && (

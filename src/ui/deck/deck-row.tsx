@@ -111,13 +111,7 @@ function BlockerLine({ blocker }: { blocker: Blocker }) {
  * of who offers the control has to be answered again rather than assumed. See
  * `docs/decisions/2026-08-31-what-the-parallel-lens-build-duplicated.md`.
  */
-export function DeckItemRow({
-  row,
-  nowMs,
-}: {
-  row: Row;
-  nowMs: number;
-}) {
+export function DeckItemRow({ row, nowMs }: { row: Row; nowMs: number }) {
   const { item, blocking, cleared } = row;
   const hold = item.hold;
   const accent = accentOf(row);
@@ -148,12 +142,18 @@ export function DeckItemRow({
 
       {/* Enough identity to recognise a piece of work by, in the one sentence
           the band's cards also carry. See `ItemIdentity`. */}
-      <ItemIdentity item={item} nowMs={nowMs} emphasis="text-term-fg" className="pl-4" />
+      <ItemIdentity
+        item={item}
+        nowMs={nowMs}
+        emphasis="text-term-fg"
+        className="pl-4"
+      />
 
       {hold !== null && (
         <div className="mt-1.5 space-y-0.5 pl-4">
           <p className="text-term-dim">
-            Waiting on <span className="text-term-fg-bright">{hold.waitingOn}</span>
+            Waiting on{" "}
+            <span className="text-term-fg-bright">{hold.waitingOn}</span>
           </p>
           {/* Upstream's own words, unedited: a paraphrase of a reason is a
               second-hand account of why someone stopped. */}
@@ -162,7 +162,8 @@ export function DeckItemRow({
           )}
           {hold.deferredTo !== null && (
             <p className="text-[12px] text-term-faint">
-              deferred until <time dateTime={hold.deferredTo}>{hold.deferredTo}</time>
+              deferred until{" "}
+              <time dateTime={hold.deferredTo}>{hold.deferredTo}</time>
             </p>
           )}
         </div>
@@ -170,14 +171,18 @@ export function DeckItemRow({
 
       {blocking.length > 0 && (
         <div className="mt-1.5 pl-4">
-          <p className="text-[12px] tracking-wide text-term-muted uppercase">Blocked by</p>
+          <p className="text-[12px] tracking-wide text-term-muted uppercase">
+            Blocked by
+          </p>
           <ul className="mt-0.5 space-y-0.5">
             {blocking.map((blocker) => (
               <BlockerLine key={blocker.id} blocker={blocker} />
             ))}
           </ul>
           {item.blocked?.reason != null && (
-            <p className="mt-0.5 wrap-anywhere text-term-muted">{item.blocked.reason}</p>
+            <p className="mt-0.5 wrap-anywhere text-term-muted">
+              {item.blocked.reason}
+            </p>
           )}
         </div>
       )}

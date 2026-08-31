@@ -61,22 +61,22 @@ to invert. A per-hex find-and-replace onto a fixed pale grey would have passed
 the check below and still been wrong in light, which is the trap in this
 conversion.
 
-| token | light | dark | ratio | replaces |
-| --- | --- | --- | --- | --- |
-| `--term-bg` | `--background` | `--background` | - | `#1a1a1a` |
-| `--term-fg-bright` | ink-900 | white | 14.3 / 16.5 | `#ffffff` |
-| `--term-fg` | ink-700 | paper-100 | 10.6 / 14.3 | `#e8e8e8` `#e1e1e1` `#cfcfd2` `#d4d4d4` |
-| `--term-dim` | ink-600 | paper-300 | 7.6 / 11.7 | `#c0c0c0` |
-| `--term-muted` | ink-500 | cream-line | 5.3 / 10.2 | `#8b8b90` |
-| `--term-faint` | ink-400 | ink-300 | 4.7 / 5.0 | `#6c6c6c` `#6a6a6a` `#7a7a7a` `#616161` `#808080` as a mark |
-| `--term-rule` | ink-300 | ink-300 | 2.9 / 5.0 | `#808080` as a border |
-| `--term-rule-soft` | cream-line | ink-500 | 1.4 / 2.7 | `#505058` `#585858` `#2f2f33` |
-| `--term-selected` | paper-300 | ink-700 | 1.2 / 1.4 | `rgba(255,255,255,0.06)` |
-| `--term-success` | sea-500 | sea-200 | 5.4 / 10.6 | `#00ff00` |
-| `--term-warning` | gold-700 | gold-300 | 4.9 / 11.5 | `#ffff00` |
-| `--term-danger` | rust-600 | rust-300 | 5.4 / 6.1 | `#ff0000` |
-| `--term-info` | ocean-600 | ocean-200 | 5.3 / 10.8 | `#8db0ff` |
-| `--term-accent` | rust-600 | rust-300 | 5.4 / 6.1 | `#e0af68` |
+| token              | light          | dark           | ratio       | replaces                                                    |
+| ------------------ | -------------- | -------------- | ----------- | ----------------------------------------------------------- |
+| `--term-bg`        | `--background` | `--background` | -           | `#1a1a1a`                                                   |
+| `--term-fg-bright` | ink-900        | white          | 14.3 / 16.5 | `#ffffff`                                                   |
+| `--term-fg`        | ink-700        | paper-100      | 10.6 / 14.3 | `#e8e8e8` `#e1e1e1` `#cfcfd2` `#d4d4d4`                     |
+| `--term-dim`       | ink-600        | paper-300      | 7.6 / 11.7  | `#c0c0c0`                                                   |
+| `--term-muted`     | ink-500        | cream-line     | 5.3 / 10.2  | `#8b8b90`                                                   |
+| `--term-faint`     | ink-400        | ink-300        | 4.7 / 5.0   | `#6c6c6c` `#6a6a6a` `#7a7a7a` `#616161` `#808080` as a mark |
+| `--term-rule`      | ink-300        | ink-300        | 2.9 / 5.0   | `#808080` as a border                                       |
+| `--term-rule-soft` | cream-line     | ink-500        | 1.4 / 2.7   | `#505058` `#585858` `#2f2f33`                               |
+| `--term-selected`  | paper-300      | ink-700        | 1.2 / 1.4   | `rgba(255,255,255,0.06)`                                    |
+| `--term-success`   | sea-500        | sea-200        | 5.4 / 10.6  | `#00ff00`                                                   |
+| `--term-warning`   | gold-700       | gold-300       | 4.9 / 11.5  | `#ffff00`                                                   |
+| `--term-danger`    | rust-600       | rust-300       | 5.4 / 6.1   | `#ff0000`                                                   |
+| `--term-info`      | ocean-600      | ocean-200      | 5.3 / 10.8  | `#8db0ff`                                                   |
+| `--term-accent`    | rust-600       | rust-300       | 5.4 / 6.1   | `#e0af68`                                                   |
 
 Every ratio is against the page, measured in a browser in both themes by
 painting the token to a canvas and computing it - not eyeballed, and not taken

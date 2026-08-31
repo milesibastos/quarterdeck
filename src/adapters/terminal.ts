@@ -90,7 +90,8 @@ const OTHER_ESCAPE = /\u001b(?:[@-Z\\-_]|[ -/]*[0-~])?/g;
  * The control characters left once the escapes are gone. Tab survives, because
  * it is layout a worker meant; the rest are machinery.
  */
-const CONTROL_CHARACTER = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/g;
+const CONTROL_CHARACTER =
+  /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f]/g;
 
 /**
  * One captured line, made safe to put in a page.
@@ -189,7 +190,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
  * does not parse becomes an unreadable reading naming the file, which is a
  * state the lens has to draw anyway.
  */
-function readingOfEntry(value: unknown, set: string, worker: string): TerminalReading {
+function readingOfEntry(
+  value: unknown,
+  set: string,
+  worker: string,
+): TerminalReading {
   if (!isRecord(value)) {
     return {
       read: "unreadable",
@@ -272,7 +277,8 @@ export function fixtureTerminalSource(
  * is honest - the panel asked, something went wrong, and it is saying what.
  * Nothing is inferred that would let a missing session read as a working one.
  */
-const NO_SESSION_STDERR = /no metadata for|no backend target recorded|no window named/i;
+const NO_SESSION_STDERR =
+  /no metadata for|no backend target recorded|no window named/i;
 
 /**
  * A failed peek, turned into the reading it actually is.
@@ -285,7 +291,8 @@ const NO_SESSION_STDERR = /no metadata for|no backend target recorded|no window 
 function readingOfFailure(error: unknown): TerminalReading {
   if (error instanceof CommandError) {
     const said = error.stderr || error.message;
-    if (NO_SESSION_STDERR.test(error.stderr)) return { read: "no-session", detail: said };
+    if (NO_SESSION_STDERR.test(error.stderr))
+      return { read: "no-session", detail: said };
     return { read: "unreadable", detail: said };
   }
   return {
