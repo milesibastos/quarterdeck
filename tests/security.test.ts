@@ -128,8 +128,10 @@ describe("the acting guard", () => {
     assert.equal(response.status, 403);
   });
 
-  test("the secret is never handed to the browser", async () => {
+  test("the secret is not handed out when there is nothing to act on", async () => {
+    // No answer spool is configured for this panel, so no card can offer a
+    // control and the page has no reason to carry the credential at all.
     const html = await (await fetch(panel.url)).text();
-    assert.ok(!html.includes(SESSION_HEADER), "the write path is later work");
+    assert.ok(!html.includes(SESSION_HEADER));
   });
 });

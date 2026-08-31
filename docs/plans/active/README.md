@@ -21,12 +21,10 @@ from fixtures when none is configured - see `docs/contract.md` and
 
 The deck lens has landed - see `docs/plans/done/2026-08-30-deck-lens.md`. The
 shipshape lens has landed too - see
-`docs/plans/done/2026-08-30-shipshape-lens.md`.
+`docs/plans/done/2026-08-30-shipshape-lens.md`. The write path has landed too -
+see `docs/decisions/2026-08-30-answering-a-held-decision.md`.
 
 Then, and not in parallel with those:
 
-2. **The write path.** `src/adapters/intent.ts` holds the type and the marker.
-   The guard in front of `/api/act` already exists; what is missing is getting
-   the session secret to the page and an endpoint that does something.
-3. **The shell's proportions and fold line**, which need real lens content
+2. **The shell's proportions and fold line**, which need real lens content
    before they can be tuned.

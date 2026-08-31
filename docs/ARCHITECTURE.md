@@ -86,9 +86,15 @@ touch a filesystem, a process, or a clock.
 The one that matters most, and it is checked two ways. First, exactly one file
 carries the `quarterdeck:permitted-writer` marker and it must be
 `src/adapters/intent.ts` - a second file claiming it fails the build. Second,
-every mutating API is banned outside that file: `writeFile` and its family,
-`child_process`, `worker_threads`, `process.chdir`. Reads are untouched, so
-`readFile` and `watch` stay legal everywhere adapters may use them.
+every mutating API is banned outside that file: `writeFile` and its family.
+Reads are untouched, so `readFile` and `watch` stay legal everywhere adapters
+may use them.
+
+The writer's exemption stops at the filesystem. `child_process`,
+`worker_threads` and `process.chdir` are banned everywhere in `src/`,
+including inside the permitted writer itself - the one file that may write a
+file is still a file that may not start a process, and that is checked, not
+assumed.
 
 Starting a process is the one capability held by a second file. A real fleet
 publishes its snapshot through a command rather than a file, so the panel has to
@@ -184,19 +190,37 @@ makes "the fixtures behave exactly as a fleet does" a claim the suite can check.
 
 ## Security
 
-The panel will act on the fleet later, so the server carries this from the first
-commit even while it only reads:
+The server has carried this since the first commit, from before there was
+anything behind it to protect:
 
 - Bound to loopback only.
 - Every request's `Host` is checked, and its `Origin` when the browser sends
   one. Loopback is not a boundary against a page in the operator's own browser:
   any site can point a form at `http://127.0.0.1`.
 - A session secret minted at start. Everything under `/api/act` requires it;
-  reading requires none of it. The guard is in front of a write path that does
-  not exist yet, so no build ever ships an acting route without it.
+  reading requires none of it. The guard went in before the acting route, so no
+  build ever shipped an acting route without it. The secret reaches the page
+  that carries an answer control, and only such a page.
 - No cross-origin sharing headers, so another page cannot read a response.
-- An `Intent` carries a `requestId`, so a retry or a double click cannot act
-  twice.
+- An `Intent` carries a `requestId`, derived from the question and the answer,
+  so a retry or a double click cannot act twice.
+
+## Acting
+
+There is one acting endpoint, `POST /api/act/answer-decision`, and it executes
+nothing. It records a durable intent through `src/adapters/intent.ts` - one file,
+one line, the shape the fleet's keyed-answer intake reads - and the fleet picks
+that up on its next check and re-verifies the decision is still open before
+acting on it. A web request is never the thing that spawns a fleet command, and
+invariant 3 is what makes that structural rather than careful: no file in
+`src/` may reach `child_process` at all except the dedicated spawn door, and
+that ban holds inside the permitted writer too - it may write a file and
+nothing more.
+
+That is also why nothing here filters a stale answer out. The panel's reading is
+always older than the fleet's, so whether a decision is still open is not a
+question it can answer, and it does not pretend to. See
+`docs/decisions/2026-08-30-answering-a-held-decision.md`.
 
 ## Tests
 

@@ -229,7 +229,6 @@ const WRITE_APIS = [
   "symlinkSync",
   "copyFile",
   "copyFileSync",
-  "chdir",
   "write",
   "writeSync",
   "cp",
@@ -245,6 +244,15 @@ const WRITE_MODULES = [...SPAWN_MODULES, "node:worker_threads", "worker_threads"
 const MEMBER_WRITE = new RegExp(`\\.(${WRITE_APIS.join("|")})\\s*\\(`);
 /** The same calls, reached through bracket notation: `fs["writeFile"](`. */
 const MEMBER_WRITE_BRACKET = new RegExp(`\\[\\s*["'\`](${WRITE_APIS.join("|")})["'\`]\\s*\\]\\s*\\(`);
+
+/**
+ * Changing the working directory is not writing a record - it is reaching
+ * outside the process, the same family as spawning - so it is checked
+ * alongside WRITE_MODULES rather than folded into the writer's fs exemption.
+ */
+const PROCESS_MODULES = ["node:process", "process"];
+const CHDIR_MEMBER = /\.chdir\s*\(/;
+const CHDIR_MEMBER_BRACKET = /\[\s*["'`]chdir["'`]\s*\]\s*\(/;
 
 /** Named imports from a module: `import { a, b as c } from "..."`. */
 function namedImportsFrom(text: string, module: string): string[] {
@@ -341,7 +349,11 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
   }
 
   for (const file of files) {
-    if (`src/${file.path}` === PERMITTED_WRITER) continue;
+    // The writer's exemption is narrow: it may mutate the filesystem, and
+    // that is all. child_process, worker_threads and process.chdir stay
+    // banned inside it exactly as they are everywhere else, so the file that
+    // can write is still a file that cannot spawn.
+    const writerPermitted = `src/${file.path}` === PERMITTED_WRITER;
     // The spawn door holds one capability, not both: it may start a process,
     // and every write API below is still banned in it.
     const spawnPermitted = `src/${file.path}` === PERMITTED_SPAWNER;
@@ -361,6 +373,17 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
         destructuredFrom(code, `require\\(\\s*["']${m}["']\\s*\\)`),
       ),
     ]);
+    const chdirImported = new Set(
+      [
+        ...PROCESS_MODULES.flatMap((m) => namedImportsFrom(code, m)),
+        ...PROCESS_MODULES.flatMap((m) =>
+          moduleAliasesOf(code, m).flatMap((alias) => destructuredFrom(code, `${alias}\\b`)),
+        ),
+        ...PROCESS_MODULES.flatMap((m) =>
+          destructuredFrom(code, `require\\(\\s*["']${m}["']\\s*\\)`),
+        ),
+      ].filter((name) => name === "chdir"),
+    );
 
     for (const { line, text } of codeLines(file)) {
       const found: string[] = [];
@@ -370,16 +393,21 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
         if (spawnPermitted && SPAWN_MODULES.includes(ref.specifier)) continue;
         found.push(ref.specifier);
       }
-      for (const name of imported) {
-        if (WRITE_APIS.includes(name) && new RegExp(`\\b${name}\\b`).test(text)) {
-          found.push(name);
+      // Changing the working directory is banned everywhere, the permitted
+      // writer included - it is not part of the fs-write exemption.
+      if (CHDIR_MEMBER.test(text) || CHDIR_MEMBER_BRACKET.test(text)) found.push("chdir");
+      if (chdirImported.has("chdir") && /\bchdir\s*\(/.test(text)) found.push("chdir");
+      if (!writerPermitted) {
+        for (const name of imported) {
+          if (WRITE_APIS.includes(name) && new RegExp(`\\b${name}\\b`).test(text)) {
+            found.push(name);
+          }
         }
+        const member = MEMBER_WRITE.exec(text);
+        if (member) found.push(member[1]);
+        const bracket = MEMBER_WRITE_BRACKET.exec(text);
+        if (bracket) found.push(bracket[1]);
       }
-      const member = MEMBER_WRITE.exec(text);
-      if (member) found.push(member[1]);
-      const bracket = MEMBER_WRITE_BRACKET.exec(text);
-      if (bracket) found.push(bracket[1]);
-      if (/\bprocess\.chdir\s*\(/.test(text)) found.push("process.chdir");
 
       for (const api of new Set(found)) {
         if (reported.has(api)) continue;
@@ -388,11 +416,15 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
           slug: "single-writer",
           file: `src/${file.path}`,
           line,
-          what: `${api} used outside ${PERMITTED_WRITER}. Exactly one file may write anything, and only ${PERMITTED_SPAWNER} may start a process.`,
+          what: writerPermitted
+            ? `${api} used in ${PERMITTED_WRITER}. That file may write a file and nothing more - only ${PERMITTED_SPAWNER} may start a process.`
+            : `${api} used outside ${PERMITTED_WRITER}. Exactly one file may write anything, and only ${PERMITTED_SPAWNER} may start a process.`,
           why: `Everything but those files is read-only by construction. A write here means the question "what can this panel change?" can no longer be answered by reading a single file.`,
           fix: SPAWN_MODULES.includes(api)
             ? `Take a Runner from ${PERMITTED_SPAWNER} and pass it in, the way src/adapters/contract.ts does for the fleet snapshot command.`
-            : `Move the mutation into ${PERMITTED_WRITER} behind an Intent, and call it from here. If this is genuinely a read, use the reading form of the API instead.`,
+            : api === "chdir"
+              ? `Do not change the process's working directory. Take an absolute path from src/config/ instead.`
+              : `Move the mutation into ${PERMITTED_WRITER} behind an Intent, and call it from here. If this is genuinely a read, use the reading form of the API instead.`,
           doc: `${ARCH} - invariant 3`,
         });
       }

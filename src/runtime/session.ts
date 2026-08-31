@@ -4,13 +4,17 @@ import { randomBytes, timingSafeEqual } from "node:crypto";
  * The session secret.
  *
  * Minted once per process start and never persisted. Acting endpoints require
- * it; reading endpoints do not. This exists from the first commit even though
- * nothing acts yet, because the moment an acting endpoint appears the guard has
+ * it; reading endpoints do not. This existed from the first commit even though
+ * nothing acted yet, because the moment an acting endpoint appears the guard has
  * to already be in front of it - retrofitting a guard means shipping a window
  * where there is none.
  *
- * It is never logged and never sent to the browser by this build. Handing it to
- * the page is part of the write path, which is later work.
+ * It is never logged. It does now reach the browser, in the page that carries an
+ * answer control, which the security baseline named as part of the write path
+ * rather than a change to it: the front door is what keeps it safe, and none of
+ * that moved. A panel with no answer spool configured has nothing to act on and
+ * hands out nothing. See
+ * `docs/decisions/2026-08-30-answering-a-held-decision.md`.
  */
 const SINGLETON = Symbol.for("quarterdeck.sessionSecret");
 

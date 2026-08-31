@@ -1,10 +1,12 @@
 import { ContractIdentifierError } from "@/adapters/contract.ts";
 import { loadConfig, type Config } from "@/config/index.ts";
 import { clockFor, fleetRuntime } from "@/runtime/fleet.ts";
+import { SESSION_HEADER, sessionSecret } from "@/runtime/session.ts";
 import type { PanelDocument } from "@/types/document.ts";
 import { ContractRefusal } from "@/ui/contract-refusal";
 import { Shell } from "@/ui/shell";
 import { LiveRefresh } from "@/ui/live-refresh";
+import type { AnsweringSession } from "@/ui/deck/answer-control";
 
 /**
  * The composition point.
@@ -53,6 +55,30 @@ async function read(config: Config): Promise<Outcome> {
   }
 }
 
+/**
+ * How the page reaches the acting endpoint, or `null` when it may not.
+ *
+ * The session secret reaches the browser here for the first time, which the
+ * security baseline named as part of the write path rather than a change to it.
+ * What keeps it safe is unchanged and all of it is tested: the panel binds to
+ * loopback, the proxy refuses any Host or Origin that is not this instance's
+ * own, no cross-origin sharing header is ever set, and the CSP names no remote
+ * destination - so a page on the web can neither read this document nor use the
+ * secret if it somehow had it.
+ *
+ * `null` when nothing is configured to carry an answer to the fleet. The panel
+ * then says so on the card rather than offering a control that cannot work, and
+ * the secret is not handed out at all.
+ */
+function answering(config: Config): AnsweringSession | null {
+  if (config.intentDir === null) return null;
+  return {
+    header: SESSION_HEADER,
+    secret: sessionSecret(),
+    endpoint: "/api/act/answer-decision",
+  };
+}
+
 export default async function Page() {
   const config = loadConfig(process.cwd());
   const outcome = await read(config);
@@ -70,7 +96,11 @@ export default async function Page() {
   return (
     <>
       <LiveRefresh endpoint="/api/events" />
-      <Shell document={outcome.document} nowMs={clockFor(config).nowMs()} />
+      <Shell
+        document={outcome.document}
+        nowMs={clockFor(config).nowMs()}
+        session={answering(config)}
+      />
     </>
   );
 }

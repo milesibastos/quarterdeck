@@ -93,14 +93,14 @@ type Shape = {
  * document, and is asserted separately below.
  */
 const SHAPES: Readonly<Record<string, Shape>> = {
-  healthy: { fleet: ["fresh", 11], deck: ["fresh", 4], health: "fresh" },
+  healthy: { fleet: ["fresh", 11], deck: ["fresh", 6], health: "fresh" },
   empty: { fleet: ["fresh", 0], deck: ["fresh", 0], health: "fresh" },
   stale: { fleet: ["stale", 2], deck: ["stale", 2], health: "stale" },
   malformed: { fleet: ["unreadable", 0], deck: ["unreadable", 0], health: "fresh" },
   "health-dark": { fleet: ["fresh", 3], deck: ["fresh", 3], health: "unreadable" },
   "health-unread": { fleet: ["fresh", 3], deck: ["fresh", 3], health: "fresh" },
   "deck-dark": { fleet: ["fresh", 3], deck: ["unreadable", 0], health: "fresh" },
-  "deck-only": { fleet: ["fresh", 0], deck: ["fresh", 4], health: "fresh" },
+  "deck-only": { fleet: ["fresh", 0], deck: ["fresh", 6], health: "fresh" },
   "fleet-only": { fleet: ["fresh", 11], deck: ["fresh", 0], health: "fresh" },
   "fleet-empty-stale": { fleet: ["stale", 0], deck: ["stale", 1], health: "stale" },
   // The one set in upstream's real shape and real vocabulary; its projection is
@@ -197,6 +197,8 @@ describe("the deck part", () => {
         "wi-cordage-412 queued next",
         "wi-tidewater-126 queued next",
         "wi-saltmarsh-318 in-flight later",
+        "wi-driftwood-540 in-flight now",
+        "wi-brackish-277 queued later",
       ],
     );
   });
@@ -219,6 +221,19 @@ describe("the deck part", () => {
     });
     assert.equal(held.since, "2099-01-01T07:20:05.000Z", "the hold's age");
     assert.equal(held.actionable, true, "upstream's own fold, carried not recomputed");
+  });
+
+  test("carries a hold that waits on something other than a person", async () => {
+    const { content } = (await documentOf("healthy")).deck;
+    const external = content.find((item) => item.id === "wi-brackish-277");
+    assert.deepEqual(external?.hold, {
+      // Upstream's word, carried rather than folded into a boolean: the panel
+      // decides what is answerable from it, and a hold kind it has never heard
+      // of must read as unanswerable rather than as a person's to settle.
+      waitingOn: "external",
+      reason: "Waits on the upstream release",
+      deferredTo: null,
+    });
   });
 });
 
@@ -298,6 +313,6 @@ describe("degradation is per lens, not per document", () => {
     const document = withSnapshotUnreadable(good, "truncated", await healthOf("healthy"), OPTIONS);
     assert.equal(document.fleet.status.state, "unreadable");
     assert.equal(document.fleet.content.length, 11, "the fleet is still on screen");
-    assert.equal(document.deck.content.length, 4);
+    assert.equal(document.deck.content.length, 6, "and so is the deck");
   });
 });

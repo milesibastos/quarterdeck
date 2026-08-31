@@ -3,10 +3,15 @@
 A local command panel giving its operator visibility into a running firstmate
 fleet: what is running (fleet), what is queued or held for a decision (deck),
 and whether the machinery is healthy (shipshape). The fleet lens draws a worker
-card and lifecycle rail, the deck lens draws its four piles, and the shipshape
-lens draws the three health signals and the designed dark state. All three sit
-over a frozen document shape, filled from synthetic fixtures rather than a
-real fleet.
+card and lifecycle rail, the deck lens draws its four piles and offers an
+answer control on work held for a person, and the shipshape lens draws the
+three health signals and the designed dark state. All three sit over a frozen
+document shape, filled from synthetic fixtures rather than a real fleet.
+
+The panel reads. The one thing it writes is an answer record, and the page
+executes nothing - see
+`docs/decisions/2026-08-30-answering-a-held-decision.md` before touching that
+path.
 
 ## Map
 
