@@ -114,10 +114,21 @@ larger than the 12px sans they replaced, and it wraps correctly at 360 pixels.
 
 ## What was verified
 
-`npm test`: the thirty-two shipshape tests pass, the seven invariants pass, and
-`raw-colour` passes. Two failures in `needs-you.test.ts` predate this branch -
-they reproduce on `3885448` with `src/ui/shipshape/` reverted - and are
-untouched by it.
+`npm test`: 463 tests, 463 pass, 0 fail, including the thirty-two shipshape
+tests, the seven invariants and `raw-colour`.
+
+Two `needs-you.test.ts` tests did fail earlier in this work, and an initial
+reading of them as pre-existing on base was wrong and is withdrawn. The
+established cause was an orphaned next-server from the primary checkout,
+listening on port 45229 - the primary checkout's own derived panel port,
+which falls inside this worktree's `needs-you.test.ts` port block (offset
+272, ports 45223-45238). `tests/lib/ports.ts`'s `portAt()` excludes only the
+local worktree's panel port, so a sibling checkout's running panel answered
+this worktree's suite with its own content instead of failing to bind; a
+`curl` against 45229 returned the exact text of both failing assertions, and
+a control panel on a free port with the same fixture set passed. Once the
+stray process was cleared the suite was green. The `ports.ts` gap is filed as
+its own task and is deliberately not addressed in this diff.
 
 Driven in a browser against the built panel, both themes: the `healthy` set
 (five clean verdicts), `stale` (a stopped cycle beside three concerns, and the
