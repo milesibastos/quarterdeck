@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { cp, mkdtemp, readdir, rm, utimes, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readdir, rm, utimes, writeFile } from "node:fs/promises";
 import { readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -254,7 +254,7 @@ describe("a fleet that has moved underneath the panel", () => {
     }
   });
 
-  test("one path moving leaves the other two signals working", async () => {
+  test("one path moving leaves the other four signals working", async () => {
     const home = await copyHome("steady");
     await beacon(home, 30_000);
     await rm(join(home, "data", "backlog.md"));
@@ -262,7 +262,33 @@ describe("a fleet that has moved underneath the panel", () => {
     const signals = health(await readHome(home));
     assert.equal(signals.drift.read, "unreadable");
     assert.equal(signals.supervisor.read, "ok");
+    assert.equal(signals.queue.read, "ok");
+    assert.equal(signals.attendance.read, "ok");
     assert.equal(signals.overdue.read, "ok");
+  });
+
+  test("a queue that exists and will not be read darkens the queue alone", async () => {
+    const home = await copyHome("steady");
+    await beacon(home, 30_000);
+    await rm(join(home, "state", ".wake-queue"));
+    await mkdir(join(home, "state", ".wake-queue"));
+
+    // A directory where the queue file should be. ENOENT is the fleet not
+    // having written the file yet and reads as an empty queue; anything else is
+    // a queue that is there and would not open, which is unreadable - and only
+    // the queue's own signal may go dark for it. The other four read from other
+    // paths in the same directory and are untouched, the attendance markers
+    // included: the listing that finds them still succeeds.
+    const signals = health(await readHome(home));
+    assert.equal(signals.queue.read, "unreadable");
+    assert.ok(
+      signals.queue.read === "unreadable" && signals.queue.detail.includes(".wake-queue"),
+      "the operator is told which path did not answer",
+    );
+    assert.equal(signals.supervisor.read, "ok");
+    assert.equal(signals.attendance.read, "ok");
+    assert.equal(signals.overdue.read, "ok");
+    assert.equal(signals.drift.read, "ok");
   });
 
   test("a beacon that is gone is unreadable, never a cycle declared dead", async () => {
