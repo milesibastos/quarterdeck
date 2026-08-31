@@ -3,7 +3,7 @@
 A grade per area, and where the gaps are. Written to be honest rather than
 flattering: an area marked green is one somebody can build on without checking.
 
-Last reviewed: 2026-08-30, at the end of the write-path task.
+Last reviewed: 2026-08-30, at the end of the fleet-switcher task.
 
 | Area | Grade | Where it stands |
 | --- | --- | --- |
@@ -18,6 +18,7 @@ Last reviewed: 2026-08-30, at the end of the write-path task.
 | The deck lens | Amber | Offers an answer control on work held for a person - both closes the intake accepts, declared on the card - and nothing on a hold that waits on a queue, a date or an upstream release. Draws all four piles - held, blocked, queued, in flight - from the document, with the empty, stale and unreadable states each saying which they are. Driven end to end through the built server, including both directions of the blocker rule. Amber because a deck row cannot show its project or whether the work is research or build: the document carries neither `project` nor `kind` for a deck record. See `docs/plans/done/2026-08-30-deck-lens.md`. |
 | The shipshape lens | Green | Draws all three health signals - supervisor, overdue, drift - each in its `ok` and `unreadable` forms, plus the whole-lens dark state. A supervision cycle alive but silent for longer than the named threshold reads as a concern, not as health; an unreadable signal never implies what it would have said. `tests/shipshape-lens.test.ts` drives every state, including a mixed reading, through the built server. See `docs/plans/done/2026-08-30-shipshape-lens.md`. |
 | The fleet lens | Green | The worker card and the lifecycle rail. Every coarse stage and every off-track state has a tone and a place on the rail, the validation step is named with its place in the run, and a halted worker shows the stage it left the track in and upstream's words for why. Stale, empty and unreadable are three different states on screen. `tests/fleet-lens.test.ts` drives all of it through the built server; refresh in place was demonstrated in a browser. |
+| Choosing a fleet | Green | The panel offers every configured fleet, the operator switches between them and their browser remembers the choice, and no writer was needed for it. `tests/fleet-switch.test.ts` drives it through the built server: the content follows the selection, two fleets read at once are never mixed up, an unreadable one degrades through the per-lens statuses with the picker still there to leave by, and a single-fleet panel still names what it is showing. The mid-switch state - the previous fleet named, the incoming one named, nothing attributed to the wrong one - was checked in a browser under throttling. |
 | Reading a real fleet | Amber | Wired: a configured fleet home, its snapshot command run through the one spawn door, parsed strictly and projected into the fleet and deck parts. Tested two ways with no fleet present - the parsing, refusals and read discipline against a stub runner, and the whole path end to end through the built server against a temporary fleet home holding one script. Amber only because two of upstream's values have no honest home in the frozen document: `unknown`, and a record with no start date. |
 
 ## Known gaps
@@ -66,6 +67,15 @@ Last reviewed: 2026-08-30, at the end of the write-path task.
   lens's status line, in `lens-frame.tsx`, are as far as it goes. Keyboard
   traversal and contrast ratios across all four status tokens have not been
   checked.
+- **A fleet's own name is its last path segment.** Two fleet homes with the
+  same last segment are told apart by an index suffix on the handle, not by
+  anything an operator would recognise, so a panel configured with
+  `.../one/fleet` and `.../two/fleet` draws two chips both reading `fleet`. A
+  fleet home that named itself would fix it, which is upstream's to offer.
+- **A remembered selection is per browser, not per operator.** Clearing site
+  data forgets it, and a browser with cookies blocked always opens on the first
+  configured fleet. Both degrade to the default rather than to an error; see
+  `docs/decisions/2026-08-30-choosing-a-fleet.md`.
 - **The dark theme is class-only.** It has no switcher and does not follow the
   operator's system preference. See
   `docs/decisions/2026-08-30-theme-and-palette.md`.

@@ -1,9 +1,12 @@
+import { cookies } from "next/headers";
 import { ContractIdentifierError } from "@/adapters/contract.ts";
-import { loadConfig, type Config } from "@/config/index.ts";
+import { fleetById, loadConfig, type Config, type FleetRef } from "@/config/index.ts";
 import { clockFor, fleetRuntime } from "@/runtime/fleet.ts";
 import { SESSION_HEADER, sessionSecret } from "@/runtime/session.ts";
 import type { PanelDocument } from "@/types/document.ts";
+import { FLEET_COOKIE } from "@/types/selection.ts";
 import { ContractRefusal } from "@/ui/contract-refusal";
+import { FleetPicker } from "@/ui/fleet-picker";
 import { Shell } from "@/ui/shell";
 import { LiveRefresh } from "@/ui/live-refresh";
 import type { AnsweringSession } from "@/ui/deck/answer-control";
@@ -36,9 +39,9 @@ type Outcome =
       readonly source: string;
     };
 
-async function read(config: Config): Promise<Outcome> {
+async function read(config: Config, fleet: FleetRef): Promise<Outcome> {
   try {
-    return { kind: "document", document: await fleetRuntime(config).document() };
+    return { kind: "document", document: await fleetRuntime(config, fleet).document() };
   } catch (error) {
     if (error instanceof ContractIdentifierError) {
       return {
@@ -79,28 +82,46 @@ function answering(config: Config): AnsweringSession | null {
   };
 }
 
+/**
+ * Which fleet the operator last chose, or the first one configured.
+ *
+ * The selection is remembered in their browser rather than on this machine, so
+ * it arrives on the request like any other cookie. An id naming a fleet the
+ * panel no longer has - the list is a setting, and a setting can change under a
+ * remembered choice - falls back rather than refusing; the picker then shows
+ * the fallback as the fleet being shown, which is the truth.
+ */
+async function selectedFleet(config: Config): Promise<FleetRef> {
+  return fleetById(config, (await cookies()).get(FLEET_COOKIE)?.value);
+}
+
 export default async function Page() {
   const config = loadConfig(process.cwd());
-  const outcome = await read(config);
-
-  if (outcome.kind === "refusal") {
-    return (
-      <ContractRefusal
-        expected={outcome.expected}
-        found={outcome.found}
-        source={outcome.source}
-      />
-    );
-  }
+  const fleet = await selectedFleet(config);
+  const outcome = await read(config, fleet);
+  const choices = config.fleets.map(({ id, label }) => ({ id, label }));
 
   return (
-    <>
-      <LiveRefresh endpoint="/api/events" />
-      <Shell
-        document={outcome.document}
-        nowMs={clockFor(config).nowMs()}
-        session={answering(config)}
-      />
-    </>
+    // Everything the panel draws sits inside the picker, including the refusal:
+    // a fleet whose snapshot this build cannot read is still one an operator has
+    // to be able to select away from.
+    <FleetPicker fleets={choices} showing={fleet.id}>
+      {/* The signal stream is per fleet, so a switch listens to the fleet on
+          screen rather than to the one that was there before it. */}
+      <LiveRefresh endpoint={`/api/events?fleet=${encodeURIComponent(fleet.id)}`} />
+      {outcome.kind === "refusal" ? (
+        <ContractRefusal
+          expected={outcome.expected}
+          found={outcome.found}
+          source={outcome.source}
+        />
+      ) : (
+        <Shell
+          document={outcome.document}
+          nowMs={clockFor(config).nowMs()}
+          session={answering(config)}
+        />
+      )}
+    </FleetPicker>
   );
 }

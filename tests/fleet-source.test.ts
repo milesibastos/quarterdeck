@@ -11,7 +11,7 @@ import {
   readSnapshot,
 } from "../src/adapters/contract.ts";
 import { readHealth } from "../src/adapters/health.ts";
-import { loadConfig } from "../src/config/index.ts";
+import { fleetById, loadConfig } from "../src/config/index.ts";
 import { projectDocument } from "../src/domain/project.ts";
 import { fixedClock } from "../src/providers/clock.ts";
 import type { Logger } from "../src/providers/logger.ts";
@@ -37,6 +37,10 @@ const FIXTURES = join(REPO_ROOT, "fixtures");
 
 /** A fleet home. Invented, like every path in this repository. */
 const FLEET_HOME = "/anchorage/fleet";
+/** A second one, for the panel that can see more than one. */
+const OTHER_HOME = "/anchorage/harbour";
+/** A third, sharing its last segment with the first. */
+const TWIN_HOME = "/moorings/fleet";
 
 const OPTIONS = {
   clock: fixedClock("2099-01-01T09:15:30.000Z"),
@@ -103,12 +107,7 @@ function runtimeOn(
 ): FleetRuntime {
   return new FleetRuntime({
     config: {
-      // null, not FLEET_HOME: this suite stubs the snapshot source directly, and
-      // a fleet home here would redirect health to `readFleetHomeHealth`, which
-      // has no real directory to read - `healthDir` below is what these tests
-      // mean by "health reads for itself".
-      fleetHome: null,
-      fixtureSet: "healthy",
+      fleets: [{ id: "healthy", label: "healthy", source: { kind: "fixture", set: "healthy" } }],
       fixtureRoot: FIXTURES,
       intentDir: null,
       host: "127.0.0.1",
@@ -123,6 +122,11 @@ function runtimeOn(
     logger: silentLogger,
     watchDirs: [join(FIXTURES, "healthy")],
     healthDir: join(FIXTURES, "healthy"),
+    // null, not FLEET_HOME: this suite stubs the snapshot source directly, and
+    // a fleet home here would redirect health to `readFleetHomeHealth`, which
+    // has no real directory to read - `healthDir` above is what these tests
+    // mean by "health reads for itself".
+    fleetHome: null,
   });
 }
 
@@ -134,27 +138,109 @@ function env(values: Record<string, string> = {}): NodeJS.ProcessEnv {
   return { NODE_ENV: "test", ...values };
 }
 
-describe("which fleet to read is configuration", () => {
+describe("which fleets to read is configuration", () => {
   test("no fleet home means the fixture set, exactly as before", () => {
     const config = loadConfig(REPO_ROOT, env());
-    assert.equal(config.fleetHome, null);
-    assert.equal(config.fixtureSet, "healthy");
+    assert.deepEqual(config.fleets, [
+      { id: "healthy", label: "healthy", source: { kind: "fixture", set: "healthy" } },
+    ]);
   });
 
   test("a fleet home is taken from the environment, never from the code", () => {
     const config = loadConfig(REPO_ROOT, env({ QUARTERDECK_FLEET_HOME: FLEET_HOME }));
-    assert.equal(config.fleetHome, FLEET_HOME);
+    assert.deepEqual(config.fleets, [
+      { id: "fleet", label: "fleet", source: { kind: "home", home: FLEET_HOME } },
+    ]);
   });
 
   test("a trailing separator does not become a doubled one downstream", () => {
     const config = loadConfig(REPO_ROOT, env({ QUARTERDECK_FLEET_HOME: `${FLEET_HOME}/` }));
-    assert.equal(config.fleetHome, FLEET_HOME);
+    assert.deepEqual(config.fleets[0].source, { kind: "home", home: FLEET_HOME });
   });
 
   test("a relative home is refused at the boundary rather than resolved later", () => {
     assert.throws(
       () => loadConfig(REPO_ROOT, env({ QUARTERDECK_FLEET_HOME: "fleet" })),
       /QUARTERDECK_FLEET_HOME must be an absolute path/,
+    );
+  });
+
+  test("several homes are several fleets, in the order they were written", () => {
+    const config = loadConfig(
+      REPO_ROOT,
+      env({ QUARTERDECK_FLEET_HOME: `${FLEET_HOME}:${OTHER_HOME}` }),
+    );
+    assert.deepEqual(
+      config.fleets.map((fleet) => fleet.source),
+      [
+        { kind: "home", home: FLEET_HOME },
+        { kind: "home", home: OTHER_HOME },
+      ],
+    );
+    assert.deepEqual(
+      config.fleets.map((fleet) => fleet.label),
+      ["fleet", "harbour"],
+    );
+  });
+
+  test("two homes with the same name still get distinct ids", () => {
+    const config = loadConfig(
+      REPO_ROOT,
+      env({ QUARTERDECK_FLEET_HOME: `${FLEET_HOME}:${TWIN_HOME}` }),
+    );
+    assert.deepEqual(
+      config.fleets.map((fleet) => fleet.id),
+      ["fleet", "fleet-2"],
+      "a cookie naming one of them must not be able to mean the other",
+    );
+  });
+
+  test("several fixture sets are several fleets", () => {
+    const config = loadConfig(
+      REPO_ROOT,
+      env({ QUARTERDECK_FIXTURE_SET: "healthy:fleet-only" }),
+    );
+    assert.deepEqual(
+      config.fleets.map((fleet) => fleet.id),
+      ["healthy", "fleet-only"],
+    );
+  });
+
+  test("a fleet home wins over the fixture sets, as it always has", () => {
+    const config = loadConfig(
+      REPO_ROOT,
+      env({ QUARTERDECK_FLEET_HOME: FLEET_HOME, QUARTERDECK_FIXTURE_SET: "healthy:stale" }),
+    );
+    assert.deepEqual(config.fleets.map((fleet) => fleet.source), [
+      { kind: "home", home: FLEET_HOME },
+    ]);
+  });
+
+  test("a fixture set that is not a directory name is refused at the boundary", () => {
+    assert.throws(
+      () => loadConfig(REPO_ROOT, env({ QUARTERDECK_FIXTURE_SET: "healthy:../escape" })),
+      /QUARTERDECK_FIXTURE_SET must be a lowercase fixture directory name/,
+    );
+  });
+});
+
+describe("a remembered selection names one of the configured fleets", () => {
+  const config = loadConfig(REPO_ROOT, env({ QUARTERDECK_FIXTURE_SET: "healthy:stale" }));
+
+  test("the fleet it names", () => {
+    assert.equal(fleetById(config, "stale").id, "stale");
+  });
+
+  test("the first one when it names nothing", () => {
+    assert.equal(fleetById(config, null).id, "healthy");
+    assert.equal(fleetById(config, undefined).id, "healthy");
+  });
+
+  test("the first one when it names a fleet the panel no longer has", () => {
+    assert.equal(
+      fleetById(config, "a-fleet-that-was-removed").id,
+      "healthy",
+      "a setting can change under a remembered choice; falling back beats refusing",
     );
   });
 });

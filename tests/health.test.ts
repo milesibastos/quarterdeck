@@ -344,7 +344,11 @@ test("a configured fleet home is what the panel's own document is built from", a
     QUARTERDECK_NOW: NOW,
     QUARTERDECK_FIXTURE_SET: "healthy",
   });
-  assert.equal(config.fleetHome, home, "the environment reaches the config");
+  assert.deepEqual(
+    config.fleets[0].source,
+    { kind: "home", home },
+    "the environment reaches the config",
+  );
 
   const fixtureSet = join(REPO_ROOT, "fixtures", "healthy");
   const source: SnapshotSource = {
@@ -360,6 +364,9 @@ test("a configured fleet home is what the panel's own document is built from", a
     logger: quiet,
     watchDirs: [fixtureSet],
     healthDir: fixtureSet,
+    // The point of the wiring under test: health follows the fleet home even
+    // while the snapshot is being read from somewhere else entirely.
+    fleetHome: home,
   });
 
   const document = await runtime.document();

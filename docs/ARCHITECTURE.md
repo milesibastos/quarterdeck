@@ -12,10 +12,13 @@ Seven positions, one direction. Dependencies point right, and only right.
 
     types -> config -> adapters -> domain -> runtime -> ui
 
-- `src/types/` - the document the UI renders, and its version. Imports nothing.
-  Three lenses read it, and each carries its own freshness; see
-  `docs/decisions/2026-08-30-the-document-seam.md`.
-- `src/config/` - which fixture set, which port, which policy. Environment and
+- `src/types/` - the document the UI renders, and its version. Three lenses read
+  it, and each carries its own freshness; see
+  `docs/decisions/2026-08-30-the-document-seam.md`. Imports nothing, which is
+  also why `selection.ts` is here: the name of the cookie a fleet choice is
+  remembered in is needed by `src/ui/`, which sets it, and by `src/app/`, which
+  reads it off the request, and this is the one layer both may see.
+- `src/config/` - which fleets, which port, which policy. Environment and
   defaults only; parsing the environment is one of the three boundaries.
 - `src/adapters/` - the only I/O. Exactly three files: `contract.ts` (the
   upstream boundary and the fixture source), `health.ts` (quarantined),
@@ -27,7 +30,8 @@ Seven positions, one direction. Dependencies point right, and only right.
 - `src/ui/` - server-rendered components. Reads the document, nothing else. One
   directory per lens - `fleet/`, `deck/`, `shipshape/` - so the worker building
   a lens edits no file another worker is also editing. `shell.tsx` lays the
-  three out; `lens-frame.tsx` is the chrome they share.
+  three out, `lens-frame.tsx` is the chrome they share, and `fleet-picker.tsx`
+  wraps the lot with which fleet is being looked at.
 
 Plus two positions off the line:
 
@@ -179,14 +183,40 @@ Rules that come with the pipe, all in `src/runtime/fleet.ts`:
 - `EventSource` reconnects on its own, so a restarted server heals without a
   reload.
 
-The runtime is a singleton hung off `globalThis`, because route modules can be
-evaluated more than once in a process and two watchers would publish every
-change twice.
+There is one runtime per fleet, in a map hung off `globalThis`. Off `globalThis`
+because route modules can be evaluated more than once in a process and two
+watchers would publish every change twice. Per fleet because each carries a
+cache and a last-known-good, and one runtime shared between fleets would answer
+a request for one out of the other's last read - which is the panel asserting
+something it has not established, in the exact place a switcher invites it.
+Runtimes are built on first use, so a panel configured with several fleets
+watches only the ones somebody has looked at.
 
-Which source the loop reads is one config value, `QUARTERDECK_FLEET_HOME`: set,
-the panel runs the fleet home's snapshot command; unset, it reads a committed
-fixture set. Nothing else in the panel changes between the two, which is what
-makes "the fixtures behave exactly as a fleet does" a claim the suite can check.
+Which fleets the loop can read is configuration, and both settings take a
+colon-separated list: `QUARTERDECK_FLEET_HOME` names one or more fleet homes,
+whose snapshot commands the panel runs, and `QUARTERDECK_FIXTURE_SET` names one
+or more committed fixture sets, read when no home is configured. Nothing else in
+the panel changes between the two, which is what makes "the fixtures behave
+exactly as a fleet does" a claim the suite can check.
+
+## Which fleet is on screen
+
+Which of the configured fleets an operator is looking at is not configuration.
+It is a cookie, which is to say it lives in their browser: a view is theirs
+rather than the machine's, two browsers pointed at the same panel may honestly
+disagree, and nothing has to be written on this machine for the choice to
+survive a restart. The panel still has exactly one permitted writer, and still
+does not use it.
+
+The picker in `src/ui/fleet-picker.tsx` wraps everything the panel draws, the
+refusal included, for one reason: a switch takes a round trip, and in the gap a
+control that highlighted the new fleet above the old fleet's numbers would be
+asserting something not yet established. So the mark saying which fleet is shown
+comes from the server prop the content was rendered from and cannot move ahead
+of it, and while the operator's click and that prop disagree the panel says so
+in words naming both fleets. `tests/fleet-switch.test.ts` asserts the structural
+half of that: every response carries `data-fleet`, and the content beside it is
+that fleet's and no other, including when two fleets are read at once.
 
 ## Security
 

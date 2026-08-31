@@ -1,4 +1,4 @@
-import { loadConfig } from "@/config/index.ts";
+import { fleetById, loadConfig } from "@/config/index.ts";
 import { fleetRuntime } from "@/runtime/fleet.ts";
 
 /**
@@ -8,11 +8,18 @@ import { fleetRuntime } from "@/runtime/fleet.ts";
  * re-render; sending the document down this pipe instead would mean the client
  * rebuilding the page from data, which is what makes cards flicker and scroll
  * positions jump.
+ *
+ * Which fleet's changes a stream carries is named on the request, because the
+ * page names it: a client watching the fleet it is not showing would refresh
+ * for the wrong reasons and stay still for the right ones. An unknown name
+ * falls back the same way the page does, so the two always agree.
  */
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const runtime = fleetRuntime(loadConfig(process.cwd()));
+  const config = loadConfig(process.cwd());
+  const fleet = fleetById(config, new URL(request.url).searchParams.get("fleet"));
+  const runtime = fleetRuntime(config, fleet);
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream<Uint8Array>({
