@@ -241,6 +241,42 @@ const STEP_LABEL: Readonly<Record<ValidationStep, string>> = {
   ci: "checks",
 };
 
+/**
+ * Where a stop happened, as the clause that follows the stage it stopped in.
+ *
+ * A phrase rather than the stage's own label, because the labels are headings
+ * and do not survive being dropped into a sentence: "Held in in review" is what
+ * reusing them produces. Each of the six reads as an answer to "when did it
+ * stop", which is the question the anchor exists to answer.
+ *
+ * `validating` keeps the exact wording the step deduction has always produced,
+ * so an anchored stop and a deduced one read alike. They are the same claim
+ * arrived at two ways, and an operator has no use for the difference.
+ */
+const STOPPED_IN: Readonly<Record<ActiveStage, string>> = {
+  dispatched: "before it started work",
+  working: "while working",
+  validating: "in validation",
+  "pr-open": "with its pull request open",
+  "in-review": "in review",
+  landed: "after it landed",
+};
+
+/**
+ * The stage upstream says the worker was in when it stopped, if it said.
+ *
+ * Only ever asked about a stopped worker, and that gate is the whole of why
+ * this is a function rather than a field read. `unseen` is not a stop - it is
+ * the panel saying it cannot see the worker - so a worker the panel has lost
+ * sight of is not placed on the track by a record that came from somewhere
+ * else, however confidently that record asserts. An on-track worker is not
+ * asked either: its position is the stage it is standing in, and where it was
+ * before that is behind it.
+ */
+function anchorOf(lifecycle: Lifecycle): ActiveStage | null {
+  return HALTED.has(lifecycle.stage) ? lifecycle.lastActiveStage : null;
+}
+
 export function stageAccent(stage: Stage): string {
   return STAGE[stage].accent;
 }
@@ -294,26 +330,47 @@ function recordedShape({ kind, delivery }: RailFor): RailShape {
   return delivery ?? UNKNOWN;
 }
 
+/** Which of upstream's two stage claims the recorded rail had no room for. */
+type Misfit = "stage" | "anchor";
+
 /**
- * Whether the recorded rail can hold the stage the worker is standing on.
+ * Whether the recorded rail can hold the stages upstream asserted, and if not,
+ * which one it could not hold.
  *
- * Only the stage is tested against the record, and deliberately. A stage is a
- * fact upstream reconciled and asserted; the step beside it is a word this
- * panel's own projection fished out of upstream's prose with a first-match
+ * Only asserted stages are tested against the record, and deliberately. A stage
+ * is a fact upstream reconciled and wrote down; the step beside it is a word
+ * this panel's own projection fished out of upstream's prose with a first-match
  * rule, and a weak inference must not be allowed to overrule a contract that
  * was written down. So a worker naming a pipeline step on a rail that has no
  * validating stage is drawn on its recorded rail rather than being called a
  * mismatch - see `reachedIndex` for why no position is claimed for it.
  *
- * When the stage itself is off the rail, the record and the reading disagree
+ * When an asserted stage is off the rail, the record and the reading disagree
  * and the record cannot be trusted for the shape. Drawing the recorded rail
  * anyway would hide the disagreement behind a stage simply missing from the
  * picture; extending it to absorb the stage would invent a rail nobody
  * recorded. Neither is honest, so it falls through to the unknown shape, which
  * says so in words.
+ *
+ * The anchor is held to that same standard rather than being quietly dropped
+ * when it does not fit. A worker recorded as skipping the pipeline and reported
+ * as having stopped inside it is two upstream facts contradicting each other,
+ * which is the same disagreement the stage test exists to surface; ignoring the
+ * anchor would hide it and lose the position as well. The stage is tested
+ * first, because where a worker is now is the stronger witness to which rail it
+ * is on than where it was.
  */
-function fits(stages: readonly ActiveStage[], stage: Stage): boolean {
-  return !ON_TRACK.has(stage) || stages.includes(stage as ActiveStage);
+function misfitOf(
+  stages: readonly ActiveStage[],
+  lifecycle: Lifecycle,
+): Misfit | null {
+  const { stage } = lifecycle;
+  if (ON_TRACK.has(stage) && !stages.includes(stage as ActiveStage)) {
+    return "stage";
+  }
+  const anchor = anchorOf(lifecycle);
+  if (anchor !== null && !stages.includes(anchor)) return "anchor";
+  return null;
 }
 
 /**
@@ -330,45 +387,53 @@ function railOf(
 ): {
   readonly shape: RailShape;
   readonly stages: readonly ActiveStage[] | null;
+  /** `null` when nothing was dropped: no rail was recorded to drop. */
+  readonly misfit: Misfit | null;
 } {
   const shape = recordedShape(worker);
-  if (shape === UNKNOWN) return { shape, stages: null };
+  if (shape === UNKNOWN) return { shape, stages: null, misfit: null };
   const stages = RAIL[shape];
-  return fits(stages, lifecycle.stage)
-    ? { shape, stages }
-    : { shape: UNKNOWN, stages: null };
+  const misfit = misfitOf(stages, lifecycle);
+  return misfit === null
+    ? { shape, stages, misfit }
+    : { shape: UNKNOWN, stages: null, misfit };
 }
 
 /**
  * Where a worker got to on the rail it is drawn on.
  *
- * An off-track stage has no position of its own, and the document does not
- * carry the stage a halted worker left the track in. What it does carry is the
- * pipeline step, and the steps only run inside validation - so a halted worker
- * naming one was validating when it stopped. A halted worker naming none gets
- * no position rather than a guessed one; see the note in fleet-lens.tsx.
+ * Three answers tried in order of how much they are worth, and the order is the
+ * point.
  *
- * The deduction needs a validating stage to land on, so on a rail that has none
- * - direct-pr, research - it does not run, and the worker gets no position. It
- * is tempting to fall back to that rail's `working` stage on the grounds that
- * the step says the worker was doing its work, but that is a guess dressed as a
- * deduction: the step word is read out of upstream's prose, and on a rail whose
- * contract skips the pipeline it evidences nothing about which stage the worker
- * stopped in. A worker held after its pull request opened would be walked back
- * to `working` by exactly that reasoning.
+ * An on-track worker is standing on its own stage, and that is the end of it.
+ *
+ * A stopped worker is placed by the stage upstream recorded it as last being
+ * in. That is an assertion rather than a reading - upstream watched the worker
+ * and wrote down where it was - so it outranks anything this file can work out,
+ * and it is the only answer that reaches a rail with no validating stage on it.
+ * It is what makes a stop placeable on all four shapes rather than one.
+ *
+ * Failing that, the pipeline step. The steps only run inside validation, so a
+ * stopped worker naming one was validating when it stopped. It is a deduction
+ * off a word read out of upstream's prose, which is why it goes last, and it
+ * needs a validating stage to land on: on a rail that has none - direct-pr,
+ * research - it does not run. Falling back to that rail's `working` stage
+ * instead is tempting and is a guess dressed as a deduction, because on a rail
+ * whose contract skips the pipeline the step word evidences nothing about which
+ * stage the worker stopped in; a worker held after its pull request opened
+ * would be walked back to `working` by exactly that reasoning.
  *
  * A pull request is not the missing evidence either. It proves a worker
- * REACHED a stage; the marker claims it STOPPED there, and those are different
+ * REACHED a stage; a position claims it STOPPED there, and those are different
  * claims - a worker blocked during in-review has one and did not stop at
- * pr-open. So the honest end of it is no position, said in words by
- * `currentLine` rather than left as an unlit rail. Closing this properly needs
- * the stage a halted worker left the track in, which the document does not
- * carry; see the note in fleet-lens.tsx and `qd-halted-stage-r1`.
+ * pr-open. Upstream asserting the anchor is the difference between being told
+ * that and inferring it. Where nobody asserted one, the honest end of it is
+ * still no position, said in words by `currentLine`.
  *
- * An unseen worker never reaches the deduction at all: the projection reads no
- * step for it, because the words it would read are upstream's account of what
- * it could not see. So the rail stays unlit rather than placing a worker the
- * panel has lost sight of somewhere on the track.
+ * An unseen worker reaches none of it: `anchorOf` refuses it a stop's anchor,
+ * and the projection reads no step for it, because the words it would read are
+ * upstream's account of what it could not see. So the rail stays unlit rather
+ * than placing a worker the panel has lost sight of somewhere on the track.
  *
  * The index is into `stages`, which differs per rail: validating is the third
  * stage of a validated rail and the third of a local one, and pull request open
@@ -380,6 +445,11 @@ function reachedIndex(
 ): number | null {
   const own = stages.indexOf(lifecycle.stage as ActiveStage);
   if (own !== -1) return own;
+  const anchor = anchorOf(lifecycle);
+  if (anchor !== null) {
+    const at = stages.indexOf(anchor);
+    if (at !== -1) return at;
+  }
   if (lifecycle.step === null) return null;
   const validating = stages.indexOf("validating");
   return validating === -1 ? null : validating;
@@ -440,13 +510,33 @@ function currentLine(
   reached: number | null,
 ): string {
   const { stage, step } = lifecycle;
+  const anchor = anchorOf(lifecycle);
   // An unknown rail is drawn along the longest track there is, which has a
   // validating stage; every other rail has to be asked.
   const validates = stages === null || stages.includes("validating");
+  /*
+    Where upstream says the stop happened wins over where this file deduced it,
+    the same order `reachedIndex` reads them in - so the words under the track
+    and the pip on it never name two different stages.
+
+    The step is framed as a pipeline run only when the stop is placed inside
+    validation. An anchored stop elsewhere on the rail must not be: numbering a
+    step out of nine beside "with its pull request open" would claim the worker
+    was in the pipeline at the moment it stopped, when upstream said it was not.
+    Upstream's own line is drawn under the rail either way, so the step word
+    itself is never lost - only the frame this file would have put around it.
+  */
   const where =
-    !ON_TRACK.has(stage) && step !== null && validates ? " in validation" : "";
+    anchor !== null
+      ? ` ${STOPPED_IN[anchor]}`
+      : !ON_TRACK.has(stage) && step !== null && validates
+        ? " in validation"
+        : "";
   const label = `${STAGE[stage].label}${where}`;
-  const inside = stepClause(step, validates);
+  const inside = stepClause(
+    step,
+    anchor === null ? validates : anchor === "validating",
+  );
 
   if (reached === null) {
     return HALTED.has(stage)
@@ -471,21 +561,29 @@ const SHAPE_LABEL: Readonly<Record<Delivery | "research", string>> = {
 /**
  * Why the panel does not know how long this rail is.
  *
- * Two different sentences, because they are two different facts and only one of
- * them is anybody's mistake. Nothing recorded is an ordinary gap - a live fleet
- * publishes a contract for most workers and not all. A record that does not fit
- * the reading is a disagreement between two things upstream said, and naming
- * the shape that was recorded is what lets an operator go and look.
+ * Three different sentences, because they are three different facts and only
+ * two of them are anybody's mistake. Nothing recorded is an ordinary gap - a
+ * live fleet publishes a contract for most workers and not all. A record that
+ * does not fit the reading is a disagreement between two things upstream said,
+ * and naming the shape that was recorded is what lets an operator go and look.
+ *
+ * The two disagreements are told apart because an operator chasing one looks in
+ * a different place than an operator chasing the other: a rail with no room for
+ * where the worker is now is a contradiction about a live reading, and one with
+ * no room for where it stopped is a contradiction about a record written when
+ * it stopped.
  *
  * The shape, not the delivery contract: an investigation carrying a shipping
  * contract is still drawn as an investigation, so blaming the contract would
  * name a thing the rail never used.
  */
-function unknownNote(recorded: RailShape): string {
-  if (recorded === UNKNOWN) {
+function unknownNote(recorded: RailShape, misfit: Misfit | null): string {
+  if (recorded === UNKNOWN || misfit === null) {
     return "No delivery contract was recorded, so how many stages this work has is not known.";
   }
-  return `Recorded as ${SHAPE_LABEL[recorded]}, but that rail has no room for the stage observed, so how many stages this work has is not known.`;
+  const room =
+    misfit === "anchor" ? "the stage it stopped in" : "the stage observed";
+  return `Recorded as ${SHAPE_LABEL[recorded]}, but that rail has no room for ${room}, so how many stages this work has is not known.`;
 }
 
 /**
@@ -515,7 +613,7 @@ export function LifecycleRail({
    */
   worker: RailFor;
 }) {
-  const { shape, stages } = railOf(worker, lifecycle);
+  const { shape, stages, misfit } = railOf(worker, lifecycle);
   const reached =
     stages === null
       ? reachedWithoutRail(lifecycle)
@@ -589,7 +687,7 @@ export function LifecycleRail({
       </p>
       {stages === null && (
         <p className="text-xs text-term-muted italic">
-          {unknownNote(recordedShape(worker))}
+          {unknownNote(recordedShape(worker), misfit)}
         </p>
       )}
     </div>

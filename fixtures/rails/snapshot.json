@@ -139,7 +139,8 @@
       "current_state": {
         "state": "blocked",
         "detail": "blocked on wi-lamplight-604",
-        "observed_at": "2099-01-01T09:03:44.000Z"
+        "observed_at": "2099-01-01T09:03:44.000Z",
+        "last_active_state": "in_review"
       },
       "pr": {
         "url": null,
@@ -493,7 +494,8 @@
       "current_state": {
         "state": "parked",
         "detail": "parked at review: 1 finding(s) (ask-user: authority decision)",
-        "observed_at": "2099-01-01T08:55:11.000Z"
+        "observed_at": "2099-01-01T08:55:11.000Z",
+        "last_active_state": "working"
       },
       "pr": {
         "url": null,
@@ -523,7 +525,8 @@
       "current_state": {
         "state": "parked",
         "detail": "parked at review: 1 finding(s) (ask-user: authority decision)",
-        "observed_at": "2099-01-01T08:50:00.000Z"
+        "observed_at": "2099-01-01T08:50:00.000Z",
+        "last_active_state": "working"
       },
       "pr": {
         "url": null,
@@ -552,7 +555,8 @@
       "current_state": {
         "state": "parked",
         "detail": "parked at review: 1 finding(s) (ask-user: authority decision)",
-        "observed_at": "2099-01-01T08:53:20.000Z"
+        "observed_at": "2099-01-01T08:53:20.000Z",
+        "last_active_state": "pr_open"
       },
       "pr": {
         "url": "https://forge.invalid/halyard/pull/619",
@@ -561,6 +565,37 @@
       "harness": "claude",
       "brief": {
         "summary": "Give the disclosure bar a keyboard shortcut.",
+        "text": null
+      },
+      "mode": "direct-PR"
+    },
+    {
+      "id": "wi-halyard-620",
+      "project": "halyard",
+      "kind": "ship",
+      "paths": {
+        "meta": {
+          "path": "/anchorage/briefs/wi-halyard-620.md",
+          "present": true
+        },
+        "worktree": {
+          "path": "/anchorage/worktrees/wi-halyard-620",
+          "present": true
+        }
+      },
+      "current_state": {
+        "state": "parked",
+        "detail": "parked at review: 1 finding(s) (ask-user: authority decision)",
+        "observed_at": "2099-01-01T08:54:10.000Z",
+        "last_active_state": "validating"
+      },
+      "pr": {
+        "url": null,
+        "source": "absent"
+      },
+      "harness": "claude",
+      "brief": {
+        "summary": "Teach the deck row to name its blocker.",
         "text": null
       },
       "mode": "direct-PR"
