@@ -11,6 +11,7 @@ import type {
   QueueSignal,
   SupervisorSignal,
   Unreadable,
+  UnreadableReason,
 } from "../types/document.ts";
 
 /**
@@ -39,7 +40,12 @@ export type HealthReading =
       readonly asOf: string;
       readonly health: Health;
     }
-  | { readonly read: "unreadable"; readonly detail: string };
+  | {
+      readonly read: "unreadable";
+      readonly detail: string;
+      /** Whether the deadline fired, or the read answered badly. See `UnreadableReason`. */
+      readonly reason: UnreadableReason;
+    };
 
 /**
  * Thrown and caught inside this file only. The module's whole contract is that
@@ -252,6 +258,7 @@ export async function readHealth(
   } catch (error) {
     return {
       read: "unreadable",
+      reason: signal.aborted ? "timed-out" : "failed",
       detail: error instanceof Error ? error.message : String(error),
     };
   }
@@ -775,9 +782,17 @@ export async function readFleetHomeHealth(
   try {
     const entry = await withDeadline(stat(home), signal);
     if (!entry.isDirectory())
-      return dark(`The fleet home is not a directory: ${home}`);
+      return {
+        read: "unreadable",
+        reason: "failed",
+        detail: `The fleet home is not a directory: ${home}`,
+      };
   } catch (error) {
-    return dark(`Could not read the fleet home: ${why(error)}`);
+    return {
+      read: "unreadable",
+      reason: signal.aborted ? "timed-out" : "failed",
+      detail: `Could not read the fleet home: ${why(error)}`,
+    };
   }
 
   const stateDir = join(home, STATE_DIR);

@@ -39,6 +39,25 @@ QUARTERDECK_FIXTURE_SET=stale npm start   # see fixtures/README.md for the sets
 npm test                                  # lint, invariant checks, built server
 ```
 
+### When the fleet is slower than the budget
+
+Reading a real fleet means running its snapshot command, and that command costs
+roughly a second per live worker, in series. A large or busy fleet outruns the
+default 20-second budget; the panel then says `Timed out` on the three lenses
+that come from the snapshot - not `Could not be read`, because a fleet that is
+merely big is not a fleet that is broken - keeps whatever it last read cleanly on
+screen, and asks again after a pause proportional to what the attempt cost.
+
+```sh
+QUARTERDECK_READ_TIMEOUT_MS=45000 npm start   # a fleet with a lot of workers
+```
+
+Raising it is the direct answer, and it is bounded by taste rather than by
+anything mechanical: a budget approaching the 60-second staleness window buys a
+read that is already stale when it lands. The measurements behind the default,
+and the two problems that are upstream's rather than this panel's, are in
+`docs/decisions/2026-09-01-the-fleet-read-budget-and-what-a-timeout-means.md`.
+
 ### Letting the panel answer and merge
 
 The two controls the panel offers - answering a held decision, ordering a merge -

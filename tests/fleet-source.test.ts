@@ -13,10 +13,11 @@ import {
 import { readHealth } from "../src/adapters/health.ts";
 import { fleetById, loadConfig } from "../src/config/index.ts";
 import { projectDocument } from "../src/domain/project.ts";
-import { fixedClock } from "../src/providers/clock.ts";
+import { fixedClock, type Clock } from "../src/providers/clock.ts";
 import type { Logger } from "../src/providers/logger.ts";
 import type { RunOptions, Runner } from "../src/providers/process.ts";
 import { FleetRuntime } from "../src/runtime/fleet.ts";
+import type { PanelDocument } from "../src/types/document.ts";
 import { REPO_ROOT } from "./lib/server.ts";
 
 /**
@@ -42,10 +43,20 @@ const OTHER_HOME = "/anchorage/harbour";
 /** A third, sharing its last segment with the first. */
 const TWIN_HOME = "/moorings/fleet";
 
+const NOW = "2099-01-01T09:15:30.000Z";
+
 const OPTIONS = {
-  clock: fixedClock("2099-01-01T09:15:30.000Z"),
+  clock: fixedClock(NOW),
   staleAfterMs: 60_000,
 };
+
+/**
+ * The shortest hold-off a failed read can buy, mirroring `MIN_HOLD_OFF_MS` in
+ * `src/runtime/fleet.ts`. Named here rather than imported because the tests
+ * that wind past it are asserting the behaviour an operator sees, not the
+ * constant: a runtime that stopped honouring its own floor should fail these.
+ */
+const HOLD_OFF_FLOOR_MS = 1_000;
 
 function fixtureText(set: string): string {
   return readFileSync(join(FIXTURES, set, "snapshot.json"), "utf8");
@@ -122,10 +133,28 @@ function thrownBy(attempt: () => unknown): unknown {
   throw new Error("expected a refusal, got a value");
 }
 
+/**
+ * A clock a test can wind on, for the one behaviour that is about elapsed time
+ * rather than about an instant: the hold-off after a failed read. `fixedClock`
+ * cannot express it - a hold-off never expires when "now" never moves - and
+ * waiting for a real second per assertion would put seconds on every run.
+ */
+function movableClock(instant: string): Clock & { advance(ms: number): void } {
+  let ms = Date.parse(instant);
+  return {
+    now: () => new Date(ms).toISOString(),
+    nowMs: () => ms,
+    advance: (by: number) => {
+      ms += by;
+    },
+  };
+}
+
 function runtimeOn(
   source: { description: string; read(signal: AbortSignal): Promise<string> },
   readTimeoutMs = 5_000,
   logger: Logger = silentLogger,
+  clock: Clock = OPTIONS.clock,
 ): FleetRuntime {
   return new FleetRuntime({
     config: {
@@ -147,7 +176,7 @@ function runtimeOn(
       now: "2099-01-01T09:15:30.000Z",
     },
     source,
-    clock: OPTIONS.clock,
+    clock,
     logger,
     watchDirs: [join(FIXTURES, "healthy")],
     healthDir: join(FIXTURES, "healthy"),
@@ -619,11 +648,181 @@ describe("the read discipline the refresh loop runs on", () => {
       if (fail) throw new Error("not yet");
       return fixtureText("upstream-shape");
     });
-    const runtime = runtimeOn(fleetSource(FLEET_HOME, runner, {}));
+    const clock = movableClock(NOW);
+    const runtime = runtimeOn(
+      fleetSource(FLEET_HOME, runner, {}),
+      5_000,
+      silentLogger,
+      clock,
+    );
 
     assert.equal((await runtime.document()).fleet.status.state, "unreadable");
     fail = false;
+    // Past the hold-off the failure bought: the panel tries again on its own,
+    // it just does not try again on the very next render. See `holdOffMs`.
+    clock.advance(HOLD_OFF_FLOOR_MS);
     assert.equal((await runtime.document()).fleet.status.state, "fresh");
+  });
+
+  /**
+   * The storm, and the quiet that replaced it.
+   *
+   * Before the hold-off, every one of these renders started its own read of a
+   * source that had just proved it could not answer inside the budget - and
+   * because a deadline abandons the wait rather than the work, each of those
+   * reads left a full-cost snapshot command running that nothing could stop.
+   * Measured against a real fleet home: six renders, seven reads, four
+   * snapshot commands running at once, all seven already thrown away.
+   */
+  test("a read that ran out of time is not started again by the next render", async () => {
+    // Never settles: the shape of a fleet slower than the budget allows.
+    const runner = stubRunner(() => new Promise<string>(() => {}));
+    const clock = movableClock(NOW);
+    const runtime = runtimeOn(
+      fleetSource(FLEET_HOME, runner, {}),
+      60,
+      silentLogger,
+      clock,
+    );
+
+    const renders: PanelDocument[] = [];
+    for (let render = 0; render < 6; render++) {
+      // What a watched fleet does: publish, re-render, and come back here.
+      runtime.publishChange();
+      renders.push(await runtime.document());
+    }
+
+    assert.equal(runner.calls.length, 1, "six renders, one read of the fleet");
+    for (const document of renders) {
+      assert.equal(document.fleet.status.state, "unreadable");
+      assert.equal(
+        document.health.status.state,
+        "fresh",
+        "health is a different reader and keeps reading through the hold-off",
+      );
+    }
+  });
+
+  test("the hold-off ends by itself, and lengthens while the fleet stays quiet", async () => {
+    const runner = stubRunner(() => new Promise<string>(() => {}));
+    const clock = movableClock(NOW);
+    const runtime = runtimeOn(
+      fleetSource(FLEET_HOME, runner, {}),
+      60,
+      silentLogger,
+      clock,
+    );
+
+    await runtime.document();
+    assert.equal(runner.calls.length, 1);
+
+    clock.advance(HOLD_OFF_FLOOR_MS);
+    runtime.publishChange();
+    await runtime.document();
+    assert.equal(runner.calls.length, 2, "the first hold-off expired");
+
+    // The second failure doubles it, so the same wait is no longer enough.
+    clock.advance(HOLD_OFF_FLOOR_MS);
+    runtime.publishChange();
+    await runtime.document();
+    assert.equal(runner.calls.length, 2, "still held off, for twice as long");
+
+    clock.advance(HOLD_OFF_FLOOR_MS);
+    runtime.publishChange();
+    await runtime.document();
+    assert.equal(runner.calls.length, 3);
+  });
+
+  test("an operator pressing a button reads now, hold-off or not", async () => {
+    let answer = async (): Promise<string> => {
+      throw new Error("not yet");
+    };
+    const runner = stubRunner(() => answer());
+    const clock = movableClock(NOW);
+    const runtime = runtimeOn(
+      fleetSource(FLEET_HOME, runner, {}),
+      5_000,
+      silentLogger,
+      clock,
+    );
+
+    assert.equal((await runtime.document()).fleet.status.state, "unreadable");
+    assert.equal(runner.calls.length, 1);
+
+    // No clock movement: the hold-off is still running, and a render would be
+    // turned away by it. Acting is not a render.
+    answer = async () => fixtureText("upstream-shape");
+    assert.equal((await runtime.reread()).fleet.status.state, "fresh");
+    assert.equal(runner.calls.length, 2);
+  });
+
+  test("running out of time is reported as its own fact, not as a failure", async () => {
+    const runner = stubRunner(() => new Promise<string>(() => {}));
+    const logger = recordingLogger();
+    const runtime = runtimeOn(fleetSource(FLEET_HOME, runner, {}), 60, logger);
+
+    const { status } = (await runtime.document()).fleet;
+
+    assert.equal(status.state, "unreadable");
+    assert.ok(status.state === "unreadable" && status.reason === "timed-out");
+    assert.ok(
+      status.state === "unreadable" &&
+        status.detail.includes("did not answer within"),
+      `expected the detail to say the fleet was slow, got: ${status.state === "unreadable" ? status.detail : ""}`,
+    );
+    assert.ok(
+      status.state === "unreadable" &&
+        status.detail.includes("QUARTERDECK_READ_TIMEOUT_MS"),
+      "and to name the setting the operator can change",
+    );
+    assert.equal(logger.warnings.length, 1);
+    assert.ok(
+      logger.warnings[0].message.includes("timed out"),
+      `expected the log to say so too, got: ${logger.warnings[0].message}`,
+    );
+  });
+
+  test("a fleet that answers badly is still reported as a failure, in its own words", async () => {
+    const runner = stubRunner(async () => {
+      throw new Error("the fleet home went away");
+    });
+    const runtime = runtimeOn(fleetSource(FLEET_HOME, runner, {}));
+
+    const { status } = (await runtime.document()).fleet;
+
+    assert.ok(status.state === "unreadable" && status.reason === "failed");
+    assert.ok(
+      status.state === "unreadable" &&
+        status.detail === "the fleet home went away",
+      "a real fault says what it was, not what the budget was",
+    );
+  });
+
+  test("a held-off render dates the failure to the read, never to itself", async () => {
+    const runner = stubRunner(async () => {
+      throw new Error("the fleet home went away");
+    });
+    const clock = movableClock(NOW);
+    const runtime = runtimeOn(
+      fleetSource(FLEET_HOME, runner, {}),
+      5_000,
+      silentLogger,
+      clock,
+    );
+
+    const first = (await runtime.document()).fleet.status;
+    clock.advance(HOLD_OFF_FLOOR_MS / 2);
+    runtime.publishChange();
+    const later = (await runtime.document()).fleet.status;
+
+    assert.equal(runner.calls.length, 1, "the second render read nothing");
+    assert.ok(first.state === "unreadable" && later.state === "unreadable");
+    assert.equal(
+      later.observedAt,
+      first.observedAt,
+      "the page says the read failed half a second ago, because it did - a " +
+        "restamped instant would claim a fresh read had just failed",
+    );
   });
 
   test("a changed schema is never survivable, however good the last document was", async () => {

@@ -1,6 +1,7 @@
 import type { Lens, Omission, OmissionReason } from "@/types/document.ts";
 import { GrokEvent } from "@/ui/components/grok/grok-event";
 import { ago } from "@/ui/lib/age";
+import { readVerb } from "@/ui/lib/read-outcome";
 
 /**
  * The disclosure bar: everything the wireframe asks for that is not on this
@@ -171,7 +172,7 @@ function NothingOmitted({
     return (
       <div data-disclosure-empty="unknown" className="min-w-0">
         <GrokEvent
-          label={`The read that would say what is missing is the read that failed, ${ago(snapshot.observedAt, nowMs)}. This page cannot account for what it is not showing.`}
+          label={`The read that would say what is missing is the read that ${readVerb(snapshot)}, ${ago(snapshot.observedAt, nowMs)}. This page cannot account for what it is not showing.`}
         />
       </div>
     );
@@ -240,7 +241,7 @@ export function DisclosureBar({
                   same honesty the list itself is for. */}
               {snapshot.state === "unreadable" && (
                 <GrokEvent
-                  label={`The read failed ${ago(snapshot.observedAt, nowMs)}; this account is the last one that read cleanly, and absences raised since are not in it.`}
+                  label={`The read ${readVerb(snapshot)} ${ago(snapshot.observedAt, nowMs)}; this account is the last one that read cleanly, and absences raised since are not in it.`}
                 />
               )}
               {/*

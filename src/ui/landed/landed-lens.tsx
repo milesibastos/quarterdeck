@@ -3,6 +3,7 @@ import { GrokEvent } from "@/ui/components/grok/grok-event";
 import { inLandingOrder, sizeOf } from "@/ui/landed/landed-order";
 import { LensFrame } from "@/ui/lens-frame";
 import { ago } from "@/ui/lib/age";
+import { readVerb } from "@/ui/lib/read-outcome";
 
 /**
  * The landed lens: work that finished, including what a second mate landed in
@@ -191,7 +192,7 @@ function NothingLanded({
     return (
       <div data-landed-empty="unknown" className="min-w-0">
         <GrokEvent
-          label={`Nothing to show: the read that carries landed work failed ${ago(status.observedAt, nowMs)}. Whether anything landed is unknown, not none.`}
+          label={`Nothing to show: the read that carries landed work ${readVerb(status)} ${ago(status.observedAt, nowMs)}. Whether anything landed is unknown, not none.`}
         />
       </div>
     );
@@ -230,7 +231,7 @@ export function LandedLens({
       */}
       {lens.status.state === "unreadable" && items.length > 0 && (
         <GrokEvent
-          label={`The read failed ${ago(lens.status.observedAt, nowMs)}; what follows is the part of it that still arrived.`}
+          label={`The read ${readVerb(lens.status)} ${ago(lens.status.observedAt, nowMs)}; what follows is the part of it that still arrived.`}
         />
       )}
 

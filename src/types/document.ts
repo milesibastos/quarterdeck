@@ -15,7 +15,7 @@
  */
 
 /** Bumped when this shape changes in a way a reader must notice. */
-export const DOCUMENT_VERSION = 5;
+export const DOCUMENT_VERSION = 6;
 
 /* -------------------------------------------------------- the envelope */
 
@@ -50,9 +50,29 @@ export type LensStatus =
       readonly state: "unreadable";
       /** ISO-8601 instant the panel noticed. */
       readonly observedAt: string;
+      /** Which of the two ways a read can come back empty-handed. See `UnreadableReason`. */
+      readonly reason: UnreadableReason;
       /** One line, written for the operator, naming the concrete problem. */
       readonly detail: string;
     };
+
+/**
+ * Why a lens could not be read - and the two are a different fact about the
+ * fleet, not two phrasings of one.
+ *
+ * `failed` is the fleet answering badly: its snapshot command is not there, it
+ * refused, or what came back would not parse. Something is wrong, and the
+ * detail names it.
+ *
+ * `timed-out` is the fleet not answering in time. Nothing is wrong with it: the
+ * snapshot's cost grows with the number of live workers, so a fleet that is
+ * merely large or busy outruns a budget that a smaller one fit inside. An
+ * operator can act on that - wait, or raise the budget - and cannot act on
+ * "failed". Merging them tells the operator their fleet is broken when it is
+ * only busy, which is the panel making a claim it has no evidence for. See
+ * `docs/decisions/2026-09-01-the-fleet-read-budget-and-what-a-timeout-means.md`.
+ */
+export type UnreadableReason = "failed" | "timed-out";
 
 /** One lens's content and how much of it can be trusted. */
 export interface Lens<T> {

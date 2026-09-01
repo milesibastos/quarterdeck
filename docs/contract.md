@@ -31,13 +31,22 @@ several workers build against at once, some filling it and some drawing it.
 type LensStatus =
   | { state: "fresh"; asOf: string }
   | { state: "stale"; asOf: string; ageMs: number; detail: string }
-  | { state: "unreadable"; observedAt: string; detail: string };
+  | {
+      state: "unreadable";
+      observedAt: string;
+      reason: "failed" | "timed-out";
+      detail: string;
+    };
 ```
 
 There is deliberately no document-wide `degraded` flag. Fleet and deck come from
 one upstream contract that either parses or refuses; health comes from files
 that may simply have moved. Two reliability promises meet in one document, so
 each lens says for itself whether it is good, stale and by how much, or dark.
+
+Every lens can carry `reason`, including health: it is read under the same
+budget as the fleet snapshot, so a stalled health read times out too, not only a
+slow snapshot. See version 6 in the table below for the full rationale.
 
 `content` is always present. A stale lens still carries what it last had, and an
 unreadable one carries the last thing that read cleanly - which may be nothing.
@@ -355,6 +364,7 @@ the right side of that trade for a file with no compatibility promise.
 | 3       | 2026-08-31 | Three things the frozen shape deferred, in one bump. `DeckItem` gains `project` and `kind`, both nullable, from the `repo` and `kind` upstream publishes per backlog record. `Stage` gains `unseen`, so upstream's `unknown` stops being reported as `waiting`. `DeckItem.since` becomes nullable, so a row with no start date is not dated from the read - which also makes an answer to such a row keep one stable request id instead of minting a fresh one every read.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | 4       | 2026-08-31 | Everything the wireframe still needs, in one bump, so that seven features can be built against a frozen shape instead of six migrations. `Worker` gains `delivery` and `dispatch` (branch, runtime, model, effort), and its `brief` gains the instructions' own `summary` and `text` - all recorded at dispatch, never inferred. `ChecksState` becomes `ChecksSignal`, with `review` beside it: `not-looked-up` is now a value distinct from `read: "ok"`, because nobody having asked the forge and the forge having answered are different facts. `Health` gains `queue` and `attendance`. The document gains a `landed` lens, including what second mates landed in their own homes, and an `omissions` list naming every absence and which of three reasons it has. Only `delivery`, `runtime` and the landed work come from a live fleet today; the rest is accepted from a finer upstream and exercised by the fixtures, with the evidence in `docs/quality.md`. |
 | 5       | 2026-09-01 | `Lifecycle` gains `lastActiveStage`, the coarse stage a worker was in before it stopped, from a `current_state.last_active_state` the parser now accepts. It is what lets a stop be placed on the two rails that have no validating stage for the older step deduction to land on. Accepted and optional, like the finer states already were: a live fleet publishes nothing for it - established against two homes rather than assumed, see the decision record - and the fixtures exercise the anchored path on all four rail shapes.                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| 6       | 2026-09-01 | A lens that could not be read says which of two ways it came back empty-handed. `LensStatus`'s `unreadable` gains `reason`: `failed` is the fleet answering badly - a command that is not there, a refusal, bytes that will not parse - and `timed-out` is the fleet not answering inside the read budget, which is a fact about its size rather than its health. The badge reads `Timed out` rather than `Could not be read` for the second, and the detail names the cost curve and the setting that raises the budget. A reader must notice because merging them tells an operator their fleet is broken when it is only busy. See `docs/decisions/2026-09-01-the-fleet-read-budget-and-what-a-timeout-means.md`.                                                                                                                                                                                                                                                   |
 
 Bump `DOCUMENT_VERSION` when a reader must notice the change, and add a row.
 

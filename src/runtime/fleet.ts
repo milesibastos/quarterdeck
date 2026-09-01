@@ -9,19 +9,27 @@ import {
   type SnapshotSource,
 } from "../adapters/contract.ts";
 import { ghForge } from "../adapters/forge.ts";
-import { readFleetHomeHealth, readHealth } from "../adapters/health.ts";
+import {
+  readFleetHomeHealth,
+  readHealth,
+  type HealthReading,
+} from "../adapters/health.ts";
 import {
   fixtureTerminalSource,
   fleetTerminalSource,
   type TerminalSource,
 } from "../adapters/terminal.ts";
 import type { Config, FleetRef } from "../config/index.ts";
-import { projectDocument, withSnapshotUnreadable } from "../domain/project.ts";
+import {
+  projectDocument,
+  withSnapshotUnreadable,
+  type SnapshotFailure,
+} from "../domain/project.ts";
 import { fixedClock, systemClock, type Clock } from "../providers/clock.ts";
 import { consoleLogger, type Logger } from "../providers/logger.ts";
 import { childProcessRunner } from "../providers/process.ts";
 import type { PanelDocument } from "../types/document.ts";
-import { ForgeCache } from "./forge.ts";
+import { ForgeCache, FORGE_READ_TIMEOUT_MS } from "./forge.ts";
 
 /** The document's lens-shaped fields, in the order they read best in a sentence. */
 const LENS_NAMES = ["fleet", "deck", "landed", "health"] as const;
@@ -41,6 +49,76 @@ function describeLenses(names: readonly string[]): string {
       ? names.join(" and ")
       : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
   return `the ${list} ${noun}`;
+}
+
+/** A read that came back empty-handed, and the quiet it bought. */
+interface Setback {
+  readonly failure: SnapshotFailure;
+  /** How many reads in a row have now failed. Reset by one that parses. */
+  readonly attempt: number;
+  /** Epoch milliseconds before which no render may start another read. */
+  readonly retryAt: number;
+}
+
+/**
+ * The shortest quiet a failure buys, however cheaply it failed.
+ *
+ * A command that is simply not there rejects in a millisecond, and without a
+ * floor the hold-off it earned would be a millisecond too - which is no
+ * hold-off, and leaves the render loop spinning on a missing file.
+ */
+const MIN_HOLD_OFF_MS = 1_000;
+
+/**
+ * How long the next read waits, after one came back empty-handed.
+ *
+ * Proportional to what the failure cost, because that is the number that
+ * matters: a deadline abandons the wait and not the work, so a read that burned
+ * twenty seconds has left twenty seconds of fleet work still running that this
+ * panel can neither see nor stop. Retrying inside that window is asking a fleet
+ * to do a second copy of the job it has not finished the first of. Waiting at
+ * least as long as the last attempt took is the smallest rule that keeps the
+ * panel from being more than half the load it is complaining about.
+ *
+ * Then doubled per consecutive failure, so a fleet that is down is asked about
+ * less and less often rather than at a fixed drumbeat.
+ *
+ * The ceiling is the staleness window, and not a number of its own: past it the
+ * panel would be calling its own last good picture stale anyway, so holding off
+ * for longer buys quiet nobody is left to benefit from - the page is already
+ * saying it does not know.
+ */
+function holdOffMs(
+  elapsedMs: number,
+  attempt: number,
+  staleAfterMs: number,
+): number {
+  const base = Math.max(elapsedMs, MIN_HOLD_OFF_MS);
+  // `attempt` is 1 for the first failure, which is one base with no doubling.
+  const stepped = base * 2 ** (attempt - 1);
+  return Math.min(stepped, staleAfterMs);
+}
+
+/**
+ * What the operator is told when the budget ran out.
+ *
+ * Deliberately not "the read failed". Nothing failed: a fleet snapshot costs
+ * about a second per live worker, serially, so a fleet large or busy enough
+ * outgrows a budget a smaller one fits inside. That is a fact the operator can
+ * do something with, and the two things they can do are named. See
+ * `docs/decisions/2026-09-01-the-fleet-read-budget-and-what-a-timeout-means.md`.
+ */
+function timedOutDetail(readTimeoutMs: number): string {
+  // Not rounded to whole seconds: an operator who set 1500 and reads "2s" has
+  // been told their own setting back wrong, which is a poor start to a line
+  // whose whole job is to tell them the setting is theirs to change.
+  const seconds = Number((readTimeoutMs / 1000).toFixed(1));
+  return (
+    `The fleet did not answer within ${seconds}s. ` +
+    `A snapshot costs roughly a second per live worker, so a large or busy ` +
+    `fleet can outrun the budget - this is slowness, not a fault. It will be ` +
+    `asked again shortly; QUARTERDECK_READ_TIMEOUT_MS raises the budget.`
+  );
 }
 
 /**
@@ -100,6 +178,11 @@ export class FleetRuntime {
   #stale = true;
   /** At most one read is ever in flight; concurrent callers share it. */
   #inFlight: Promise<PanelDocument> | null = null;
+  /**
+   * What the last read that came back empty-handed knows, and until when the
+   * next attempt is held off. Cleared by any read that parses.
+   */
+  #setback: Setback | null = null;
   #listeners = new Set<() => void>();
   #watchers: FSWatcher[] = [];
   #debounce: NodeJS.Timeout | null = null;
@@ -112,14 +195,92 @@ export class FleetRuntime {
    * The current document.
    *
    * Returns the cache when the watcher has seen nothing since the last read.
-   * Otherwise reads once, however many callers ask at the same time.
+   * Otherwise reads once, however many callers ask at the same time - and,
+   * while a read that failed is still being held off, does not read at all.
    */
   async document(): Promise<PanelDocument> {
     if (!this.#stale && this.#lastKnownGood) return this.#lastKnownGood;
+    if (this.#holdingOff()) return this.#fromSetback();
+    return this.#startRead();
+  }
+
+  /** One read, however many callers arrive while it is running. */
+  #startRead(): Promise<PanelDocument> {
     this.#inFlight ??= this.#read().finally(() => {
       this.#inFlight = null;
     });
     return this.#inFlight;
+  }
+
+  /**
+   * Whether the last failure's quiet period is still running.
+   *
+   * ## Why a failed read must not be retried by the next render
+   *
+   * `#inFlight` collapses callers that arrive *together*. It does nothing for
+   * callers that arrive one behind the other, and a watched fleet produces
+   * exactly those: the watcher fires, every open page re-renders, and each
+   * render is a fresh `document()` after the last one has settled. A read that
+   * failed leaves `#stale` set on purpose, so before this every one of those
+   * renders started another read of a source that had just demonstrated it
+   * could not answer.
+   *
+   * Against a slow fleet that is a storm the panel feeds itself. Measured on a
+   * real home: six renders produced seven reads, and because a deadline here
+   * abandons the *wait* and not the work - upstream runs its own readers in
+   * process groups of their own, which nothing this panel is allowed to signal
+   * can reach - four full-cost snapshot commands ended up running at once,
+   * every one already thrown away. The panel was making the fleet slower by
+   * asking it whether it was slow. See
+   * `docs/decisions/2026-09-01-the-fleet-read-budget-and-what-a-timeout-means.md`.
+   *
+   * So a failure buys quiet, in proportion to what it cost: see `holdOffMs`.
+   */
+  #holdingOff(): boolean {
+    const setback = this.#setback;
+    return setback !== null && this.#deps.clock.nowMs() < setback.retryAt;
+  }
+
+  /**
+   * The document to hand back while a failure is held off, without reading.
+   *
+   * The health signals are read again each time even so. They come from a
+   * different reader with a different cost - files, no command - and they are
+   * the one thing still legible when the snapshot is not, so letting the
+   * shipshape lens go dark for the length of a backoff would be the panel
+   * withholding what it can see. Nothing is restamped: the failure's own
+   * instant and detail are carried, because no read has happened since.
+   */
+  async #fromSetback(): Promise<PanelDocument> {
+    const { config, clock, healthDir, fleetHome } = this.#deps;
+    const setback = this.#setback!;
+    const health = await this.#readHealth(
+      AbortSignal.timeout(config.readTimeoutMs),
+      { clock, healthDir, fleetHome },
+    );
+    return withSnapshotUnreadable(
+      this.#lastKnownGood,
+      setback.failure,
+      health,
+      {
+        clock,
+        staleAfterMs: config.staleAfterMs,
+      },
+    );
+  }
+
+  /** Health, from wherever this runtime's signals live. Never throws. */
+  #readHealth(
+    deadline: AbortSignal,
+    {
+      clock,
+      healthDir,
+      fleetHome,
+    }: Pick<RuntimeDeps, "clock" | "healthDir" | "fleetHome">,
+  ): Promise<HealthReading> {
+    return fleetHome
+      ? readFleetHomeHealth(fleetHome, clock, deadline)
+      : readHealth(healthDir, deadline);
   }
 
   /**
@@ -138,11 +299,20 @@ export class FleetRuntime {
    * problem wearing a different coat. Nothing is published - a re-read is not a
    * change, and telling every open page to re-render because somebody pressed a
    * button would be this panel inventing traffic.
+   *
+   * A backoff is stepped over here, and only here. The hold-off exists to stop
+   * renders the operator did not ask for from hammering a source that cannot
+   * answer; this call is an operator with their finger on a button, and telling
+   * them to come back in half a minute because a render failed earlier would be
+   * spending their patience to save the fleet's. One attempt per press is not a
+   * storm - and the attempt count is stepped over rather than cleared, so a
+   * press that fails again leaves the renders behind it backing off further,
+   * not starting over.
    */
   async reread(): Promise<PanelDocument> {
     if (this.#inFlight) await this.#inFlight.catch(() => undefined);
     this.#stale = true;
-    return this.document();
+    return this.#startRead();
   }
 
   async #read(): Promise<PanelDocument> {
@@ -150,18 +320,23 @@ export class FleetRuntime {
       this.#deps;
     const options = { clock, staleAfterMs: config.staleAfterMs };
 
+    // One deadline across both reads, not one each. They run in sequence, so a
+    // deadline apiece is a budget of twice the number an operator configured -
+    // and the number they configured is the one they will read back off the
+    // page when the panel says how long it waited.
+    const deadline = AbortSignal.timeout(config.readTimeoutMs);
+    const startedAt = clock.nowMs();
+
     // Read first and unconditionally: health never throws, and it is the one
     // lens that stays useful when the snapshot does not parse.
-    const deadline = AbortSignal.timeout(config.readTimeoutMs);
-    const health = fleetHome
-      ? await readFleetHomeHealth(fleetHome, clock, deadline)
-      : await readHealth(healthDir, deadline);
+    const health = await this.#readHealth(deadline, {
+      clock,
+      healthDir,
+      fleetHome,
+    });
 
     try {
-      const snapshot = await readSnapshot(
-        source,
-        AbortSignal.timeout(config.readTimeoutMs),
-      );
+      const snapshot = await readSnapshot(source, deadline);
       // Whatever the forge has already said, folded in before the projection so
       // that the document - and with it the omissions list - is built once from
       // one snapshot. A pull request nothing has read yet keeps upstream's
@@ -173,6 +348,10 @@ export class FleetRuntime {
       );
       this.#lastKnownGood = document;
       this.#stale = false;
+      // One clean read ends the backoff outright rather than stepping it down.
+      // The thing being backed off is a source that could not answer, and this
+      // one just did.
+      this.#setback = null;
       // Last, and deliberately: this schedules network calls and returns, so
       // the document above is already built and about to be handed back. A read
       // that finds something new publishes a change, and the panel re-renders
@@ -185,20 +364,48 @@ export class FleetRuntime {
       // "plausible and wrong" outcome the pinned identifier exists to prevent.
       if (error instanceof ContractIdentifierError) throw error;
 
-      const detail = error instanceof Error ? error.message : String(error);
+      // The deadline having fired is a different fact from the fleet answering
+      // badly, and only this side of the read can tell them apart: by the time
+      // an abort reaches the runner it is an ordinary rejection with an
+      // ordinary message. See `UnreadableReason`.
+      const timedOut = deadline.aborted;
+      const failure = {
+        reason: timedOut ? ("timed-out" as const) : ("failed" as const),
+        detail: timedOut
+          ? timedOutDetail(config.readTimeoutMs)
+          : error instanceof Error
+            ? error.message
+            : String(error),
+        observedAt: clock.now(),
+      };
       const document = withSnapshotUnreadable(
         this.#lastKnownGood,
-        detail,
+        failure,
         health,
         options,
       );
+
+      const elapsedMs = clock.nowMs() - startedAt;
+      const attempt = (this.#setback?.attempt ?? 0) + 1;
+      const holdOff = holdOffMs(elapsedMs, attempt, config.staleAfterMs);
+      // `#stale` stays set, deliberately: the picture is still owed a read.
+      // What has changed is that the next one waits for `retryAt` instead of
+      // starting on the very next render.
+      this.#setback = {
+        failure,
+        attempt,
+        retryAt: clock.nowMs() + holdOff,
+      };
+
       logger.warn(
-        `fleet read failed; showing ${describeLenses(unreadableLenses(document))} as unreadable`,
+        `fleet read ${timedOut ? "timed out" : "failed"}; showing ${describeLenses(unreadableLenses(document))} as unreadable`,
         {
-          detail,
+          detail: failure.detail,
+          elapsedMs,
+          attempt,
+          retryInMs: holdOff,
         },
       );
-      // Deliberately leaves `#stale` set, so the next render tries again.
       return document;
     }
   }
@@ -354,7 +561,7 @@ function forgeFor(config: Config, clock: Clock): ForgeCache | null {
     read: ghForge(childProcessRunner, clock, process.env),
     clock,
     logger: consoleLogger,
-    readTimeoutMs: config.readTimeoutMs,
+    readTimeoutMs: FORGE_READ_TIMEOUT_MS,
   });
 }
 

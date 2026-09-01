@@ -3,6 +3,7 @@ import { WorkerCard } from "@/ui/fleet/worker-card";
 import type { TerminalReader } from "@/ui/fleet/worker-terminal";
 import { LensFrame } from "@/ui/lens-frame";
 import { ago } from "@/ui/lib/age";
+import { readVerb } from "@/ui/lib/read-outcome";
 
 /**
  * The fleet lens: what is running.
@@ -94,7 +95,7 @@ function LastGoodPicture({
     <p className="font-mono text-xs text-term-muted">
       {status.state === "stale"
         ? `Last good picture, taken ${ago(status.asOf, nowMs)}.`
-        : `Last good picture, still on screen; the read failed ${ago(status.observedAt, nowMs)}.`}
+        : `Last good picture, still on screen; the read ${readVerb(status)} ${ago(status.observedAt, nowMs)}.`}
     </p>
   );
 }

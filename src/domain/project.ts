@@ -27,6 +27,7 @@ import {
   type Priority,
   type ReviewSignal,
   type Stage,
+  type UnreadableReason,
   type ValidationStep,
   type Worker,
   type WorkerKind,
@@ -586,8 +587,28 @@ function freshness(
   };
 }
 
-function unreadable(detail: string, clock: Clock): LensStatus {
-  return { state: "unreadable", observedAt: clock.now(), detail };
+/**
+ * A lens the panel could not fill.
+ *
+ * The backlog callers always pass "failed": upstream's `present` flag says the
+ * backlog itself would not parse, never that the whole snapshot read ran out of
+ * time - a read that timed out is the runtime's to report, through
+ * `withSnapshotUnreadable`, and never reaches `projectDocument` at all. Health
+ * is different: it is read under the same shared deadline as the snapshot (see
+ * `FleetRuntime#read`), so its own reading can time out independently, and
+ * `reason` carries whichever the reader actually observed.
+ */
+function unreadable(
+  detail: string,
+  clock: Clock,
+  reason: UnreadableReason = "failed",
+): LensStatus {
+  return {
+    state: "unreadable",
+    observedAt: clock.now(),
+    reason,
+    detail,
+  };
 }
 
 /** Every signal dark, with the same one-line reason. */
@@ -617,7 +638,7 @@ function projectHealth(
   if (reading.read === "unreadable") {
     return {
       content: darkHealth(reading.detail),
-      status: unreadable(reading.detail, options.clock),
+      status: unreadable(reading.detail, options.clock, reading.reason),
     };
   }
   return { content: reading.health, status: freshness(reading.asOf, options) };
@@ -672,6 +693,24 @@ export function projectDocument(
 }
 
 /**
+ * A read that came back empty-handed, as the document records it.
+ *
+ * `observedAt` is passed in rather than taken from the clock here, because the
+ * runtime holds a failure off and re-renders from it without looking again -
+ * see `FleetRuntime`. The page says "the read failed 20 seconds ago", and it
+ * has to mean the read, not the render: a panel that restamped the instant on
+ * every re-render would tell an operator a fresh read had just failed each
+ * time, when nothing had been read at all.
+ */
+export interface SnapshotFailure {
+  readonly reason: UnreadableReason;
+  /** One line, written for the operator, naming the concrete problem. */
+  readonly detail: string;
+  /** ISO-8601 instant the panel noticed - the read's, never the render's. */
+  readonly observedAt: string;
+}
+
+/**
  * Re-label the lenses the snapshot fills, keeping what the panel is still
  * showing, after a read failed.
  *
@@ -686,11 +725,11 @@ export function projectDocument(
  */
 export function withSnapshotUnreadable(
   previous: PanelDocument | null,
-  detail: string,
+  failure: SnapshotFailure,
   health: HealthReading,
   options: ProjectOptions,
 ): PanelDocument {
-  const status = unreadable(detail, options.clock);
+  const status: LensStatus = { state: "unreadable", ...failure };
   return {
     version: DOCUMENT_VERSION,
     generatedAt: options.clock.now(),

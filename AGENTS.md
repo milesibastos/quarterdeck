@@ -86,6 +86,18 @@ slot is empty has no spool and both controls say so on the card instead of
 acting. See the README's "Letting the panel answer and merge" for the operator's
 copy of this, and `docs/contract.md` for the bytes each record carries.
 
+`QUARTERDECK_READ_TIMEOUT_MS` is the budget one fleet read gets, 20s by
+default. It is a measured number, not a taste: a fleet snapshot costs about a
+second per live worker in series, and upstream bounds each of those at fourteen
+seconds of its own, so a smaller budget gives up before the fleet's own deadline
+can fire. A read that outruns it says the fleet timed out - which is a different
+fact from a fleet that failed, and the page says which - keeps the last good
+picture, and holds the next attempt off rather than letting every render start
+another. Read
+`docs/decisions/2026-09-01-the-fleet-read-budget-and-what-a-timeout-means.md`
+before changing any of that; two of the three faults behind it are upstream's
+and are named there.
+
 `QUARTERDECK_READ_FORGE` is the one setting that turns on a network call: a pull
 request's checks and its review comments, read through `gh`. Off by default,
 never on the first paint, and never more than once a minute per pull request -

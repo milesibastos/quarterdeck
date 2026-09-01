@@ -43,6 +43,24 @@ const HEADLINE: Readonly<Record<Lens<unknown>["status"]["state"], string>> = {
 };
 
 /**
+ * The one word that separates a fleet that answered badly from a fleet that
+ * did not answer in time.
+ *
+ * They are the same `unreadable` state - the panel has no reading either way,
+ * and every band below draws the same absence - but they are not the same fact
+ * about the fleet, and "Could not be read" over a fleet that is merely large
+ * accuses it of a fault it does not have. The operator can wait out a timeout,
+ * or raise the budget; there is nothing to wait out in a command that is not
+ * there. See `UnreadableReason` and the detail line under this one, which says
+ * which of the two it was in full.
+ */
+function headlineOf(status: Lens<unknown>["status"]): string {
+  return status.state === "unreadable" && status.reason === "timed-out"
+    ? "Timed out"
+    : HEADLINE[status.state];
+}
+
+/**
  * The trust word's tone: three steps of emphasis, not three hues.
  *
  * `stale` gets full-strength text rather than the warn gold it first had. The
@@ -129,6 +147,12 @@ export function LensFrame<T>({
     <section
       data-lens={name}
       data-lens-status={lens.status.state}
+      // A test asserting a lens went dark asserts the state; one asserting the
+      // panel told a slow fleet apart from a broken one needs the reason, and
+      // reading it off prose would be asserting the copy instead.
+      data-lens-reason={
+        lens.status.state === "unreadable" ? lens.status.reason : undefined
+      }
       data-prominence={prominence}
       className={cn("flex min-w-0 flex-col", className)}
     >
@@ -152,7 +176,7 @@ export function LensFrame<T>({
             </h2>
             <p className="min-w-0 font-mono text-[0.6875rem] tracking-wide uppercase">
               <span className={TONE[lens.status.state]}>
-                {HEADLINE[lens.status.state]}
+                {headlineOf(lens.status)}
               </span>
               {summary !== null && (
                 <span className="text-muted-foreground">{` · ${summary}`}</span>

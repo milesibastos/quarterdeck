@@ -49,7 +49,7 @@ import { spawnSync } from "node:child_process";
 const KEPT = [
   // ---- Duplication -------------------------------------------------------
   {
-    hash: "f0b5b555e25dd5702f2c4cd4a2bf8faf",
+    hash: "48a773e3e741a8269bd465fef8079b9b",
     locations: 2,
     where: "src/ui/disclosure-bar.tsx / src/ui/landed/landed-lens.tsx",
     why:
@@ -58,7 +58,14 @@ const KEPT = [
       "Sharing them would put one component in front of two bands that are " +
       "still moving, and the wrong shared component is more expensive than " +
       "the duplication. Recorded 2026-08-31 in " +
-      "docs/decisions/2026-08-31-what-the-parallel-lens-build-duplicated.md.",
+      "docs/decisions/2026-08-31-what-the-parallel-lens-build-duplicated.md. " +
+      "Argued again 2026-09-01, the hash having moved because both labels " +
+      "took the same one-call edit - `readVerb`, so a fleet that ran out of " +
+      "time is not called a failed one. That is the shape of duplication " +
+      "this entry accepts and it did cost the edit twice; what it did not " +
+      "cost is a shared component, because the two bands still say different " +
+      "things about different absences. The verb itself is shared, which is " +
+      "the part that had to be.",
   },
   {
     hash: "3509ebfb6b466865bc21d0d3b40a68ac",
@@ -86,7 +93,7 @@ const KEPT = [
   {
     rule: "qlty:file-complexity",
     file: "src/adapters/health.ts",
-    max: 87,
+    max: 91,
     where: "src/adapters/health.ts, whole file",
     why:
       "The quarantined module. Invariant 4 confines every fleet-internal " +
@@ -94,7 +101,11 @@ const KEPT = [
       "that would clear this is the one the suite refuses: measured at the " +
       "file's own seam, the parser half falls to 16 and the reader half " +
       "stays at 71, and the reader half is the half in which every function " +
-      "names a path. Held at 87 rather than excluded, so the file cannot " +
+      "names a path. Held at 87, then at 91 once `readHealth` and " +
+      "`readFleetHomeHealth` each grew the branch that tells a deadline " +
+      "firing apart from the fleet answering badly - the same distinction " +
+      "`runtime/fleet.ts` already draws on the snapshot read, extended to " +
+      "health's own reads. Raised rather than excluded, so the file cannot " +
       "grow past what it costs today without saying so here.",
   },
   {
