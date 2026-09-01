@@ -234,7 +234,7 @@ export interface Lifecycle {
    * into. `null` is what every live fleet fills it with today, because upstream
    * publishes no such record and has no vocabulary for one; the evidence, and
    * the commands it was checked with, are in `docs/quality.md` and
-   * `docs/decisions/2026-08-31-the-stage-a-stop-happened-in.md`.
+   * `docs/decisions/2026-09-01-the-stage-a-stop-happened-in.md`.
    *
    * An active stage and never a halted one. "Where it stopped" is a place on
    * the track, and `blocked` is not a place on the track - a worker that was

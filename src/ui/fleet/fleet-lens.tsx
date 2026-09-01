@@ -21,13 +21,16 @@ import { ago } from "@/ui/lib/age";
  * old it is; no content at all is either a definitive empty fleet or a lens
  * that could not be read, and those are two different sentences.
  *
- * One gap worth naming rather than papering over: `Lifecycle` carries the stage
- * a worker is in but not the stage it was in before it stopped. A halted worker
- * that names a pipeline step is anchored to its rail's validating stage - the
- * steps only run there - but one that names none, and one on a rail that has no
- * validating stage at all, have nothing to anchor to, and the rail says its
- * position is not known rather than guessing one. A `lastActiveStage` on
- * `Lifecycle` would close it; that is `qd-halted-stage-r1`.
+ * One gap worth naming rather than papering over, and it is now upstream's
+ * rather than the document's. `Lifecycle` carries `lastActiveStage`, the stage
+ * a worker was in before it stopped, and a stop that has one is placed on its
+ * rail whatever shape that rail is. No fleet fills it: a live snapshot's
+ * `current_state` carries six keys and none of them is a prior stage, and
+ * firstmate has no vocabulary for one to publish - so on a live fleet every
+ * stop still falls back to the older deduction from the pipeline step, and a
+ * stop that rail cannot place says its position is not known rather than
+ * guessing one. See `docs/decisions/2026-09-01-the-stage-a-stop-happened-in.md`
+ * for what was checked and how.
  */
 
 /** Nothing running. `stale` means that is only what the last good read found. */
