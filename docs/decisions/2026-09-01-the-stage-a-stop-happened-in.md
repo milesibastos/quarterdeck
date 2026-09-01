@@ -27,8 +27,8 @@ assumed, because the two passes that recorded this gap before recorded it
 without establishing it.
 
 ```sh
-bin/fm-fleet-snapshot.sh --json          # in ~/workspaces/quarterdeck
-FM_HOME=~/workspaces/woot bin/fm-fleet-snapshot.sh --json
+# Run once per configured fleet home, from that home. Two were checked.
+FM_HOME=<a fleet home> bin/fm-fleet-snapshot.sh --json
 ```
 
 Across both homes, every task's `current_state` object carries exactly six keys:
@@ -48,15 +48,16 @@ further checks say the same thing from the other direction:
   reconciled states, of which exactly one - `working` - is a place on the rail.
   The document's other five active stages are mapped from context, not read.
 
-The live fleet at the time of the check made the gap concrete. `woot` was
-running one worker: `mode=direct-PR`, `state=paused`, its detail reading
-`PR .../pulls/56 updated with the cleanup, waiting on the captain's merge
-decision`. A real stopped worker, on the rail with no validating stage, whose
-position the panel could not name.
+One of the two homes made the gap concrete at the moment of the check. It was
+running a single worker, recorded as `mode=direct-PR` and reconciled to
+`paused` - a stopped worker on the rail that has no validating stage. Its detail
+was a person's sentence saying a pull request had been updated and was waiting
+on a merge decision.
 
-That detail obviously _says_ where it stopped. Reading it would mean inferring a
-rail position from free prose, which is the thing this project already refuses
-one layer down - and the sentence is a person's status note, not a field.
+So the detail plainly implied where that worker stopped, and the panel still
+could not name it. Reading it would mean inferring a rail position from free
+prose, which is what this project already refuses one layer down - the sentence
+is a status note somebody typed, not a field.
 
 ## What was decided
 
