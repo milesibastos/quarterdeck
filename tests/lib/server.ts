@@ -2,8 +2,10 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { request as httpRequest } from "node:http";
+import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { PORT_RANGE_SIZE, PORT_RANGE_START } from "../../src/config/port.ts";
 
 /**
  * Starting the built panel, for tests that drive it over HTTP.
@@ -11,6 +13,15 @@ import { join } from "node:path";
  * The suite exercises `.next/standalone`, not `src/`, so a stale build cannot
  * pass. Fixtures are copied to a temporary directory first: several tests need
  * to change a snapshot mid-run, and none of them may touch the committed ones.
+ *
+ * A panel is only ever driven on a port this suite owns. `tests/lib/ports.ts`
+ * keeps the suite's own files off each other's ports, but it can say nothing
+ * about the rest of the machine: ports are derived from the worktree's path, so
+ * a sibling checkout's panel can sit on one of this checkout's. Nothing about
+ * that looks like a port clash - the foreign server answers, the assertions
+ * read as wrong content, and the panel that failed to bind is never mentioned.
+ * So `startPanel` asks who is on the port before it starts anything, and
+ * refuses; see `docs/decisions/2026-09-01-a-suite-owns-its-ports.md`.
  */
 
 export const REPO_ROOT = join(import.meta.dirname, "..", "..");
@@ -94,6 +105,151 @@ export async function copyFixtures(): Promise<string> {
   return dir;
 }
 
+/**
+ * How long the occupancy probe gives a loopback port to answer.
+ *
+ * Nothing on 127.0.0.1 needs more. A server that cannot manage a syllable in a
+ * second is reported as occupied and mute rather than waited on, because the
+ * question being asked is whether the port is free, and it plainly is not.
+ */
+const PROBE_TIMEOUT_MS = 1_000;
+
+/** How much of an occupant's answer a failure quotes. */
+const EXCERPT = 160;
+
+/** The range test ports and the panel's own port are both derived into. */
+const RANGE_END = PORT_RANGE_START + PORT_RANGE_SIZE - 1;
+
+/**
+ * What already answers on `port`, in one line, or null when nothing does.
+ *
+ * This connects rather than binding, because the question is who answers and
+ * not who could bind. They are different questions: Node's listeners set
+ * SO_REUSEADDR, so binding 127.0.0.1 can succeed while a foreign process holds
+ * 0.0.0.0 on the same port - a probe that passes while that server goes on
+ * answering every request the suite makes. `bin/quarterdeck` binds because it
+ * is about to bind; this asks what a test would be talking to.
+ *
+ * The answer is quoted back because that excerpt is the whole diagnosis. The
+ * one thing that settled this defect, after three wrong ones, was curling the
+ * port and reading a different checkout's panel come back. Putting that curl
+ * inside the failure means nobody has to think of it again.
+ */
+export function whatAnswersOn(port: number): Promise<string | null> {
+  return new Promise((settle) => {
+    const socket = connect({ host: "127.0.0.1", port });
+    let connected = false;
+    let heard = "";
+    let done = false;
+
+    const describe = () =>
+      heard.trim() === ""
+        ? "a server that took the connection and said nothing"
+        : heard.replace(/\s+/g, " ").trim().slice(0, EXCERPT);
+    const finish = (answer: string | null) => {
+      if (done) return;
+      done = true;
+      socket.destroy();
+      settle(answer);
+    };
+    // Only a refusal before the connection is up means the port is free; every
+    // other ending happened because something was there to end it.
+    const stopped = () => finish(connected ? describe() : null);
+
+    socket.setTimeout(PROBE_TIMEOUT_MS);
+    socket.on("connect", () => {
+      connected = true;
+      socket.write("GET / HTTP/1.0\r\nHost: 127.0.0.1\r\n\r\n");
+    });
+    socket.on("data", (chunk: Buffer) => {
+      heard += chunk.toString("utf8");
+      if (heard.length >= EXCERPT * 4) finish(describe());
+    });
+    socket.on("end", () => finish(describe()));
+    socket.on("timeout", stopped);
+    socket.on("error", stopped);
+  });
+}
+
+/** How to find whoever holds a port, worth repeating in every such failure. */
+const findIt = (port: number) => `  lsof -nP -iTCP:${port} -sTCP:LISTEN`;
+
+/** The refusal: a port this suite does not own is not a port it may test on. */
+function occupiedPortError(port: number, occupant: string): Error {
+  return new Error(
+    `port ${port} is already answering, and this suite did not start what is on it.\n` +
+      `It said: ${occupant}\n\n` +
+      `This panel would not have bound, and nothing would have said so: every request ` +
+      `this file made would have been answered by that server, and the assertions would ` +
+      `have failed as wrong content rather than as a port clash.\n\n` +
+      `Test ports are derived from this worktree's absolute path, inside ` +
+      `${PORT_RANGE_START}-${RANGE_END}, so a panel or a suite in a sibling checkout can ` +
+      `land on one of this checkout's. Find it with:\n${findIt(port)}\n` +
+      `then stop it, or stop the checkout it belongs to, and run this suite again.`,
+  );
+}
+
+/** A panel found dead: what it left behind, and what is on its port now. */
+interface EarlyDeath {
+  readonly port: number;
+  readonly url: string;
+  readonly exitCode: number | null;
+  readonly stderr: string;
+  /** What answers on the port now, if anything. */
+  readonly occupant: string | null;
+}
+
+/**
+ * Why a panel died without being asked to, as the message to fail with.
+ *
+ * The occupancy check before the start leaves one window: a foreign server can
+ * take the port between the check and the panel's bind. This is where that
+ * window closes. A panel that is dead cannot be what answered, so if anything
+ * still answers on its port, everything the file asserted was answered by that
+ * - and the two pieces of evidence which say so, the child's own EADDRINUSE and
+ * whatever is on the port now, are both read here rather than left for a person
+ * to go looking for.
+ */
+export function explainEarlyDeath(death: EarlyDeath): string {
+  const { port, url, exitCode, stderr, occupant } = death;
+  const words =
+    stderr.trim() === "" ? "" : `\nIts last words:\n${stderr.trim()}`;
+
+  if (stderr.includes("EADDRINUSE")) {
+    return (
+      `the panel for ${url} never bound: port ${port} was taken between the check and ` +
+      `the start. Everything this file asked for was answered by a server this suite ` +
+      `did not start, so its assertions read as wrong content, not as a port clash.\n` +
+      `The port now says: ${occupant ?? "nothing"}\n${findIt(port)}${words}`
+    );
+  }
+  if (occupant !== null) {
+    return (
+      `the panel for ${url} exited with ${exitCode} without being stopped, and something ` +
+      `is still answering on port ${port} - a server this suite did not start. A dead ` +
+      `panel cannot be what answered this file, so its assertions read as wrong content, ` +
+      `not as a port clash.\nThe port says: ${occupant}\n${findIt(port)}${words}`
+    );
+  }
+  return (
+    `the panel for ${url} exited with ${exitCode} without being stopped. Nothing answers ` +
+    `on port ${port} now, so this is the panel's own failure and not a port clash.${words}`
+  );
+}
+
+/** The child's stderr, kept to a tail: enough for an error and its stack. */
+const STDERR_KEPT = 4_000;
+
+/** Drains the child's stderr, and hands back a reader for what it said. */
+function collectStderr(child: ChildProcess): () => string {
+  let text = "";
+  child.stderr?.setEncoding("utf8");
+  child.stderr?.on("data", (chunk: string) => {
+    text = (text + chunk).slice(-STDERR_KEPT);
+  });
+  return () => text;
+}
+
 export interface Panel {
   readonly url: string;
   readonly fixtureRoot: string;
@@ -111,13 +267,20 @@ interface StartOptions {
 }
 
 export async function startPanel(options: StartOptions): Promise<Panel> {
+  // Before anything is built, copied or spawned: whose port is this?
+  const squatter = await whatAnswersOn(options.port);
+  if (squatter !== null) throw occupiedPortError(options.port, squatter);
+
   await stageAssets();
   const fixtureRoot = options.fixtureRoot ?? (await copyFixtures());
   const url = `http://127.0.0.1:${options.port}`;
 
   const child: ChildProcess = spawn(process.execPath, [SERVER_ENTRY], {
     cwd: REPO_ROOT,
-    stdio: "ignore",
+    // stderr is kept rather than discarded: a panel that fails to bind says so
+    // there, and that sentence is the difference between a named cause and a
+    // day of looking for a defect in the panel.
+    stdio: ["ignore", "ignore", "pipe"],
     env: {
       ...process.env,
       HOSTNAME: "127.0.0.1",
@@ -133,17 +296,38 @@ export async function startPanel(options: StartOptions): Promise<Panel> {
     },
   });
 
-  const stop = async () => {
+  const stderr = collectStderr(child);
+
+  /**
+   * A panel already dead is a finding, not a stop: it did not serve this file,
+   * and something else did. Stopping is idempotent so that a second `stop()`
+   * cannot mistake the first one's corpse for that finding.
+   */
+  const stopOnce = async () => {
+    const diedUnbidden = child.exitCode !== null || child.signalCode !== null;
     try {
+      if (diedUnbidden) {
+        throw new Error(
+          explainEarlyDeath({
+            port: options.port,
+            url,
+            exitCode: child.exitCode,
+            stderr: stderr(),
+            occupant: await whatAnswersOn(options.port),
+          }),
+        );
+      }
       await stopChild(child, url);
     } finally {
       if (!options.fixtureRoot)
         await rm(fixtureRoot, { recursive: true, force: true });
     }
   };
+  let stopping: Promise<void> | undefined;
+  const stop = () => (stopping ??= stopOnce());
 
   try {
-    await waitForReady(url, child);
+    await waitForReady(url, options.port, child, stderr);
   } catch (error) {
     // The startup failure is the finding; a stop that also times out is
     // downstream of it, and the child is killed either way.
@@ -209,18 +393,48 @@ function exits(child: ChildProcess, timeoutMs: number): Promise<boolean> {
   });
 }
 
-async function waitForReady(url: string, child: ChildProcess): Promise<void> {
+/** Whether anything answered `url`, without caring what it said. */
+async function answers(url: string): Promise<boolean> {
+  try {
+    await fetch(url, { headers: { host: "127.0.0.1" } });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Waits for the panel to answer - and refuses to call a dead panel ready.
+ *
+ * The liveness check is made again after the answer, not only before it: a
+ * child that lost the port dies while the first request is in flight, and
+ * whatever replied in that moment was by definition not it.
+ */
+async function waitForReady(
+  url: string,
+  port: number,
+  child: ChildProcess,
+  stderr: () => string,
+): Promise<void> {
+  const died = async () =>
+    new Error(
+      explainEarlyDeath({
+        port,
+        url,
+        exitCode: child.exitCode,
+        stderr: stderr(),
+        occupant: await whatAnswersOn(port),
+      }),
+    );
+
   const deadline = Date.now() + 20_000;
   while (Date.now() < deadline) {
-    if (child.exitCode !== null) {
-      throw new Error(`panel exited with ${child.exitCode} before answering`);
-    }
-    try {
-      await fetch(url, { headers: { host: "127.0.0.1" } });
+    if (child.exitCode !== null) throw await died();
+    if (await answers(url)) {
+      if (child.exitCode !== null) throw await died();
       return;
-    } catch {
-      await new Promise((resolve) => setTimeout(resolve, 100));
     }
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
   throw new Error(`panel did not answer on ${url} within 20s`);
 }
