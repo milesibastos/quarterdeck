@@ -9,7 +9,11 @@ import {
   PORT_RANGE_SIZE,
   PORT_RANGE_START,
 } from "../src/config/port.ts";
-import { TEST_BAND_SIZE, TEST_BAND_START } from "./lib/band.ts";
+import {
+  LINUX_EPHEMERAL_FLOOR,
+  TEST_BAND_SIZE,
+  TEST_BAND_START,
+} from "./lib/band.ts";
 import {
   BLOCK_SIZE,
   allocate,
@@ -55,15 +59,6 @@ import { formatViolation, formatViolations } from "./lib/violation.ts";
  */
 const nextPort = portsFor(import.meta.filename);
 const drawnHere = new Set<number>();
-
-/**
- * Where the kernel starts handing out ephemeral source ports on Linux.
- *
- * `/proc/sys/net/ipv4/ip_local_port_range` defaults to 32768-60999 - lower
- * than macOS's 49152, and the reason 46000-46999 still let an outbound
- * connection this suite made land on a port a panel was about to bind.
- */
-const LINUX_EPHEMERAL_FLOOR = 32768;
 
 /** Something on a port that is not a panel, for the tests that need one. */
 function squat(port: number, body: string): Promise<Server> {

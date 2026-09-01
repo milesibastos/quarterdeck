@@ -23,7 +23,7 @@ type GuardVerdict =
   | { readonly ok: false; readonly reason: string };
 
 function hostname(hostHeader: string): string {
-  // `[::1]:45000` and `127.0.0.1:45000` both split at the last colon.
+  // `[::1]:28000` and `127.0.0.1:28000` both split at the last colon.
   const at = hostHeader.lastIndexOf(":");
   if (at > hostHeader.lastIndexOf("]")) return hostHeader.slice(0, at);
   return hostHeader;

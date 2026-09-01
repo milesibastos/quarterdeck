@@ -3,6 +3,11 @@
 Date: 2026-09-01
 Status: accepted
 
+The panel range this decision left unfixed was moved out of the kernel's way
+on the same day; see
+`2026-09-01-the-panel-band-clears-every-kernel.md`. Every "45000-45999" below
+is the panel range as it was before that.
+
 Follows `2026-09-01-test-ports-live-above-the-panels.md`, which moved the
 suite's ports to 46000-46999 to stop them landing on a foreign panel. That
 band still collided, on CI, for a different reason.
@@ -77,9 +82,10 @@ the comment now states what is actually true for each platform and points
 here. No derivation, range, or other product code changed. The panel
 range, 45000-45999, sits inside Linux's default ephemeral range too, and a
 panel binding once at process start is a far smaller target than a suite
-making hundreds of outbound calls across tens of seconds - this is noted, not
-fixed, and remains a live but much smaller risk than the one this decision
-closes; see the "Known gaps" entry in `docs/quality.md`.
+making hundreds of outbound calls across tens of seconds - this was noted here
+and left as a live but much smaller risk than the one this decision closes. It
+did not stay open long: see
+`2026-09-01-the-panel-band-clears-every-kernel.md`.
 
 ## Pointer
 
