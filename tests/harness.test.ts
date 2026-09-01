@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
 import { readFileSync } from "node:fs";
+import { createServer, type Server } from "node:http";
 import { join } from "node:path";
 import { describe, test } from "node:test";
 import { derivePort, PORT_RANGE_START } from "../src/config/port.ts";
@@ -12,7 +13,13 @@ import {
   testFiles,
 } from "./lib/ports.ts";
 import { checkHandPickedPorts } from "./lib/port-usage.ts";
-import { REPO_ROOT, stopChild } from "./lib/server.ts";
+import {
+  REPO_ROOT,
+  explainEarlyDeath,
+  startPanel,
+  stopChild,
+  whatAnswersOn,
+} from "./lib/server.ts";
 import { formatViolation, formatViolations } from "./lib/violation.ts";
 
 /**
@@ -25,7 +32,35 @@ import { formatViolation, formatViolations } from "./lib/violation.ts";
  * suite that fails by hanging costs an hour to learn nothing, which is why both
  * the allocation contract and the bounded stop are asserted here rather than
  * trusted.
+ *
+ * The third cost a day. Allocation keeps this suite's files off each other's
+ * ports and says nothing about the rest of the machine, so a sibling checkout's
+ * panel sitting on one of these ports was answered, believed, and asserted
+ * against - as wrong content, never as a port clash.
  */
+
+/**
+ * This file's own ports, claimed once at module scope because two tests below
+ * draw from the same supply: the refusal proof takes the ports it squats on,
+ * and the exhaustion test - registered last, so it runs last - drains whatever
+ * is left.
+ */
+const nextPort = portsFor(import.meta.filename);
+const drawnHere = new Set<number>();
+
+/** Something on a port that is not a panel, for the tests that need one. */
+function squat(port: number, body: string): Promise<Server> {
+  const server = createServer((_request, response) => {
+    response.writeHead(200, { "content-type": "text/html" });
+    response.end(body);
+  });
+  return new Promise((resolve) =>
+    server.listen(port, "127.0.0.1", () => resolve(server)),
+  );
+}
+
+const closed = (server: Server) =>
+  new Promise<void>((resolve) => server.close(() => resolve()));
 
 describe("no two test files can claim the same panel ports", () => {
   test("a collision is refused, and names both claimants", () => {
@@ -106,17 +141,11 @@ describe("no two test files can claim the same panel ports", () => {
     );
   });
 
-  test("a file gets one claim, and no more ports than its block holds", () => {
-    const nextPort = portsFor(import.meta.filename);
+  test("a file gets one claim, and no more", () => {
     assert.throws(
       () => portsFor(import.meta.filename),
       /already claimed its ports/,
     );
-
-    const drawn = new Set<number>();
-    for (let i = 0; i < BLOCK_SIZE; i += 1) drawn.add(nextPort());
-    assert.equal(drawn.size, BLOCK_SIZE, "every port in a block is distinct");
-    assert.throws(nextPort, /Raise BLOCK_SIZE/);
   });
 });
 
@@ -198,6 +227,96 @@ describe("no test file picks a panel port by hand", () => {
   });
 });
 
+/**
+ * The suite will not test against a panel it did not start.
+ *
+ * The port squatted here is one of this file's own, rather than one another
+ * file's block would hand out: taking a neighbour's port to prove a point would
+ * be the very collision this is about, and would fail that file instead. What
+ * matters is not whose block the number came from - it is that something the
+ * suite did not start is on it, which is exactly what a sibling checkout's
+ * panel is.
+ */
+describe("a panel refuses a port it does not own", () => {
+  test("a port nobody holds answers nothing", async () => {
+    const quiet = nextPort();
+    drawnHere.add(quiet);
+    assert.equal(await whatAnswersOn(quiet), null);
+  });
+
+  test("an occupied port is reported, quoting what answered", async () => {
+    const taken = nextPort();
+    drawnHere.add(taken);
+    const server = await squat(taken, "<html>a different fleet</html>");
+    try {
+      const heard = await whatAnswersOn(taken);
+      assert.ok(heard, "an occupied port must not read as free");
+      assert.match(heard, /a different fleet/);
+    } finally {
+      await closed(server);
+    }
+  });
+
+  test("starting a panel on an occupied port fails, naming the cause", async () => {
+    const squatted = nextPort();
+    drawnHere.add(squatted);
+    const server = await squat(squatted, "<html>a different fleet</html>");
+
+    try {
+      await assert.rejects(
+        () => startPanel({ port: squatted }),
+        (error: Error) =>
+          error.message.includes(`port ${squatted} is already answering`) &&
+          error.message.includes("this suite did not start") &&
+          /a different fleet/.test(error.message) &&
+          /sibling checkout/.test(error.message) &&
+          error.message.includes(`lsof -nP -iTCP:${squatted}`),
+        "the failure must name a foreign occupant, not leave a content assertion to",
+      );
+    } finally {
+      await closed(server);
+    }
+  });
+
+  test("a panel that lost its port is not mistaken for a panel that crashed", () => {
+    const message = explainEarlyDeath({
+      port: 45231,
+      url: "http://127.0.0.1:45231",
+      exitCode: 1,
+      stderr:
+        "Error: listen EADDRINUSE: address already in use 127.0.0.1:45231",
+      occupant: "HTTP/1.1 200 OK ... a different fleet",
+    });
+    assert.match(message, /never bound/);
+    assert.match(message, /a server this suite did not start/);
+    assert.match(message, /not as a port clash/);
+  });
+
+  test("a dead panel whose port still answers is read as a port clash", () => {
+    const message = explainEarlyDeath({
+      port: 45231,
+      url: "http://127.0.0.1:45231",
+      exitCode: 0,
+      stderr: "",
+      occupant: "HTTP/1.1 200 OK ... a different fleet",
+    });
+    assert.match(message, /still answering on port 45231/);
+    assert.match(message, /A dead panel cannot be what answered/);
+  });
+
+  test("a dead panel whose port is silent is read as the panel's own failure", () => {
+    const message = explainEarlyDeath({
+      port: 45231,
+      url: "http://127.0.0.1:45231",
+      exitCode: 7,
+      stderr: "TypeError: undefined is not a function",
+      occupant: null,
+    });
+    assert.match(message, /the panel's own failure and not a port clash/);
+    assert.match(message, /undefined is not a function/);
+  });
+});
+
 const OBEDIENT = "setInterval(() => {}, 1000);";
 const DEAF = "process.on('SIGTERM', () => {});" + OBEDIENT;
 
@@ -258,5 +377,30 @@ describe("stopping a panel is bounded", () => {
     const dead = await child(OBEDIENT);
     await stopChild(dead, "http://127.0.0.1:0");
     await stopChild(dead, "http://127.0.0.1:0");
+  });
+});
+
+/**
+ * Registered last, because it empties this file's block: every test above that
+ * needs a port has already taken one, and this drains whatever remains to reach
+ * the bound. A block that wrapped around instead of ending would hand a second
+ * file's port out as if it were free, which is the collision all of this is for.
+ */
+describe("a block hands out its size, and then says so", () => {
+  test("the ports are distinct, and there are exactly BLOCK_SIZE of them", () => {
+    let handed = drawnHere.size;
+    assert.throws(() => {
+      for (;;) {
+        drawnHere.add(nextPort());
+        handed += 1;
+      }
+    }, /Raise BLOCK_SIZE/);
+
+    assert.equal(handed, BLOCK_SIZE, "a block hands out exactly its size");
+    assert.equal(
+      drawnHere.size,
+      BLOCK_SIZE,
+      "every port in a block is distinct",
+    );
   });
 });
