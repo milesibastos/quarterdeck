@@ -63,9 +63,9 @@ the deck and fleet lenses already follow rather than a special case invented
 here.
 
 **Underway comes next and peeks.** Its header and the top of its first row of
-cards sit above the fold. Deck and shipshape follow. The bands stack in one
-order at every width, because a layout that reorders itself between breakpoints
-teaches an operator two panels.
+cards sit above the fold. Deck, landed and shipshape follow. The bands stack
+in one order at every width, because a layout that reorders itself between
+breakpoints teaches an operator two panels.
 
 **No centred maximum width, and no fixed column count.** Every band that repeats
 an object draws it through one utility, `card-grid` in `src/app/globals.css`:
@@ -91,22 +91,28 @@ such command and the badge says so rather than inventing one.
 
 ## What this delivers
 
-Measured in a browser against the built panel, with the `crowded` set:
+Measured in a browser against the built panel, with the `crowded` set as the
+only configured fleet. How, and under which conditions, is at the end of this
+section; both matter, and neither was written down the first time.
 
-At 1440x900 the needs-you band runs from 150 to 708 - 558 of the 900 pixels
+At 1440x900 the needs-you band runs from 242 to 800 - 558 of the 900 pixels
 above the fold, or 62% - holding four decision cards in three columns of 442
-pixels. Underway's header sat at 724, leaving 176 pixels of it on the first
+pixels. Underway's header sits at 816, leaving 84 pixels of it on the first
 screen: enough that there is obviously more page, not enough to compete for it.
 The page's `scrollWidth` equals its `clientWidth`.
 
-**Re-measured after the terminal-grammar rebuild.** The grok masthead is
-taller: underway's header now sits at 778 on a 900-pixel viewport, still above
-the fold. See `docs/decisions/2026-08-31-the-terminal-grammar.md`, which
-re-confirmed the fold line at that height.
+**Underway's header is derived, not free, and what moves it is worth knowing.**
+The band's top is whatever the picker and the masthead leave, and the band is
+62svh below that. So the header moves with the viewport height - and it moves
+by one line of the picker the moment more than one fleet is configured,
+because the note naming the only fleet is drawn only when there is one. Both
+were measured, at three heights and at two fleet counts. What the header does
+not move with is the fixture set, as long as the band's content fits inside the
+height the rule reserves for it.
 
 Width buys cards and not stretch. The needs-you band draws 2 columns at 1024, 3
 at 1440, 4 at 1920 and 6 at 2560; underway, whose cards are narrower, draws 2,
-4, 5 and 6. `tests/width.test.ts` asserts the same property without a browser,
+3, 5 and 6. `tests/width.test.ts` asserts the same property without a browser,
 by reading the grid rule out of the served stylesheet and the card minimum out
 of the class the band actually carries, then computing column counts at three
 content widths - so a change to either moves the arithmetic rather than leaving
@@ -114,7 +120,7 @@ a stale constant passing.
 
 Swept across four viewports - 360, 768, 1440, 2560 - in both themes, no element's
 right edge passes the document's client width in any of the eight pages, and the
-four bands are in the same order in all of them.
+five bands are in the same order in all of them.
 
 Nothing moves under the reader. With the fleet band scrolled to 1400 pixels and
 one worker card's brief disclosure open, a snapshot rewritten under the running
@@ -127,6 +133,53 @@ it.
 The degraded pages hold. `deck-dark` draws a current badge over a band saying
 the count is unknown; `all-dark` draws a badge saying the snapshot could not be
 read at all, over the same band.
+
+### How every figure above was taken
+
+Written down so the next reader repeats the measurement rather than derives it
+again. Re-measured on 2026-09-01, against a panel built from this commit:
+
+```sh
+npm run build
+QUARTERDECK_FIXTURE_SET=crowded npm start   # one fleet, and only one
+```
+
+Then, against the URL it prints, in headless Chrome through
+`chrome-devtools-axi`: `emulate --viewport "1440x900"` to set the viewport,
+and `eval` to read `getBoundingClientRect()` and `window.scrollY` off
+`[data-lens="needs-you"]`, off `[data-lens="fleet"] [data-lens-headline]`, and
+off the `.card-grid` in each band. A column count is the number of tracks in
+the grid's computed `grid-template-columns`, not the number of cards drawn
+into them: the needs-you band holds four decisions and so fills four of the
+six tracks it is given at 2560.
+
+Two conditions decide the fold and neither is optional. The set named above
+must be the only fleet configured, because a second one takes a line out of
+the picker and lifts everything below it by that line. And the viewport height
+is most of the answer, since the band is a fraction of it by rule.
+
+### What the 2026-09-01 pass corrected
+
+The pre-grammar paragraph - 150, 708, 724, 176 - was right when it was written
+and still right at the commit before the terminal grammar. The grammar moved
+all four and they were not re-measured; they are re-measured above.
+
+The addendum that replaced 724 with 778 is a different kind of wrong. No build
+of this panel puts underway's header at 778: not before the grammar, not while
+the fleet chooser was drawn open inline, and not since it went behind a
+disclosure, which is where 816 comes from and where it has stayed. Where 778
+was taken is not established, and the record should not pretend otherwise.
+
+**A second record moved in the same commit.** The addendum cited
+`docs/decisions/2026-08-31-the-terminal-grammar.md` as the source of 778, and
+that record carried the number too, so correcting only this one would have left
+the two contradicting each other about the same header. Its figures were
+re-measured with these, and the two that were wrong were corrected there rather
+than left for a third pass to find.
+
+Underway's column count at 1440 was wrong in the quieter way, and for longer:
+three tracks, not four, at the commit that wrote the row as well as today. The
+needs-you row beside it was right at both.
 
 ## Trade-offs
 

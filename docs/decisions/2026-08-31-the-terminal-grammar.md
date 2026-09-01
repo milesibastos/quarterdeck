@@ -119,13 +119,25 @@ Four places wanted to change the layout and did not.
 
 **The fleet chooser is behind a disclosure.** `GrokProjectPicker` is a real
 radiogroup, which is a column where the chips were a line: four fleets cost
-**203 pixels of masthead against the chips' 60**, and that pushed the fleet
-band's header from 778 to 987 on a 900-pixel viewport - below the fold. The
-fold is the one thing the wireframe will not trade: what needs the operator owns
-the first screen, and underway has to peek under it. So the full chooser opens
-on demand, `f` opens it, and the status line above it names the fleet being read
-at all times. The cost is a second click to switch fleets, which is the price of
-the fold. Measured, not guessed.
+**203 pixels of picker against the chips' 48**, and that put the fleet band's
+header at 987 on a 900-pixel viewport - below the fold, where the panel before
+the grammar had it at 724. The fold is the one thing the wireframe will not
+trade: what needs the operator owns the first screen, and underway has to peek
+under it. So the full chooser opens on demand, `f` opens it, and the status
+line above it names the fleet being read at all times. The cost is a second
+click to switch fleets, which is the price of the fold. Measured, not guessed.
+
+**This paragraph was edited on 2026-09-01, and two of its numbers changed.**
+Not by a decision revisited: a pass re-measuring the fold figures in
+`docs/decisions/2026-08-31-what-needs-you-owns-the-first-screen.md` found that
+this record was where that one's 778 came from, so both had to be checked or
+neither was. 203 and 987 survived it and reproduce exactly at the commit that
+drew the chooser inline. The chips cost 48 rather than 60. And the sentence
+used to read "from 778 to 987": 778 is a position no build of this panel has
+ever put that header in - with the disclosure it is 798 with four fleets
+configured and 816 with one - so the comparison now names the panel before the
+grammar, which is where 724 comes from. The method is written down in that
+record.
 
 **The start menu is gone.** grok's launch card lists what its keys do; so does
 the help panel, two lines away. Drawing both cost 75 more pixels of first screen
