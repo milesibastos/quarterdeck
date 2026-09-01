@@ -66,6 +66,13 @@ synthetic fixture sets picked by `QUARTERDECK_FIXTURE_SET`. Both take a
 colon-separated list, and the operator switches between them in the panel; the
 choice is remembered in their browser. See `fixtures/README.md`.
 
+`QUARTERDECK_INTENT_DIR` is what lights the answer and merge controls up: a
+colon-separated list too, one slot per configured fleet in the same order, each
+naming the directory that fleet's own process-event sources watch. A fleet whose
+slot is empty has no spool and both controls say so on the card instead of
+acting. See the README's "Letting the panel answer and merge" for the operator's
+copy of this, and `docs/contract.md` for the bytes each record carries.
+
 `QUARTERDECK_READ_FORGE` is the one setting that turns on a network call: a pull
 request's checks and its review comments, read through `gh`. Off by default,
 never on the first paint, and never more than once a minute per pull request -

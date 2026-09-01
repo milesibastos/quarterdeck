@@ -39,6 +39,34 @@ QUARTERDECK_FIXTURE_SET=stale npm start   # see fixtures/README.md for the sets
 npm test                                  # lint, invariant checks, built server
 ```
 
+### Letting the panel answer and merge
+
+The two controls the panel offers - answering a held decision, ordering a merge -
+each write one record to a directory the operator names. Until one is named the
+controls say so on the card rather than pretending they can act.
+
+```sh
+QUARTERDECK_FIXTURE_SET=healthy:stale \
+QUARTERDECK_INTENT_DIR=/absolute/path/to/healthy-spool: \
+  npm start
+```
+
+`QUARTERDECK_INTENT_DIR` is a colon-separated list positionally aligned with the
+fleet list - the same convention `QUARTERDECK_FLEET_HOME` and
+`QUARTERDECK_FIXTURE_SET` use, one slot per fleet in the order written. Above,
+the first fleet has a spool and the second's slot is empty, so `healthy` offers
+both controls and `stale` says it has nowhere to record an answer. There is no
+single value for the whole panel on purpose: broadcasting one directory across
+every fleet is what would let an answer meant for one land in another's.
+
+Each fleet's spool must be the directory that fleet's own process-event sources
+watch; the panel is told it and never derives it from a fleet home. What lands
+there is one line per record and nothing else, and the panel still executes
+nothing - the fleet's guarded commands do the acting. The exact bytes of both
+formats are in `docs/contract.md`, and why the path is shaped this way is in
+`docs/decisions/2026-08-30-answering-a-held-decision.md` and
+`docs/decisions/2026-08-31-ordering-a-merge.md`.
+
 ## Where things are
 
 `AGENTS.md` is the map. `docs/ARCHITECTURE.md` has the six layers, the seven
