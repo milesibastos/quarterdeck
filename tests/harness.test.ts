@@ -56,6 +56,15 @@ import { formatViolation, formatViolations } from "./lib/violation.ts";
 const nextPort = portsFor(import.meta.filename);
 const drawnHere = new Set<number>();
 
+/**
+ * Where the kernel starts handing out ephemeral source ports on Linux.
+ *
+ * `/proc/sys/net/ipv4/ip_local_port_range` defaults to 32768-60999 - lower
+ * than macOS's 49152, and the reason 46000-46999 still let an outbound
+ * connection this suite made land on a port a panel was about to bind.
+ */
+const LINUX_EPHEMERAL_FLOOR = 32768;
+
 /** Something on a port that is not a panel, for the tests that need one. */
 function squat(port: number, body: string): Promise<Server> {
   const server = createServer((_request, response) => {
@@ -170,8 +179,9 @@ describe("no two test files can claim the same panel ports", () => {
             `is derived into - so a panel in any other checkout can be sitting on it`,
         );
         assert.ok(
-          port < 49152,
-          "the kernel hands out 49152+ as ephemeral ports",
+          port < LINUX_EPHEMERAL_FLOOR,
+          "the kernel can hand this out as an outbound source port, on Linux, " +
+            "once a listener above 32768 is free",
         );
       }
     }
@@ -184,8 +194,10 @@ describe("no two test files can claim the same panel ports", () => {
       "the two bands must be disjoint, or a suite can land on a foreign panel",
     );
     assert.ok(
-      TEST_BAND_START + TEST_BAND_SIZE <= 49152,
-      "the kernel hands out 49152+ as ephemeral ports",
+      TEST_BAND_START + TEST_BAND_SIZE <= LINUX_EPHEMERAL_FLOOR,
+      "Linux's default ip_local_port_range starts at 32768, well below " +
+        "macOS's 49152 - a band above either can be handed out from under a " +
+        "listener that has not bound yet",
     );
   });
 
