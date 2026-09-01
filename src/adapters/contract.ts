@@ -976,7 +976,27 @@ export function fleetSource(
  * layout, and this file is where the panel keeps that - one file to correct
  * when upstream moves, which is the same argument invariant 4 makes for the
  * health module.
+ *
+ * ## Why the build is told to leave this join alone
+ *
+ * Turbopack reads a `join` it cannot resolve statically as a possible module
+ * root, and answers by tracing the entire project into the server output -
+ * `src`, `tests`, `docs`, `fixtures` and all - because any of it might turn out
+ * to be what gets required. With `output: standalone` that is what ships:
+ * measured before this comment, 45MB and 1506 files, including this
+ * repository's own test suite and decision records.
+ *
+ * Of the three escapes Next names, two do not apply. The path cannot be scoped
+ * to a subfolder - it is rooted at an operator's fleet home, which is
+ * configuration and is not known until the panel starts - and it cannot be
+ * restricted to development, because reading a real fleet is the production
+ * path. So the opt-out is the honest one rather than the quick one: the premise
+ * behind the warning is false here. This join builds a directory to hand to
+ * `fs.watch`, it is never a specifier, and nothing is ever imported from what it
+ * returns. There is no module for the tracer to miss.
  */
 export function fleetWatchDirs(fleetHome: string): readonly string[] {
-  return FLEET_ACTIVITY_DIRS.map((dir) => join(fleetHome, dir));
+  return FLEET_ACTIVITY_DIRS.map((dir) =>
+    join(/* turbopackIgnore: true */ fleetHome, dir),
+  );
 }
