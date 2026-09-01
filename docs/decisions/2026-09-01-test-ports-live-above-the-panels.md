@@ -7,6 +7,11 @@ Supersedes the "Changing the derivation or the range" alternative in
 `docs/decisions/2026-09-01-a-suite-owns-its-ports.md`, which rejected a
 test-only range on an argument that holds for one collision and not the other.
 
+This file's title is also the arrangement as it was on the day. The panels
+have since moved below the suite, to 28000-28999, and the two bands are
+disjoint from that side now; see
+`2026-09-01-the-panel-band-clears-every-kernel.md`.
+
 Every "46000-46999" below is the range as it was on the day: the band moved
 again, to 29000-29999, in `2026-09-01-the-band-still-sat-in-the-kernels-range.md`.
 The reasoning here - a band disjoint from the panels - is unchanged; only where

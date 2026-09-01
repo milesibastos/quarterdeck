@@ -9,14 +9,22 @@ import { createHash } from "node:crypto";
  * which point `bin/quarterdeck`'s port-taken check refuses to start rather
  * than colliding silently.
  *
- * The range sits below macOS's ephemeral floor (49152+), so the kernel never
- * hands our port to something else first there. Linux's default floor is
- * lower (32768+) and does reach into this range - a smaller, unfixed risk
- * than the one that moved this suite's own test ports into a band of their
- * own; see
- * `docs/decisions/2026-09-01-the-band-still-sat-in-the-kernels-range.md`.
+ * The band is 28000-28999, and every one of its four boundaries is somebody
+ * else's floor rather than a taste:
+ *
+ * - 32768, where Linux starts handing out ephemeral source ports
+ *   (`/proc/sys/net/ipv4/ip_local_port_range`, observed 32768-60999);
+ * - 30000, where Kubernetes starts allocating NodePort services;
+ * - 29000, where this suite's own test ports begin (`tests/lib/band.ts`);
+ * - 49152, the IANA dynamic range and macOS's and Windows' ephemeral floor.
+ *
+ * Under all four, 28000-28999 is the only whole thousand left. The previous
+ * band, 45000-45999, cleared only the last of them: it sat below macOS's
+ * ephemeral floor, which is why this fleet never saw the kernel take a panel's
+ * port first, and inside Linux's, which is where it would have. See
+ * `docs/decisions/2026-09-01-the-panel-band-clears-every-kernel.md`.
  */
-export const PORT_RANGE_START = 45000;
+export const PORT_RANGE_START = 28000;
 export const PORT_RANGE_SIZE = 1000;
 
 export function derivePort(absolutePath: string): number {

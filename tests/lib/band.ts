@@ -31,6 +31,33 @@
  * service in `/etc/services`, against thirty in 20000-20999 - among them
  * DNP3 on 20000 itself, which is a listener a real machine may well be
  * running.
+ *
+ * The panel's own band later moved for the same reason and by the same
+ * argument - out of 45000-45999, which sat inside Linux's ephemeral range too,
+ * and into 28000-28999, the one thousand left under all of these floors once
+ * this band had taken 29000-29999. So the two bands are no longer disjoint
+ * because the suite climbed above the panels; they are disjoint because the
+ * panels came down beside the suite. See
+ * `docs/decisions/2026-09-01-the-panel-band-clears-every-kernel.md`.
  */
 export const TEST_BAND_START = 29000;
 export const TEST_BAND_SIZE = 1000;
+
+/**
+ * The ceilings both bands sit under, in one place so no test file states one
+ * as a literal. Every number here was taken from a source, not from memory:
+ *
+ * - `LINUX_EPHEMERAL_FLOOR`: `/proc/sys/net/ipv4/ip_local_port_range` reads
+ *   `32768 60999` on a stock kernel, observed in a container on 2026-09-01.
+ * - `KUBERNETES_NODEPORT_FLOOR`: kube-apiserver's `--service-node-port-range`
+ *   defaults to 30000-32767, which a CI runner may have services bound in.
+ *
+ * macOS, Windows and IANA's dynamic range all start at 49152 - `sysctl
+ * net.inet.ip.portrange.first` reads it on this fleet's machines, Microsoft
+ * has documented it since Vista, and RFC 6335 names it. There is no constant
+ * for it: it is the loosest of the floors, so a band under Linux's 32768 is
+ * under it already, and asserting it separately is what let 46000-46999 look
+ * safe once. Under both floors is the only thing worth stating.
+ */
+export const LINUX_EPHEMERAL_FLOOR = 32768;
+export const KUBERNETES_NODEPORT_FLOOR = 30000;
