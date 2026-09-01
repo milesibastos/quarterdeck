@@ -132,6 +132,24 @@ The child's stderr is now kept rather than discarded, to a four-kilobyte tail.
 A panel that dies for its own reasons prints its own last words, which it did
 not before.
 
+Finding that stray server is not as simple as the failure implies. `pkill -f`
+matched against the path the panel was launched with finds nothing once the
+panel is up, because Next renames the process title to `next-server
+(v16.3.3)` - a worker can run that pkill, see a clean `pgrep`, believe every
+server is stopped, and leave them holding their ports anyway. The reliable
+identification is the working directory, not the command line: `lsof -a -p
+<pid> -d cwd` names the checkout a process belongs to, which is also how a
+worker tells their own leaked panels apart from a genuine sibling checkout
+they must not kill.
+
+On 2026-09-01 this guard made its first catch outside its own worktree: a
+docs-only branch, against nineteen panels a worker had leaked and believed
+stopped. The first diagnosis of that failure attributed the occupants to an
+unrelated checkout - wrong - and only the working-directory check settled who
+they belonged to. Before this guard existed, that run would have asserted
+against those panels: wrong content, or a false pass if they happened to serve
+the same fixtures, which is act 2 of the proof above.
+
 ## Alternatives considered
 
 **Widening what is reserved, so the block covers what a sibling could use.**
