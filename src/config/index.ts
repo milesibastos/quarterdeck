@@ -77,7 +77,19 @@ export interface Config {
   readonly staleAfterMs: number;
   /** Filesystem events inside this window collapse into one read. */
   readonly debounceMs: number;
-  /** A read that outlives this is abandoned; last-known-good is kept. */
+  /**
+   * A read that outlives this is abandoned; last-known-good is kept, and the
+   * page says it ran out of time rather than that anything failed.
+   *
+   * Measured, not chosen: a fleet snapshot costs about a second per live
+   * worker, serially, and upstream bounds each of those workers at fourteen
+   * seconds of its own. The default is above that single-worker bound on
+   * purpose, so the panel never gives up before upstream's own deadline has
+   * fired even once - and comfortably under `staleAfterMs`, so a read that
+   * only just makes it still produces a page that reads as current. The
+   * measurements and the arithmetic are in
+   * `docs/decisions/2026-09-01-the-fleet-read-budget-and-what-a-timeout-means.md`.
+   */
   readonly readTimeoutMs: number;
   /**
    * Whether the panel may ask the forge about a pull request's checks and its
@@ -298,7 +310,7 @@ export function loadConfig(
     port,
     staleAfterMs: intFromEnv(env, "QUARTERDECK_STALE_AFTER_MS", 60_000),
     debounceMs: intFromEnv(env, "QUARTERDECK_DEBOUNCE_MS", 120),
-    readTimeoutMs: intFromEnv(env, "QUARTERDECK_READ_TIMEOUT_MS", 5_000),
+    readTimeoutMs: intFromEnv(env, "QUARTERDECK_READ_TIMEOUT_MS", 20_000),
     readForge: flagFromEnv(env, "QUARTERDECK_READ_FORGE"),
     now: instantFromEnv(env, "QUARTERDECK_NOW"),
   };

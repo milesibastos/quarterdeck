@@ -27,6 +27,7 @@ import {
   type Priority,
   type ReviewSignal,
   type Stage,
+  type UnreadableReason,
   type ValidationStep,
   type Worker,
   type WorkerKind,
@@ -586,8 +587,19 @@ function freshness(
   };
 }
 
+/**
+ * A lens the panel could not fill, always because something answered badly
+ * rather than slowly - the two callers here are upstream declaring it could not
+ * read the backlog, and health declaring its file unreadable. A read that ran
+ * out of time is the runtime's to report, through `withSnapshotUnreadable`.
+ */
 function unreadable(detail: string, clock: Clock): LensStatus {
-  return { state: "unreadable", observedAt: clock.now(), detail };
+  return {
+    state: "unreadable",
+    observedAt: clock.now(),
+    reason: "failed",
+    detail,
+  };
 }
 
 /** Every signal dark, with the same one-line reason. */
@@ -672,6 +684,24 @@ export function projectDocument(
 }
 
 /**
+ * A read that came back empty-handed, as the document records it.
+ *
+ * `observedAt` is passed in rather than taken from the clock here, because the
+ * runtime holds a failure off and re-renders from it without looking again -
+ * see `FleetRuntime`. The page says "the read failed 20 seconds ago", and it
+ * has to mean the read, not the render: a panel that restamped the instant on
+ * every re-render would tell an operator a fresh read had just failed each
+ * time, when nothing had been read at all.
+ */
+export interface SnapshotFailure {
+  readonly reason: UnreadableReason;
+  /** One line, written for the operator, naming the concrete problem. */
+  readonly detail: string;
+  /** ISO-8601 instant the panel noticed - the read's, never the render's. */
+  readonly observedAt: string;
+}
+
+/**
  * Re-label the lenses the snapshot fills, keeping what the panel is still
  * showing, after a read failed.
  *
@@ -686,11 +716,11 @@ export function projectDocument(
  */
 export function withSnapshotUnreadable(
   previous: PanelDocument | null,
-  detail: string,
+  failure: SnapshotFailure,
   health: HealthReading,
   options: ProjectOptions,
 ): PanelDocument {
-  const status = unreadable(detail, options.clock);
+  const status: LensStatus = { state: "unreadable", ...failure };
   return {
     version: DOCUMENT_VERSION,
     generatedAt: options.clock.now(),

@@ -81,7 +81,11 @@ async function documentOf(set: string): Promise<PanelDocument> {
     if (error instanceof ContractIdentifierError) throw error;
     return withSnapshotUnreadable(
       null,
-      error instanceof Error ? error.message : String(error),
+      {
+        reason: "failed",
+        detail: error instanceof Error ? error.message : String(error),
+        observedAt: OPTIONS.clock.now(),
+      },
       health,
       OPTIONS,
     );
@@ -825,7 +829,11 @@ describe("degradation is per lens, not per document", () => {
     const good = await documentOf("healthy");
     const document = withSnapshotUnreadable(
       good,
-      "truncated",
+      {
+        reason: "failed",
+        detail: "truncated",
+        observedAt: OPTIONS.clock.now(),
+      },
       await healthOf("healthy"),
       OPTIONS,
     );
