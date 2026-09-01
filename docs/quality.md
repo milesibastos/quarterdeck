@@ -253,3 +253,11 @@ field by field against two live fleet homes.
   `docs/decisions/2026-08-30-choosing-a-fleet.md`. Not a defect; a thing the
   panel deliberately does not offer. See
   `docs/decisions/2026-08-31-the-theme-follows-the-system.md`.
+- **The panel's own port range still sits inside Linux's default ephemeral
+  range.** `PORT_RANGE_START` (45000-45999, in `src/config/port.ts`) is below
+  macOS's ephemeral floor (49152+), which is why this fleet has never observed
+  the kernel taking one first - but Linux's default floor is lower (32768+)
+  and does reach into it, so on Linux the kernel can already hand our port to
+  an outbound connection before the panel binds. Surfaced, not fixed: moving
+  the range would move every operator's URL. See
+  `docs/decisions/2026-09-01-the-band-still-sat-in-the-kernels-range.md`.

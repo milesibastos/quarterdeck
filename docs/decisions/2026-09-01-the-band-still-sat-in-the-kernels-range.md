@@ -63,11 +63,16 @@ outright does not carry either problem.
 Reported test-server ports move again: 20000-20999 instead of 46000-46999.
 Nothing names one outside `tests/lib/band.ts` and `tests/harness.test.ts`.
 
-`src/config/port.ts` is untouched. The panel range, 45000-45999, sits inside
-Linux's default ephemeral range too, and a panel binding once at process start
-is a far smaller target than a suite making hundreds of outbound calls across
-tens of seconds - this is noted, not fixed, and remains a live but much
-smaller risk than the one this decision closes.
+`src/config/port.ts` carries one behaviour-preserving comment correction: its
+range comment claimed the panel range sits below the ephemeral floor "on
+macOS and Linux", which this decision's own finding disproves for Linux, so
+the comment now states what is actually true for each platform and points
+here. No derivation, range, or other product code changed. The panel
+range, 45000-45999, sits inside Linux's default ephemeral range too, and a
+panel binding once at process start is a far smaller target than a suite
+making hundreds of outbound calls across tens of seconds - this is noted, not
+fixed, and remains a live but much smaller risk than the one this decision
+closes; see the "Known gaps" entry in `docs/quality.md`.
 
 ## Pointer
 
