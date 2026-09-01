@@ -40,9 +40,10 @@ detail  freshness  observed_at  raw  source  state
 There is no prior stage, no last active stage, and no history of any kind. Two
 further checks say the same thing from the other direction:
 
-- `grep -rn 'pr_open\|in_review\|waiting_external\|last_active\|prior_state\|previous_state' bin/`
-  in a fleet home matches nothing. Upstream does not have the vocabulary to
-  publish a rail stage, let alone a prior one.
+- In a fleet home,
+  `grep -rn 'pr_open\|in_review\|last_active\|prior_state' bin/` matches
+  nothing. Upstream does not have the vocabulary to publish a rail stage at
+  all, let alone a prior one.
 - `bin/fm-crew-state.sh` declares the whole vocabulary in its own header, at
   line 18: `state: <working|parked|done|blocked|paused|failed|unknown>`. Seven
   reconciled states, of which exactly one - `working` - is a place on the rail.
