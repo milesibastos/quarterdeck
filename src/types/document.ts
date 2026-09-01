@@ -15,7 +15,7 @@
  */
 
 /** Bumped when this shape changes in a way a reader must notice. */
-export const DOCUMENT_VERSION = 4;
+export const DOCUMENT_VERSION = 5;
 
 /* -------------------------------------------------------- the envelope */
 
@@ -215,6 +215,33 @@ export interface Lifecycle {
    * worker's fine detail arrives with its coarse stage or does not exist.
    */
   readonly step: ValidationStep | null;
+  /**
+   * The coarse stage the worker was in before it stopped, as upstream recorded
+   * it - or `null` when upstream recorded none.
+   *
+   * The one question a rail exists to answer about a stopped worker: `stage`
+   * says it stopped and why, and this says where it was standing when it did.
+   * Without it a stop can only be placed where the panel can reason its way to
+   * a position, which is the validation pipeline and nowhere else - so a worker
+   * that stopped on a rail with no validating stage draws its rail correctly
+   * and shows no position at all.
+   *
+   * Carried, never derived. Anything computable from `step` or from `detail`
+   * would be a field computable from another field, which drifts the first time
+   * the derivation changes - the reason the document seam refused a prior-stage
+   * field in the first place. What changed is not that the derivation got
+   * better; it is that the document now has a slot a finer upstream can assert
+   * into. `null` is what every live fleet fills it with today, because upstream
+   * publishes no such record and has no vocabulary for one; the evidence, and
+   * the commands it was checked with, are in `docs/quality.md` and
+   * `docs/decisions/2026-08-31-the-stage-a-stop-happened-in.md`.
+   *
+   * An active stage and never a halted one. "Where it stopped" is a place on
+   * the track, and `blocked` is not a place on the track - a worker that was
+   * held and is now blocked has not moved along the rail, so a halted value
+   * here would say nothing the `stage` beside it does not already say.
+   */
+  readonly lastActiveStage: ActiveStage | null;
   /**
    * Upstream's own words for what is happening inside the stage, one line.
    *

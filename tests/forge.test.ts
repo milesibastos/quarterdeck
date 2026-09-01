@@ -78,6 +78,7 @@ function taskWith(id: string, pr: SnapshotTask["pr"]): SnapshotTask {
       state: "pr_open",
       detail: "pull request opened",
       observed_at: "2099-01-01T09:15:00.000Z",
+      last_active_state: null,
     },
     pr,
     completion: null,
