@@ -112,10 +112,7 @@ export function SnapshotBadge({
       )}
     >
       <p className="flex min-w-0 flex-wrap items-center gap-x-2 font-mono text-xs tracking-wide">
-        <span
-          aria-hidden
-          className={cn("size-2 shrink-0 rounded-full", DOT[age])}
-        />
+        <span aria-hidden className={cn("size-2 shrink-0", DOT[age])} />
         <span className="uppercase">{`Snapshot · ${ago(asOf, nowMs)}`}</span>
         <span data-snapshot-word className="font-medium uppercase">
           {WORD[age]}
@@ -147,7 +144,7 @@ function Unread({ rebuild }: { rebuild: Rebuild | null }) {
       className="flex min-w-0 flex-col gap-0.5 rounded-lg border border-danger/60 bg-danger/15 px-3 py-2 text-foreground"
     >
       <p className="flex min-w-0 flex-wrap items-center gap-x-2 font-mono text-xs tracking-wide">
-        <span aria-hidden className="size-2 shrink-0 rounded-full bg-danger" />
+        <span aria-hidden className="size-2 shrink-0 bg-danger" />
         <span className="uppercase">Snapshot</span>
         <span data-snapshot-word className="font-medium uppercase">
           Could not be read

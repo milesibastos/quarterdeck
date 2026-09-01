@@ -106,14 +106,16 @@ panel needs five: `working`, `pr-open`, `held`, `waiting` and `failed` all want
 a hue, and `blocked` and `landed` want a fifth. A stage vocabulary drawn from
 `--term-*` alone would paint `blocked` exactly like `failed`, and the whole
 point of the four off-track tones is that only one of them is an alarm.
-`--secondary` is navy, which the terminal set has no word for at all, and it
-measures **10.1:1 light and 12.5:1 dark** as text on the page.
+`--secondary` is the fifth tone, which the terminal set has no word for at all.
+It was navy; the 2026-09-01 repaint moved it onto the neutral ramp, where it
+measures **10.4:1 light and 10.9:1 dark** as text on the page and reads as the
+receded thing a landed or blocked stage is. See `docs/decisions/2026-09-01-the-brainless-palette-and-one-mono-face.md`.
 
 The two obligations are split where the contrast rule needs them split:
 
-- **The word** takes a rank that passes as text. `--warn` is gold-600 and
-  measures 3.2:1 on the light page, so `held` reads in `--term-warning` -
-  gold-700, the same hue one stop darker, 4.9:1 - and `waiting` in
+- **The word** takes a rank that passes as text. `--warn` is the pale amber a
+  chip fill wants, so `held` reads in `--term-warning` - the same hue at the
+  stop that passes as text, 4.9:1 light and 11.5:1 dark - and `waiting` in
   `--term-info`.
 - **The edge and the pip** take the status token. Neither carries a contrast
   obligation, because nothing has to be read out of a four-pixel rule or a

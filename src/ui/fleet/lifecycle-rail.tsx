@@ -99,19 +99,21 @@ interface StageLook {
  *
  * The tones are the panel's own status tokens rather than the `--term-*` set,
  * and that is the one place this lens does not take the grammar's palette. The
- * reason is countable: the terminal set has four saturated stops and
- * `--term-accent` is the same stop as `--term-danger`, so a stage vocabulary
- * drawn from it has no fifth hue and would paint `blocked` exactly like
- * `failed`. `--secondary` is navy, which the terminal set has no word for at
- * all, and it measures 10.1:1 light and 12.5:1 dark as text on the page. See
- * `docs/decisions/2026-08-31-the-fleet-lens-in-the-terminal-grammar.md`.
+ * reason is countable: the terminal set has four saturated stops, so a stage
+ * vocabulary drawn from it has no fifth hue and would paint `blocked` exactly
+ * like `failed`. `--secondary` is that fifth tone, which the terminal set has
+ * no word for at all. It was navy; since the 2026-09-01 repaint it is the
+ * neutral ramp, measuring 10.4:1 light and 10.9:1 dark as text on the page,
+ * which is also the right reading for a stage that has finished or stopped. See
+ * `docs/decisions/2026-08-31-the-fleet-lens-in-the-terminal-grammar.md` and
+ * `docs/decisions/2026-09-01-the-brainless-palette-and-one-mono-face.md`.
  *
  * The two obligations are split where the contrast rule needs them split: the
  * word is drawn in a rank that passes as text, the edge and the pip in the
  * status token, which carries no contrast obligation because nothing has to be
- * read out of a four-pixel rule. `--warn` is gold-600 and measures 3.2:1 as
- * text on the light page, so `held` reads in `--term-warning` - the same hue,
- * one stop darker - and keeps `--warn` on its edge.
+ * read out of a four-pixel rule. `--warn` is the pale amber a chip fill wants,
+ * so `held` reads in `--term-warning` - the same hue at the stop that passes as
+ * text - and keeps `--warn` on its edge.
  *
  * Where a stage sits is deliberately not in here any more. A position is only
  * meaningful against a particular rail, and a stage that is third on one rail
@@ -657,8 +659,9 @@ export function LifecycleRail({
         {drawn.map((stage, index) => (
           <span
             key={stage}
+            data-rail-segment=""
             className={cn(
-              "h-1.5 flex-1 rounded-full",
+              "h-1.5 flex-1",
               reached === null
                 ? "bg-muted-foreground/20"
                 : index < reached
@@ -675,7 +678,10 @@ export function LifecycleRail({
         {stages === null && (
           // The open end. Dashed rather than solid, and it is the whole of what
           // the panel will say about a rail whose length nobody recorded.
-          <span className="h-1.5 flex-1 rounded-full border border-dashed border-muted-foreground/40" />
+          <span
+            data-rail-segment=""
+            className="h-1.5 flex-1 border border-dashed border-muted-foreground/40"
+          />
         )}
       </div>
 

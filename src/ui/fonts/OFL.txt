@@ -1,5 +1,3 @@
-Copyright (c) 2011 Fontstage (info@fontstage.com), with Reserved Font Names, 'Chango'
-Copyright 2020 The Jost Project Authors (https://github.com/indestructible-type)
 Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.

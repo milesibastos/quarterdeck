@@ -94,7 +94,7 @@ function NothingNeedsYou({
         data-needs-you-empty="unknown"
         className="border-l-2 border-term-danger py-6 pl-3 font-mono text-[13px] leading-[1.55]"
       >
-        <p className="font-display text-xl tracking-wide text-term-fg-bright">
+        <p className="text-base font-semibold tracking-tight text-term-fg-bright">
           Unknown, not nothing
         </p>
         <p className="mt-2 max-w-prose wrap-anywhere text-term-muted">
@@ -109,7 +109,7 @@ function NothingNeedsYou({
       data-needs-you-empty="none"
       className="border-l-2 border-term-rule py-6 pl-3 font-mono text-[13px] leading-[1.55]"
     >
-      <p className="font-display text-xl tracking-wide text-term-fg-bright">
+      <p className="text-base font-semibold tracking-tight text-term-fg-bright">
         Nothing needs you
       </p>
       {/* Says where the zero came from, and claims nothing about how fresh

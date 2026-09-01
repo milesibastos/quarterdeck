@@ -207,20 +207,17 @@ field by field against two live fleet homes.
   fleet's own rules for what counts as a harness. Reimplementing that is exactly
   what the quarantine exists to refuse, so a lock held by a dead session reads
   as locked here. An upstream that published the verdict would close it.
-- **Two light-theme tokens are below AA as text.** Measured in the built panel
-  against `--card`: `--warn` is 3.61:1 and `--info` is 4.37:1, where AA wants
-  4.5:1 for text this size. Both predate this pass and neither is used to carry
-  meaning on its own - the words say it and the edges are dashed as well as
-  tinted - but `text-warn` on the fleet picker's switching note and `text-info`
-  on the landed lens's pull request link are both text somebody has to read.
-  The fleet lens's own pull request link moved to `--term-info` (5.3:1 light)
-  when it converted to the terminal grammar, which closes this gap there; see
-  `docs/decisions/2026-08-31-the-fleet-lens-in-the-terminal-grammar.md`. The
-  palette has no darker gold, so closing the first means either a new palette
-  stop or moving the token to another hue, and the palette is not this pass's
-  to redesign. The dark theme's remaining shortfall is `--primary` as chip text
-  at 4.38:1; it cannot step to `rust-300` without becoming `--danger`.
-  Everything else measured in either theme is at or above 4.5:1.
+- ~~**Two light-theme tokens are below AA as text.**~~ **Closed 2026-09-01.**
+  `--warn` measured 3.61:1 and `--info` 4.37:1 against `--card`, and the note
+  here said closing the first meant a new palette stop or another hue because
+  the ramp had no darker gold. The repaint replaced the ramp: measured again in
+  the built panel, `--warn` is **4.9:1** and `--info` **5.9:1** in light, 10.4:1
+  and 10.8:1 in dark. The dark theme's other recorded shortfall - `--primary` as
+  chip text at 4.38:1, which could not step darker without becoming `--danger` -
+  is **4.9:1** now, and it could step because identity and destruction are no
+  longer the same hue. Every token in both themes is at or above 4.5:1 as text,
+  every chip fill is at or above 4.5:1 against its own foreground, and the two
+  rules that bound something clear 3:1. The full table is in `docs/decisions/2026-09-01-the-brainless-palette-and-one-mono-face.md`.
 - **Shipshape is below the fold.** The layout that put it on the first screen
   weighted the three lenses equally, which the wireframe rules out. What carries
   the trust signal above the fold now is the age badge - a supervision cycle

@@ -20,7 +20,7 @@ export function ContractRefusal({
     // The page does not scroll at `md` and up; this is a page of its own
     // inside that frame, so it takes the height and scrolls itself.
     <main className="mx-auto flex w-full max-w-3xl flex-col gap-4 px-4 py-10 sm:px-6">
-      <h1 className="font-display text-3xl tracking-wide text-danger">
+      <h1 className="text-base font-semibold tracking-tight text-danger">
         Snapshot refused
       </h1>
       <p className="text-sm text-foreground">

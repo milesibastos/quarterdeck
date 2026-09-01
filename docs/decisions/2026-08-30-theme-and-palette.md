@@ -25,7 +25,15 @@ paper, and accents step one stop lighter because the surface got darker - not
 because dark mode gets its own hues.
 
 Chango, Jost and JetBrains Mono are committed as latin woff2 subsets under
-`src/ui/fonts/` and loaded with `next/font/local`.
+`src/ui/fonts/` and loaded with `next/font/local`. See the superseded note
+below: Chango and Jost are gone, and `src/ui/fonts/` holds one family.
+
+**Superseded on 2026-09-01, in its values but not its mechanism.** The three
+layers, the palette hop and the computed OKLCH all still hold and are what the
+repaint was carried out through. What changed is everything they carry: the
+ink-and-paper ramp became brainless's neutrals, the display face and the sans
+were retired so `src/ui/fonts/` holds one family, and `--radius` went to zero.
+See `docs/decisions/2026-09-01-the-brainless-palette-and-one-mono-face.md`.
 
 ## Trade-offs
 

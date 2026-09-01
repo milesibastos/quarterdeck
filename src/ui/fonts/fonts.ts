@@ -1,33 +1,11 @@
 import localFont from "next/font/local";
 
 // Vendored, never fetched. See README.md in this directory and invariant 7.
-export const display = localFont({
-  src: "./chango-400.woff2",
-  weight: "400",
-  style: "normal",
-  display: "swap",
-  variable: "--font-display",
-  fallback: ["Cooper Black", "Rockwell", "Georgia", "serif"],
-});
-
-export const sans = localFont({
-  src: "./jost-variable.woff2",
-  weight: "100 900",
-  style: "normal",
-  display: "swap",
-  variable: "--font-sans",
-  fallback: [
-    "ui-sans-serif",
-    "system-ui",
-    "-apple-system",
-    "Segoe UI",
-    "Roboto",
-    "Helvetica Neue",
-    "Arial",
-    "sans-serif",
-  ],
-});
-
+//
+// One face. The panel is drawn in a terminal grammar and brainless renders its
+// own components from a single monospace; a display face and a sans beside it
+// were what made this page read as a warm document wearing terminal chrome.
+// See `docs/decisions/2026-09-01-the-brainless-palette-and-one-mono-face.md`.
 export const mono = localFont({
   src: "./jetbrains-mono-variable.woff2",
   weight: "100 800",

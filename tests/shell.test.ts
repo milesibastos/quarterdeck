@@ -236,7 +236,7 @@ describe("the theme", () => {
   test("follows the operator's system setting, with nothing to toggle", async () => {
     const css = await stylesheet();
     assert.ok(
-      /@media \(prefers-color-scheme:\s*dark\)\{:root\{[^}]*--background:\s*var\(--qd-ink-900\)/.test(
+      /@media \(prefers-color-scheme:\s*dark\)\{:root\{[^}]*--background:\s*var\(--qd-n-950\)/.test(
         css,
       ),
       "the dark tokens are keyed on the system setting",

@@ -182,7 +182,10 @@ island. See the terminal section below.
 
 Checked statically - no `next/font/google`, no remote URL literal in `src/` -
 and enforced at runtime by a Content-Security-Policy in which every directive
-resolves to `'self'`. Fonts are committed woff2 subsets under `src/ui/fonts/`.
+resolves to `'self'`. The font is one committed woff2 subset under
+`src/ui/fonts/`; there used to be three, and
+`docs/decisions/2026-09-01-the-brainless-palette-and-one-mono-face.md` says why
+there is one.
 
 The rule is about the browser, and `src/adapters/forge.ts` is why that has to be
 said out loud. It runs `gh` on the server to read a pull request's checks, which
