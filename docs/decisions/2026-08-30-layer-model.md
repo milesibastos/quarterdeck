@@ -15,9 +15,10 @@ the panel into one module where everything can reach everything.
     types -> config -> adapters -> domain -> runtime -> ui
 
 Dependencies point forward only. `src/providers/` is a single door for the clock
-and the logger, importable from anywhere. `src/app/` and `src/proxy.ts` are the
-composition point. The permission table lives in `tests/lib/invariants.ts` and
-is checked on every test run.
+and the logger, importable from anywhere. `src/app/`, `src/proxy.ts` and
+`src/instrumentation.ts` are the composition point (the last added in
+`docs/decisions/2026-09-01-stopping-the-panel.md`). The permission table lives
+in `tests/lib/invariants.ts` and is checked on every test run.
 
 ## The two judgement calls
 

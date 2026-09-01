@@ -116,5 +116,7 @@ on a free port.
 
 `tests/shutdown.test.ts`. A panel with a page watching it stops; a stopped panel
 lets go of its port; and the launcher, driven the way a shell drives it, is
-still there when the panel is gone. All three fail on the code as it was, with
-the harness's own "its shutdown is hanging" sentence.
+still there when the panel is gone. All three fail on the code as it was: the
+first two with the harness's own "its shutdown is hanging" sentence, the third
+on its own assertion that the launcher exited while the panel was still
+running.

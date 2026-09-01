@@ -16,6 +16,10 @@ Next's route files - `src/app/**` and `src/proxy.ts` - are a position outside
 the six layers. They may import from every layer, and they are the only thing
 that may. Components under `src/ui/` receive everything as props.
 
+`src/instrumentation.ts` joined this position on 2026-09-01, for the same
+reason: it is a filename Next owns, doing wiring rather than deciding. See
+`docs/decisions/2026-09-01-stopping-the-panel.md`.
+
 ## Consequences
 
 The rule that keeps this honest is that route files stay thin: read, translate,
