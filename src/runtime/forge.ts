@@ -36,6 +36,21 @@ import type { Logger } from "../providers/logger.ts";
 /** No pull request is asked about more than this often. */
 export const FORGE_MIN_INTERVAL_MS = 60_000;
 
+/**
+ * How long one call to the forge gets, and why it is not the fleet's budget.
+ *
+ * `QUARTERDECK_READ_TIMEOUT_MS` is sized against a cost that grows with the
+ * fleet - roughly a second per live worker, plus upstream's own per-worker
+ * bound - and it is twenty seconds because of that curve. A `gh` call has no
+ * such curve: it is one request, and one that has not answered in five seconds
+ * is not going to be worth waiting three times longer for. Letting it follow
+ * the fleet's number would mean every future rise in that budget silently
+ * bought a hung network call more time to hold up the rest of its batch, which
+ * is a cost nobody chose. See
+ * `docs/decisions/2026-09-01-the-fleet-read-budget-and-what-a-timeout-means.md`.
+ */
+export const FORGE_READ_TIMEOUT_MS = 5_000;
+
 interface ForgeCacheDeps {
   readonly read: ForgeRead;
   readonly clock: Clock;

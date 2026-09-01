@@ -29,7 +29,7 @@ import { fixedClock, systemClock, type Clock } from "../providers/clock.ts";
 import { consoleLogger, type Logger } from "../providers/logger.ts";
 import { childProcessRunner } from "../providers/process.ts";
 import type { PanelDocument } from "../types/document.ts";
-import { ForgeCache } from "./forge.ts";
+import { ForgeCache, FORGE_READ_TIMEOUT_MS } from "./forge.ts";
 
 /** The document's lens-shaped fields, in the order they read best in a sentence. */
 const LENS_NAMES = ["fleet", "deck", "landed", "health"] as const;
@@ -561,7 +561,7 @@ function forgeFor(config: Config, clock: Clock): ForgeCache | null {
     read: ghForge(childProcessRunner, clock, process.env),
     clock,
     logger: consoleLogger,
-    readTimeoutMs: config.readTimeoutMs,
+    readTimeoutMs: FORGE_READ_TIMEOUT_MS,
   });
 }
 

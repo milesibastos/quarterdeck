@@ -112,6 +112,14 @@ export interface Config {
    * the only way to test it is to wait. Pinning the instant makes every
    * fixture render deterministic, which is what lets the test suite assert on
    * the built server's actual output instead of on approximations.
+   *
+   * It stops the runtime's read backoff expiring too, and for the same reason:
+   * a hold-off ends when "now" passes an instant, and here "now" never moves.
+   * So a panel started with this set reads the fleet again after a failure only
+   * when somebody acts, or on a restart. That is the right behaviour for a
+   * pinned clock - it is what "time does not pass" means - but it is worth
+   * knowing before writing a fail-then-recover test through the built server
+   * and watching it wait forever. `FleetRuntime` is where the hold-off lives.
    */
   readonly now: string | null;
 }
