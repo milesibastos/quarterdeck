@@ -38,9 +38,12 @@ const STAGING_LOCK = join(STANDALONE, ".staging.lock");
  * Every test file that starts a panel calls this, and `node --test` runs test
  * files as separate processes: unguarded, concurrent copies into this one
  * shared directory race on the same destination files (one process's copy
- * unlinks a file another is still writing). The lock serialises the copy: the
- * marker, keyed to the build, then skips it once another process has already
- * staged this exact build, and re-stages if a later build left it behind.
+ * unlinks a file another is still writing). `bin/quarterdeck`'s own
+ * `stageAssets` takes this same lock before it copies, for the same reason -
+ * the suite spawns that launcher too, in `tests/shutdown.test.ts`. The lock
+ * serialises the copy: the marker, keyed to the build, then skips it once
+ * another process has already staged this exact build, and re-stages if a
+ * later build left it behind.
  */
 async function stageAssets(): Promise<void> {
   await mkdir(STANDALONE, { recursive: true });
