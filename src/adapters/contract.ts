@@ -106,6 +106,24 @@ export type SnapshotTaskState =
   | "waiting_external"
   | "landed";
 
+/**
+ * The states a worker is in while it is still on the track, in upstream's
+ * spelling: the six of `SnapshotTaskState` that are places on the rail rather
+ * than reasons for leaving it.
+ *
+ * Its own type because `last_active_state` may only ever be one of these. A
+ * worker's last ACTIVE stage is a place on the track, and `blocked` is not a
+ * place on the track - accepting one there would let upstream answer "where was
+ * it standing" with "it had stopped", which is not an answer.
+ */
+export type SnapshotActiveState =
+  | "dispatched"
+  | "working"
+  | "validating"
+  | "pr_open"
+  | "in_review"
+  | "landed";
+
 export type SnapshotRecordState = "queued" | "in_flight" | "done";
 
 /** A path upstream reports, with whether it was there when upstream looked. */
@@ -126,6 +144,25 @@ export interface SnapshotCurrentState {
   readonly state: SnapshotTaskState;
   readonly detail: string;
   readonly observed_at: string;
+  /**
+   * The coarse stage the worker was in before it stopped, or `null` when
+   * upstream published none - which is every worker a live fleet reports today.
+   *
+   * Accepted, not required, and the same arrangement `branch`, `model`, `effort`
+   * and `brief` already have. The difference is worth stating: those three are
+   * recorded at dispatch and merely not carried out, whereas no fleet records
+   * this anywhere at all - firstmate reconciles a worker to seven coarse states
+   * and has no vocabulary for `pr_open` or `in_review` in its own tree. So this
+   * is a slot a finer upstream can fill without the parser changing, rather
+   * than a field waiting to be plumbed through. The evidence, and the commands
+   * it was checked with, are in `docs/quality.md`.
+   *
+   * Present, it is refused like any other computed field: it is upstream's own
+   * assertion about a position, not prose lifted out of a hand-written record,
+   * and a spelling this build does not recognise is a meaning it would be
+   * guessing at.
+   */
+  readonly last_active_state: SnapshotActiveState | null;
 }
 
 /**
@@ -416,6 +453,16 @@ const TASK_STATES: ReadonlySet<string> = new Set([
   "landed",
 ]);
 
+/** The six of `TASK_STATES` that are places on the track. */
+const ACTIVE_STATES: ReadonlySet<string> = new Set([
+  "dispatched",
+  "working",
+  "validating",
+  "pr_open",
+  "in_review",
+  "landed",
+]);
+
 const RECORD_STATES: ReadonlySet<string> = new Set([
   "queued",
   "in_flight",
@@ -497,6 +544,23 @@ function requireMember<T extends string>(
     );
   }
   return text as T;
+}
+
+/**
+ * A closed set upstream may leave out entirely.
+ *
+ * Absent and `null` are a fleet with nothing to say, which is not a snapshot to
+ * refuse; a value that is present and unrecognised is, because it is a computed
+ * field whose meaning this build would otherwise be guessing at.
+ */
+function optionalMember<T extends string>(
+  value: unknown,
+  allowed: ReadonlySet<string>,
+  path: string,
+  source: string,
+): T | null {
+  if (value === null || value === undefined) return null;
+  return requireMember<T>(value, allowed, path, source);
 }
 
 function requireArray(value: unknown, path: string, source: string): unknown[] {
@@ -710,6 +774,12 @@ function parseTask(value: unknown, at: string, source: string): SnapshotTask {
       observed_at: requireInstant(
         current.observed_at,
         `${at}.current_state.observed_at`,
+        source,
+      ),
+      last_active_state: optionalMember<SnapshotActiveState>(
+        current.last_active_state,
+        ACTIVE_STATES,
+        `${at}.current_state.last_active_state`,
         source,
       ),
     },

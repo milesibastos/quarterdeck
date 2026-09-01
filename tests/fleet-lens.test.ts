@@ -216,12 +216,23 @@ describe("the rail a worker's own work has", () => {
   });
   after(() => panel.stop());
 
-  /** One card's rail: its shape, what was drawn, and the words underneath. */
-  function rail(id: string) {
+  /**
+   * One worker's card, on its own.
+   *
+   * Scoped rather than asked of the whole page: several workers in this set
+   * stopped with the same detail, and the page would say yes to any of them
+   * whichever one dropped it.
+   */
+  function cardOf(id: string): string {
     const start = html.indexOf(`data-worker="${id}"`);
     assert.notEqual(start, -1, `${id} should be on screen`);
     const next = html.indexOf('data-worker="', start + 1);
-    const card = html.slice(start, next === -1 ? undefined : next);
+    return html.slice(start, next === -1 ? undefined : next);
+  }
+
+  /** One card's rail: its shape, what was drawn, and the words underneath. */
+  function rail(id: string) {
+    const card = cardOf(id);
     // From the rail's own element to the card's next paragraph, which is
     // upstream's raw detail and sits outside the rail.
     const from = card.indexOf("data-rail=");
@@ -377,54 +388,107 @@ describe("the rail a worker's own work has", () => {
     assert.ok(!line.includes("in validation"));
     assert.ok(!line.includes("step 3 of 9"));
     // Upstream's own words are on that card regardless, so nothing is lost.
-    // Scoped to the card: several workers in this set stopped with the same
-    // detail, and the whole page would say yes whichever one dropped it.
-    const start = html.indexOf('data-worker="wi-halyard-617"');
-    const card = html.slice(start, html.indexOf('data-worker="', start + 1));
     assert.ok(
-      card.includes(
+      cardOf("wi-halyard-617").includes(
         "parked at review: 1 finding(s) (ask-user: authority decision)",
       ),
     );
   });
 
-  test("says so rather than guessing when a rail has no stage to anchor a stop to", () => {
-    // The step word says the pipeline was running, and on a rail whose contract
-    // skips the pipeline it evidences nothing about which stage the worker
-    // stopped in. Falling back to that rail's working stage would be a guess
-    // dressed as a deduction, so the panel says the position is not known.
+  test("anchors a stop to the stage upstream recorded, on every rail shape", () => {
+    // The one question a rail exists to answer about a stopped worker. Two of
+    // these four rails have no validating stage, so before the document carried
+    // the last active stage they could place a stop nowhere at all.
     assert.equal(
-      rail("wi-halyard-617").line,
-      "Held · position not known",
+      rail("wi-tidewater-602").line,
+      "Held in validation · stage 3 of 6 · code review, step 3 of 9",
+      "validated",
+    );
+    assert.equal(
+      rail("wi-halyard-619").line,
+      "Held with its pull request open · stage 3 of 5",
       "direct-pr",
+    );
+    assert.equal(
+      rail("wi-saltmarsh-621").line,
+      "Held while working · stage 2 of 4",
+      "local",
     );
     assert.equal(
       rail("wi-halyard-618").line,
-      "Held · position not known",
+      "Held while working · stage 2 of 3",
       "research",
     );
-
-    // A pull request is not the missing evidence either: it proves the worker
-    // REACHED that stage, where the marker claims it STOPPED there. This worker
-    // has one and is still unplaced rather than pinned to it.
     assert.equal(
-      rail("wi-halyard-619").line,
-      "Held · position not known",
-      "a pull request is not a stop",
+      rail("wi-lamplight-605").line,
+      "Blocked in review · stage 4 of 5",
+      "and a stop that named no step at all is placed the same way",
+    );
+
+    // The rails themselves are untouched by any of it: an anchor says where on
+    // the rail, never which rail.
+    assert.equal(rail("wi-halyard-619").shape, "direct-pr");
+    assert.equal(rail("wi-halyard-618").shape, "research");
+  });
+
+  test("anchors and deduces to one sentence where both can answer", () => {
+    // 602 is anchored to validating and 608 is deduced into it from the step
+    // word, on two rails of different lengths. An operator has no use for the
+    // difference between being told and being worked out, so the panel does not
+    // spell one - and the deduction survives for the stops upstream says
+    // nothing about, which today is all of them on a live fleet.
+    assert.ok(
+      rail("wi-tidewater-602").line.startsWith("Held in validation · "),
     );
     assert.equal(
-      rail("wi-halyard-619").shape,
-      "direct-pr",
-      "and the rail itself is still right",
+      rail("wi-saltmarsh-608").line,
+      "Held in validation · stage 3 of 4 · code review, step 3 of 9",
+    );
+  });
+
+  test("does not frame the pipeline around a stop anchored outside it", () => {
+    // Upstream says this worker stopped with its pull request open, and its
+    // prose happens to carry a pipeline word. Numbering that word out of nine
+    // would claim the worker was in the pipeline at the moment it stopped, when
+    // upstream said it was somewhere else - so the frame is dropped.
+    const { line } = rail("wi-halyard-619");
+    assert.ok(!line.includes("step 3 of 9"), line);
+    assert.ok(!line.includes("in validation"), line);
+
+    // Upstream's own words are on the card regardless, so nothing is lost.
+    assert.ok(cardOf("wi-halyard-619").includes("parked at review: 1 finding"));
+  });
+
+  test("drops a rail that has no room for the stage a stop is anchored to", () => {
+    // Recorded as skipping the pipeline and reported as having stopped inside
+    // it: two things upstream said, contradicting each other. Dropping the
+    // anchor quietly would hide the disagreement and lose the position with it,
+    // so it is surfaced the way a mismatched current stage already is - and the
+    // sentence names which of the two claims had no room, because an operator
+    // chasing a stale record looks somewhere else than one chasing a bad read.
+    const { shape, note } = rail("wi-halyard-620");
+    assert.equal(shape, "unknown");
+    assert.equal(
+      note,
+      "Recorded as delivery straight to a pull request, but that rail has no room for the stage it stopped in, so how many stages this work has is not known.",
     );
   });
 
   test("says a stopped worker's position is not known rather than showing none", () => {
-    // Nothing the pipeline produced, and no step named at all: there is no
-    // evidence to anchor a position to, and drawing nothing would read as a
-    // claim that it has none rather than the truth that the panel cannot tell.
-    assert.equal(rail("wi-cordage-611").line, "Waiting · position not known");
-    assert.equal(rail("wi-lamplight-605").line, "Blocked · position not known");
+    // What a live fleet reports today: upstream publishes no last active stage,
+    // so a stop on a rail with no validating stage has nothing to anchor to.
+    // Drawing nothing would read as a claim that it has no position rather than
+    // the truth, which is that the panel cannot tell.
+    assert.equal(
+      rail("wi-cordage-611").line,
+      "Waiting · position not known",
+      "named no step and upstream recorded no stage",
+    );
+    assert.equal(
+      rail("wi-halyard-617").line,
+      "Held · position not known",
+      "named a step, on a rail whose contract skips the pipeline",
+    );
   });
 
   test("keeps the rail's meaning in words rather than only in shape and colour", () => {

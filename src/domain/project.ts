@@ -1,5 +1,6 @@
 import type {
   FleetSnapshot,
+  SnapshotActiveState,
   SnapshotChecks,
   SnapshotRecord,
   SnapshotRecordState,
@@ -12,6 +13,7 @@ import type { HealthReading } from "../adapters/health.ts";
 import { isIsoInstant, type Clock } from "../providers/clock.ts";
 import {
   DOCUMENT_VERSION,
+  type ActiveStage,
   type ChecksSignal,
   type DeckItem,
   type DeckState,
@@ -257,6 +259,40 @@ function stepOf(stage: Stage, detail: string): ValidationStep | null {
 }
 
 /**
+ * Upstream's six on-track states, mapped onto the document's spelling of them.
+ *
+ * A separate table from `STAGE` rather than a filtered view of it, because the
+ * two answer different questions and only this one is closed to active stages.
+ * The parser has already refused anything that is not one of these, so there is
+ * no absent arm here: what arrives is a stage or it is `null`.
+ */
+const LAST_ACTIVE_STAGE: Readonly<Record<SnapshotActiveState, ActiveStage>> = {
+  dispatched: "dispatched",
+  working: "working",
+  validating: "validating",
+  pr_open: "pr-open",
+  in_review: "in-review",
+  landed: "landed",
+};
+
+/**
+ * The stage a worker was in before it stopped, carried and never worked out.
+ *
+ * Deliberately not derived from `detail` or from the `step` beside it. The
+ * document seam refused a prior-stage field precisely because anything it could
+ * hold would be computable from the field next to it, and computing one here
+ * would earn that refusal all over again - worse, it would let the document
+ * assert `validating` for a worker whose delivery contract skips the pipeline,
+ * because the projection cannot see which rail a worker has and so cannot tell
+ * that its own answer is impossible. Upstream asserts this or nobody does.
+ */
+function lastActiveStageOf(
+  state: SnapshotActiveState | null,
+): ActiveStage | null {
+  return state === null ? null : LAST_ACTIVE_STAGE[state];
+}
+
+/**
  * Upstream's word for a backlog row closed by a merge, as opposed to one
  * reported or ticked off without one.
  */
@@ -336,6 +372,7 @@ function projectWorker(task: SnapshotTask): Worker {
     lifecycle: {
       stage,
       step: stepOf(stage, task.current_state.detail),
+      lastActiveStage: lastActiveStageOf(task.current_state.last_active_state),
       detail: task.current_state.detail,
       observedAt: task.current_state.observed_at,
     },
