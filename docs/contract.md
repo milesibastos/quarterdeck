@@ -31,13 +31,22 @@ several workers build against at once, some filling it and some drawing it.
 type LensStatus =
   | { state: "fresh"; asOf: string }
   | { state: "stale"; asOf: string; ageMs: number; detail: string }
-  | { state: "unreadable"; observedAt: string; detail: string };
+  | {
+      state: "unreadable";
+      observedAt: string;
+      reason: "failed" | "timed-out";
+      detail: string;
+    };
 ```
 
 There is deliberately no document-wide `degraded` flag. Fleet and deck come from
 one upstream contract that either parses or refuses; health comes from files
 that may simply have moved. Two reliability promises meet in one document, so
 each lens says for itself whether it is good, stale and by how much, or dark.
+
+Every lens can carry `reason`, including health: it is read under the same
+budget as the fleet snapshot, so a stalled health read times out too, not only a
+slow snapshot. See version 6 in the table below for the full rationale.
 
 `content` is always present. A stale lens still carries what it last had, and an
 unreadable one carries the last thing that read cleanly - which may be nothing.
