@@ -180,6 +180,22 @@ one-field close available, and the disclosure was standing in for it.
 ## See also
 
 - `docs/decisions/2026-08-31-four-rails.md` - the four shapes, and acceptance 3
-  of that task, which this makes true rather than aspirational.
+  of that task: "a stop still anchors to a named step on every rail shape".
+  This makes that criterion **reachable**, not true. It was written against a
+  document that could not express it at all, and now the document can, the rail
+  draws it, and the fixtures exercise it on all four shapes - but no fleet fills
+  the field, so on live data the criterion is still unmet. What changed is who
+  can meet it: it was a hole in the document's shape, which only this repository
+  could close, and it is now one upstream field.
+
+  Worth naming because this record nearly claimed otherwise. Its first draft
+  said the criterion was made "true rather than aspirational", repeating a
+  phrase from the task brief without checking it against the limitations section
+  three headings above, which says the opposite and is right. The supervisor who
+  wrote the phrase caught it and asked for it to be corrected here rather than
+  for the limitations to be softened to match. A record that inherits an
+  overclaim from whoever commissioned it is the same defect this project keeps
+  finding in its own surfaces: a confident answer with nothing behind it.
+
 - `docs/contract.md` - the field, the version history, and the commands above.
 - `docs/quality.md` - what a live fleet fills, and what it does not.
