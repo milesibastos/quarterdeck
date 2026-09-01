@@ -137,15 +137,22 @@ export function AnswerControl({
         },
         body: JSON.stringify({ taskId, since, answer, label, mode }),
       });
-      const body = (await response.json()) as { detail?: string; error?: string };
+      const body = (await response.json()) as {
+        detail?: string;
+        error?: string;
+      };
       if (!response.ok) {
         setOutcome({
           state: "refused",
-          detail: body.error ?? `The panel refused the answer (${response.status}).`,
+          detail:
+            body.error ?? `The panel refused the answer (${response.status}).`,
         });
         return;
       }
-      setOutcome({ state: "recorded", detail: body.detail ?? "The answer was recorded." });
+      setOutcome({
+        state: "recorded",
+        detail: body.detail ?? "The answer was recorded.",
+      });
     } catch (error) {
       // The request may or may not have arrived. Saying so is the only honest
       // report, and re-pressing is safe: the identity is the same either way.
@@ -165,7 +172,8 @@ export function AnswerControl({
           {outcome.detail} The fleet will act on it at its next check.
         </p>
         <p className="text-[12px] text-term-faint">
-          This panel cannot say the decision is closed until a later reading shows it.
+          This panel cannot say the decision is closed until a later reading
+          shows it.
         </p>
       </div>
     );
@@ -175,7 +183,10 @@ export function AnswerControl({
 
   return (
     <div data-answer-control={taskId} className="mt-2 space-y-2 font-mono">
-      <label htmlFor={fieldId} className="block text-[12px] tracking-wide text-term-muted">
+      <label
+        htmlFor={fieldId}
+        className="block text-[12px] tracking-wide text-term-muted"
+      >
         Your answer
       </label>
       {/* The composer's chrome over a box that can hold more than one line:

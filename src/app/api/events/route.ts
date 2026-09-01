@@ -18,7 +18,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   const config = loadConfig(process.cwd());
-  const fleet = fleetById(config, new URL(request.url).searchParams.get("fleet"));
+  const fleet = fleetById(
+    config,
+    new URL(request.url).searchParams.get("fleet"),
+  );
   const runtime = fleetRuntime(config, fleet);
   const encoder = new TextEncoder();
 
@@ -35,7 +38,9 @@ export async function GET(request: Request) {
       // Names the stream open so a reconnecting client knows it is live again.
       send(": open\n\n");
 
-      const unsubscribe = runtime.subscribe(() => send("event: fleet-changed\ndata:\n\n"));
+      const unsubscribe = runtime.subscribe(() =>
+        send("event: fleet-changed\ndata:\n\n"),
+      );
 
       request.signal.addEventListener("abort", () => {
         unsubscribe();

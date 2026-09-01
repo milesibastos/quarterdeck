@@ -27,7 +27,9 @@ import type { LandedItem } from "@/types/document.ts";
  * inventing a tiebreak - by title, by id - would order them by something that
  * is not about when they landed.
  */
-export function inLandingOrder(items: readonly LandedItem[]): readonly LandedItem[] {
+export function inLandingOrder(
+  items: readonly LandedItem[],
+): readonly LandedItem[] {
   return [...items].sort((a, b) => {
     if (a.landedOn === b.landedOn) return 0;
     if (a.landedOn === null) return 1;

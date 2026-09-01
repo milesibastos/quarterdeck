@@ -74,16 +74,16 @@ looking stale, and `ago` answers `just now` for the same reason.
 This narrows one claim; it must not blunt claims that are already honest. Every
 other age on the page was traced to its source:
 
-| Age | Source | Verdict |
-| --- | --- | --- |
-| `DeckItem.since` | upstream's backlog line, usually a bare day | **Fixed** - the defect. |
-| `LandedItem.landedOn` | upstream's `completion.date`, a day | Already right: the landed lens prints the date and draws no age beside it. |
-| `Hold.deferredTo` | upstream's `hold_until`, a day | Already right: printed as a date, never as an elapsed time. |
-| `Lifecycle.observedAt` | upstream's `current_state.observed_at`, through `requireInstant` | A real timestamp. Unchanged. |
-| Every `LensStatus.asOf` / `observedAt` | the snapshot's `generated`, or the panel's own clock | Real instants. Unchanged. |
-| `PanelDocument.generatedAt` | the panel's clock at assembly | Real. Unchanged. |
-| `SupervisorSignal.lastSeen`, `Overdue.waitingSince` | file modification times, read by the health module | Real. Unchanged. |
-| `ChecksSignal.asOf`, `ReviewSignal.asOf` | the moment the forge was read | Real. Unchanged. |
+| Age                                                 | Source                                                           | Verdict                                                                    |
+| --------------------------------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `DeckItem.since`                                    | upstream's backlog line, usually a bare day                      | **Fixed** - the defect.                                                    |
+| `LandedItem.landedOn`                               | upstream's `completion.date`, a day                              | Already right: the landed lens prints the date and draws no age beside it. |
+| `Hold.deferredTo`                                   | upstream's `hold_until`, a day                                   | Already right: printed as a date, never as an elapsed time.                |
+| `Lifecycle.observedAt`                              | upstream's `current_state.observed_at`, through `requireInstant` | A real timestamp. Unchanged.                                               |
+| Every `LensStatus.asOf` / `observedAt`              | the snapshot's `generated`, or the panel's own clock             | Real instants. Unchanged.                                                  |
+| `PanelDocument.generatedAt`                         | the panel's clock at assembly                                    | Real. Unchanged.                                                           |
+| `SupervisorSignal.lastSeen`, `Overdue.waitingSince` | file modification times, read by the health module               | Real. Unchanged.                                                           |
+| `ChecksSignal.asOf`, `ReviewSignal.asOf`            | the moment the forge was read                                    | Real. Unchanged.                                                           |
 
 ## The ripple worth stating
 

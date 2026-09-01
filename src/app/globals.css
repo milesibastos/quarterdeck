@@ -159,7 +159,9 @@
      which is what the rest of the panel draws its cards with. A box here is
      legible without its rule; the rule is grammar, not the message. */
   --term-rule: var(--qd-ink-300);
-  --term-rule-soft: var(--qd-cream-line); /* a resting box, not a shouting one */
+  --term-rule-soft: var(
+    --qd-cream-line
+  ); /* a resting box, not a shouting one */
   --term-selected: var(--qd-paper-300); /* the wash under a hovered row */
 
   /*
@@ -307,7 +309,6 @@
   --color-info: var(--info);
   --color-info-foreground: var(--info-foreground);
 
-
   --color-term-bg: var(--term-bg);
   --color-term-fg-bright: var(--term-fg-bright);
   --color-term-fg: var(--term-fg);
@@ -375,7 +376,10 @@
 @utility card-grid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, var(--qd-card-min, 22rem)), 1fr));
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(min(100%, var(--qd-card-min, 22rem)), 1fr)
+  );
   align-items: start;
 }
 

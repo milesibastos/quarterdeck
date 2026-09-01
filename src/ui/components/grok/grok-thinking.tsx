@@ -9,7 +9,13 @@ import { cn } from "@/ui/lib/utils";
  * readers.
  */
 const FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
-const VERBS = ["Thinking", "Reticulating", "Computing", "Pondering", "Percolating"];
+const VERBS = [
+  "Thinking",
+  "Reticulating",
+  "Computing",
+  "Pondering",
+  "Percolating",
+];
 
 const FG = "var(--term-fg-bright)"; // 38;5;15
 const MUTED = "var(--term-dim)"; // 38;5;7

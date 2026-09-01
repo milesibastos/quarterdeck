@@ -48,14 +48,14 @@ nothing. A panel that quietly started calling a forge on every refresh would be
 spending an operator's rate limit without having been asked.
 
 **Off the critical path, always.** `src/runtime/forge.ts` applies what it has
-already read and *then* schedules; a render is never awaiting a network call.
+already read and _then_ schedules; a render is never awaiting a network call.
 The first paint costs exactly what it cost before this existed, and a pull
 request nothing has read yet keeps saying `not-looked-up` - which is true of it
 at that moment, not a placeholder. A completed read publishes one change signal
 and the panel re-renders the way it does for any other change.
 
 **At most once a minute, per pull request, failures included.** The floor is
-stamped when a read is *scheduled* rather than when it finishes, so several
+stamped when a read is _scheduled_ rather than when it finishes, so several
 renders in the same instant schedule one read between them, and a forge that is
 refusing is asked again in a minute rather than on every render. Reads run one
 after another: nothing is waiting on them, so concurrency would buy only a burst
@@ -75,7 +75,7 @@ would be a lie about what the panel just did.
 ## Consequences
 
 **Invariant 7 is unchanged, and this is worth being explicit about.** The rule
-is that nothing is loaded from the network *in the browser*: the
+is that nothing is loaded from the network _in the browser_: the
 Content-Security-Policy still resolves every directive to `'self'`, no font or
 library is fetched, and the page still renders with no internet at all. What
 runs here is a server-side command the operator opted into, off the first paint,

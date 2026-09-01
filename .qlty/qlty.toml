@@ -1,93 +1,60 @@
 # qlty configuration for quarterdeck.
 #
-# qlty is here for the two things nothing else in this project measures:
-# duplication and complexity. eslint already runs through `npm run lint`, and
-# `npm test` already checks the invariants - qlty does not repeat either.
+# qlty does four jobs here:
 #
-# The reasoning behind every choice below, including the plugins that are
-# deliberately absent, is in
+#   1. It formats the tree. prettier is qlty's, not npm's - see below.
+#   2. It runs the checks this project has no other answer for: markdownlint,
+#      actionlint, yamllint, gitleaks, knip.
+#   3. It measures duplication and complexity, which neither eslint nor the
+#      test suite measures.
+#   4. It gates. `bin/qlty-smells-gate` turns (3) into a pass or a fail, and
+#      `.github/workflows/ci.yml` runs it and `qlty check` on every pull
+#      request.
+#
+# eslint is deliberately NOT here. It comes from `package.json` and runs as
+# `npm run lint`, which `pretest` chains. Two installs and two resolution paths
+# answering one question is how a project ends up with contradictory advice and
+# no way to say which run is authoritative.
+#
+# The reasoning behind every choice below is in
 # `docs/decisions/2026-08-31-measuring-duplication-and-complexity.md`.
 #
 # Run it:
-#   qlty smells --all     # duplication and complexity findings
-#   qlty metrics --all -d # per-directory size and complexity totals
+#   qlty fmt                # rewrite the tree to prettier's shape
+#   qlty check --all        # the plugins, as a gate
+#   bin/qlty-smells-gate    # duplication and complexity, as a gate
+#   qlty metrics --all -d   # per-directory size and complexity totals
 #
 # Reference: https://qlty.sh/d/qlty-toml
 
 config_version = "0"
 
-# No plugins. qlty computes duplication and complexity itself; every plugin it
-# offers us would either duplicate a check this project already runs or reach
-# the network. See the decision record.
-
-# qlty already skips what `.gitignore` skips, so node_modules, `.next/` and
-# `dist/` need no entry here. What is left is in two halves: source that is not
-# ours to measure, and four files where the finding is real but every edit that
-# would clear it is one this project has already refused in writing.
+# ---------------------------------------------------------------------------
+# What qlty does not look at
+# ---------------------------------------------------------------------------
 #
-# This list is the only lever qlty gives for the second half. There is no
-# per-path threshold, and its inline `qlty-ignore` comment applies to the
-# linter pipeline and not to smells; both were tried. A file named here leaves
-# `qlty smells` and `qlty metrics` alike, and that is the cost - accepted
-# because every alternative moves a global number to suit one file. Lifting
-# `file_complexity` from 50 to clear health.ts at 86 would let
-# `src/domain/project.ts`, at 46 today, nearly double in silence: the check
-# would stop working for all 83 files in order to excuse one.
+# `exclude_patterns` is qlty's blunt instrument: a path named here is excluded
+# from ALL qlty activity - the formatter, every plugin and `qlty smells` alike.
+# That is why the list is two entries long. Everything else this project wants
+# to say about a specific finding is said where that finding is judged, not by
+# blinding the whole toolchain to the file that carries it.
+#
+# qlty already skips what `.gitignore` skips, so node_modules, `.next/` and
+# `dist/` need no entry here.
 #
 # Note what is NOT here: qlty's generated default excluded `**/config/**`,
 # which would have silently swallowed `src/config/` - real quarterdeck source.
 # Anything added to this list must be checked against `src/` first, and must
-# arrive with the reason written beside it. The long form of each reason below
-# is in `docs/decisions/2026-08-31-what-the-parallel-lens-build-duplicated.md`.
+# arrive with the reason written beside it.
 exclude_patterns = [
   # Generated: Next writes `next-env.d.ts`, and `.d.ts` files carry no logic.
   "**/*.d.ts",
-  # Deliberately broken source, read as text by the invariant checks. eslint
-  # ignores it for the same reason - see `eslint.config.mjs`.
+  # Deliberately broken source, read as TEXT by the invariant checks - the
+  # checks assert the exact line each planted fault sits on. Formatting these
+  # files would move those lines, and a check that stopped matching would let
+  # every rule it guards rot. eslint ignores this directory for the same
+  # reason (`eslint.config.mjs`), as does `tsconfig.json`.
   "tests/violations/**",
-
-  # Vendored from the brainless registry and re-tokenised onto quarterdeck's
-  # palette, which is the whole of what this project did to them. qlty reports
-  # duplication inside `grok-write.tsx` and complexity in
-  # `grok-project-picker`, `grok-settings`, `grok-thinking` and `grok-working`;
-  # all four are upstream's to answer for. Editing them to quieten a report
-  # here would mean this project maintains a fork of somebody else's component,
-  # which costs more than the finding is worth. See
-  # `docs/decisions/2026-08-31-the-terminal-grammar.md`.
-  "src/ui/components/grok/**",
-
-  # THE QUARANTINED MODULE: file complexity 86 against a threshold of 50, and
-  # it cannot be split. Invariant 4 confines every fleet-internal path to this
-  # one file and `npm test` enforces that.
-  #
-  # Measured rather than assumed: split at the file's own seam - the
-  # health.json parser above, the fleet-home readers below - the parser half
-  # falls to 16 and the reader half stays at 71, still over. The half carrying
-  # the complexity is the half in which every function names a path, which is
-  # exactly the half the invariant forbids spreading. The only edit that clears
-  # this finding is the one the test suite refuses.
-  #
-  # This also silences `idleSinceMs`, which has six returns: six guard clauses
-  # parsing the fleet's busy-state contract, each naming a distinct way the
-  # record fails to mean what it claims. Same judgement as `return_statements`.
-  "src/adapters/health.ts",
-
-  # `KeyboardHelp` reports complexity 33 and seven returns; `FleetPicker`
-  # reports 19. Both numbers are qlty folding a nested closure into the
-  # component that declares it - the `keydown` dispatcher inside an effect, the
-  # callbacks inside JSX props - which is how React is written rather than a
-  # fact about these two files. `qlty metrics` measures the whole of
-  # `keyboard-help.tsx` at cyclomatic 21 across five functions, against the 33
-  # it attributes to one of them.
-  #
-  # Hoisting the handler to module scope would move the number without removing
-  # a branch, and would hand one caller an extraction. That is the contortion
-  # this file exists to refuse, so the measurement is switched off for these
-  # two rather than the code bent to it. `function_complexity` stays at qlty's
-  # default of 18 for every other component, which is worth more than either
-  # exclusion costs.
-  "src/ui/keyboard-help.tsx",
-  "src/ui/fleet-picker.tsx",
 ]
 
 # `qlty smells` skips these unless asked for them with `--include-tests`.
@@ -97,16 +64,145 @@ test_patterns = [
   "**/*.test.*",
 ]
 
+# ---------------------------------------------------------------------------
+# The formatter
+# ---------------------------------------------------------------------------
+#
+# prettier comes from qlty and from nowhere else. There is no prettier in
+# `package.json`, deliberately.
+#
+# The argument that keeps eslint on npm is an argument about an INCUMBENT: this
+# project already had an eslint, already had `eslint.config.mjs`, and adding
+# qlty's sandboxed eslint beside it would have created two answers to one
+# question. prettier has no incumbent. Installing it twice - once for `npm run
+# format` and once for the gate - is how we would MANUFACTURE that problem, not
+# avoid it. One install, one version, and the thing that formats the tree is
+# the same binary as the thing that fails the build when it is unformatted.
+#
+# The cost, stated plainly: a contributor's editor has no local prettier to
+# point format-on-save at, and `npm test` does not check formatting. `qlty fmt`
+# is the command, CI is the backstop, and neither is discoverable from
+# `package.json`. That is why both are named in `AGENTS.md`.
+#
+# The version is pinned because an unpinned formatter is a tree that reformats
+# itself the day upstream changes a default, in a diff nobody asked for and on
+# a branch that was about something else.
+[[plugin]]
+name = "prettier"
+version = "3.6.2"
+
+# `fixtures/all-dark/` and `fixtures/malformed/` hold snapshots truncated
+# mid-token on purpose: they are what the panel reads when a fleet writes a
+# file it did not finish writing, and `tests/degradation.test.ts` and
+# `tests/document.test.ts` depend on them staying unparseable. prettier cannot
+# parse them either - it exits 2 for the whole run - so it is told not to try.
+# Scoped to prettier so gitleaks still reads them.
+[[exclude]]
+plugins = ["prettier"]
+file_patterns = [
+  "fixtures/all-dark/snapshot.json",
+  "fixtures/malformed/snapshot.json",
+]
+
+# `.agents/skills/` is installed by the shadcn CLI and its integrity is pinned
+# per skill in `skills-lock.json`. Unlike `src/ui/components/grok/`, which this
+# project vendored and then edited, these files are carried exactly as upstream
+# published them: formatting or linting them puts the tree at odds with the
+# tool that writes it, and the next `skills` sync silently reverts the work.
+# The first prettier pass did rewrite eighteen of them before this entry
+# existed; that was undone.
+#
+# Scoped to the three plugins that would rewrite or judge prose we did not
+# write. gitleaks still reads the directory, which is the point of gitleaks.
+[[exclude]]
+plugins = ["prettier", "markdownlint", "yamllint"]
+file_patterns = [".agents/**"]
+
+# ---------------------------------------------------------------------------
+# The checks
+# ---------------------------------------------------------------------------
+#
+# Each of these answers a question nothing else in this project answers. None
+# of them repeats eslint, the invariant checks or the test suite.
+
+# 70 tracked `.md` files - the architecture, the contract, the principles and
+# one dated record per settled decision - and until now nothing read any of
+# them. Configured in `.markdownlint.yaml` at the repository root, where the one
+# retuned rule carries its reason.
+[[plugin]]
+name = "markdownlint"
+
+# Two places markdownlint is right about markdown and wrong about this
+# repository.
+#
+# `fixtures/homes/*/data/backlog.md` is not documentation. It is a synthetic
+# fleet home's queue file, written in the shape a real one is written in -
+# which is to say by a person typing a line per item, not wrapped to 80. The
+# panel reads these as data and `tests/document.test.ts` walks them; their line
+# shape is part of what they simulate. Ten MD013 findings, all of them the tool
+# grading a fixture as prose.
+#
+# `CLAUDE.md` is a three-line pointer stub whose shape Claude Code dictates: an
+# HTML comment and an `@AGENTS.md` import, with no heading anywhere. MD041
+# wants a top-level heading on line 1 and there is nowhere to put one that
+# would not be noise in a file nobody reads as a document.
+[[exclude]]
+plugins = ["markdownlint"]
+file_patterns = ["fixtures/**", "CLAUDE.md"]
+
+# One workflow, and it is now the thing that gates every pull request. A typo
+# in a `runs-on` or a shell quoting mistake in the gate step fails the gate
+# open, which is the one failure mode a gate cannot have.
+[[plugin]]
+name = "actionlint"
+
+# actionlint reads the workflow as a workflow; yamllint reads it as YAML.
+# Configured in `.yamllint.yaml` at the repository root.
+[[plugin]]
+name = "yamllint"
+
+# This repository is public. `npm test` already greps every tracked file for
+# machine paths and task identifiers - the "Nothing real in the repository"
+# principle - but that check knows this project's own leak shapes and nothing
+# about an AWS key or a GitHub token. It is a different question, and gitleaks
+# is the only thing here that asks it.
+[[plugin]]
+name = "gitleaks"
+
+# Dead exports and unused dependencies. Nothing else looks: eslint sees one
+# file at a time and cannot know an export has no importer, and the test suite
+# exercises what is reachable rather than reporting what is not. Configured in
+# `knip.json`.
+[[plugin]]
+name = "knip"
+
+# osv-scanner is deliberately absent, and it is the one plugin whose absence is
+# a gap rather than a preference. It reaches the network on every run, and a
+# local `qlty check` that stalls offline is a tool people stop running.
+# `[[plugin]] triggers` cannot fix that here - see the decision record for what
+# was measured - so it runs as its own CI step in `ci.yml` instead, where the
+# network is a given. Do not add a `[[plugin]]` entry for it.
+
+# ---------------------------------------------------------------------------
+# The measurements
+# ---------------------------------------------------------------------------
+#
 # Every smell qlty can find, with its threshold written out rather than left
 # implicit, so the next contributor can see what is measured and at what number
-# it fires. These are qlty's defaults as of CLI 0.644.0 with one exception,
+# it fires. These are qlty's own CLI defaults with one exception,
 # `return_statements`, which is raised by one and says below what it was
 # measured against. Nothing else has been loosened.
+#
+# What is measured here is NOT gated by `qlty check`: smells do not participate
+# in the linter pipeline, and `qlty smells` exits 0 whether it finds twelve
+# problems or none. `bin/qlty-smells-gate` is what turns these numbers into a
+# verdict, and the findings this project has looked at and decided to keep are
+# listed there, each with its reason.
 [smells]
 
-# Duplication: the reason this tool is here. `identical_code` is copy-paste,
-# `similar_code` is the same shape with the names changed. The threshold is a
-# mass of syntax nodes, not a line count.
+# Duplication: `identical_code` is copy-paste, `similar_code` is the same shape
+# with the names changed. The threshold is a mass of syntax nodes, not a line
+# count.
 [smells.identical_code]
 enabled = true
 threshold = 15
@@ -118,9 +214,9 @@ threshold = 15
 [smells.duplication]
 nodes_threshold = 64
 
-# Complexity: the other reason. `file_complexity` catches a file that has grown
-# past what one reader holds; `function_complexity` catches the one function
-# inside it that did the growing.
+# Complexity: `file_complexity` catches a file that has grown past what one
+# reader holds; `function_complexity` catches the one function inside it that
+# did the growing.
 [smells.file_complexity]
 enabled = true
 threshold = 50

@@ -31,14 +31,14 @@ const WINDOW = 900;
 const TESTS_DIR = join(REPO_ROOT, "tests");
 
 /** One test file's reserved block, as offsets into the window. */
-export interface Block {
+interface Block {
   readonly file: string;
   readonly firstOffset: number;
   readonly size: number;
 }
 
 /** A test file's claim on one block, before it has been checked. */
-export interface Claim {
+interface Claim {
   readonly file: string;
   readonly slot: number;
 }
@@ -58,7 +58,7 @@ export function testFiles(dir: string = TESTS_DIR): string[] {
  * path, every process computes the same answer from the same directory, and two
  * distinct paths cannot occupy one position.
  */
-export function claims(files: readonly string[] = testFiles()): Claim[] {
+function claims(files: readonly string[] = testFiles()): Claim[] {
   return files.map((file, slot) => ({ file, slot }));
 }
 
@@ -69,7 +69,9 @@ export function claims(files: readonly string[] = testFiles()): Claim[] {
  * stops the run at once, naming both files, instead of becoming a race that one
  * of them loses on a machine nobody is watching.
  */
-export function allocate(claimed: readonly Claim[] = claims()): Map<string, Block> {
+export function allocate(
+  claimed: readonly Claim[] = claims(),
+): Map<string, Block> {
   const bySlot = new Map<number, string>();
   const blocks = new Map<string, Block>();
 
@@ -84,10 +86,16 @@ export function allocate(claimed: readonly Claim[] = claims()): Map<string, Bloc
       );
     }
     if (blocks.has(file)) {
-      throw new Error(`${file} claims two port slots; a test file gets exactly one.`);
+      throw new Error(
+        `${file} claims two port slots; a test file gets exactly one.`,
+      );
     }
     bySlot.set(slot, file);
-    blocks.set(file, { file, firstOffset: slot * BLOCK_SIZE, size: BLOCK_SIZE });
+    blocks.set(file, {
+      file,
+      firstOffset: slot * BLOCK_SIZE,
+      size: BLOCK_SIZE,
+    });
   }
 
   const needed = bySlot.size * BLOCK_SIZE;
@@ -114,7 +122,10 @@ const PANEL_PORT = derivePort(REPO_ROOT);
  * follow it to, so it cannot land on a port some other file already holds.
  */
 export function portAt(offset: number): number {
-  const port = ((PANEL_PORT - PORT_RANGE_START + offset + 100) % WINDOW) + PORT_RANGE_START + 50;
+  const port =
+    ((PANEL_PORT - PORT_RANGE_START + offset + 100) % WINDOW) +
+    PORT_RANGE_START +
+    50;
   return port === PANEL_PORT ? port + WINDOW : port;
 }
 
@@ -134,7 +145,9 @@ export function portsFor(filename: string): () => number {
     );
   }
   if (claimedHere.has(file)) {
-    throw new Error(`${file} already claimed its ports; call portsFor once per test file.`);
+    throw new Error(
+      `${file} already claimed its ports; call portsFor once per test file.`,
+    );
   }
   claimedHere.add(file);
 

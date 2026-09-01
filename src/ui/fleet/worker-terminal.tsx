@@ -131,7 +131,11 @@ function Tail({ tail }: { tail: TerminalTail }) {
       );
     case "no-session":
       return (
-        <Absence headline="No session to read" detail={reading.detail} tone="quiet" />
+        <Absence
+          headline="No session to read"
+          detail={reading.detail}
+          tone="quiet"
+        />
       );
     case "unreadable":
       return (
@@ -205,7 +209,10 @@ export function WorkerTerminal({
     >
       <summary className="cursor-pointer list-none text-term-muted hover:text-term-fg-bright">
         terminal
-        <span aria-hidden="true" className="ms-1 inline-block group-open/terminal:rotate-90">
+        <span
+          aria-hidden="true"
+          className="ms-1 inline-block group-open/terminal:rotate-90"
+        >
           &rsaquo;
         </span>
       </summary>

@@ -33,7 +33,9 @@ function count(html: string): string | null {
 
 /** Every absence's reason, in the order the bar drew them. */
 function reasons(html: string): string[] {
-  return [...html.matchAll(/data-omission-reason="([a-z-]+)"/g)].map((match) => match[1]);
+  return [...html.matchAll(/data-omission-reason="([a-z-]+)"/g)].map(
+    (match) => match[1],
+  );
 }
 
 describe("the bar names what a page is not showing", () => {
@@ -76,7 +78,9 @@ describe("the bar names what a page is not showing", () => {
         `${home} is named as missing`,
       );
     }
-    assert.ok(html.includes("did not answer, so nothing it landed is on this page"));
+    assert.ok(
+      html.includes("did not answer, so nothing it landed is on this page"),
+    );
     assert.ok(html.includes("Upstream bounded how much of"));
   });
 
@@ -86,7 +90,10 @@ describe("the bar names what a page is not showing", () => {
     const order = ["not-shown", "not-looked-up", "unreadable"]
       .map((reason) => html.indexOf(`data-omission-group="${reason}"`))
       .filter((at) => at !== -1);
-    assert.deepEqual(order, [...order].sort((a, b) => a - b));
+    assert.deepEqual(
+      order,
+      [...order].sort((a, b) => a - b),
+    );
   });
 });
 
@@ -109,10 +116,10 @@ describe("a read nobody has done", () => {
   });
 
   test("appears beside a bound, each under its own heading", () => {
-    assert.deepEqual(
-      [...new Set(reasons(html))].sort(),
-      ["not-looked-up", "not-shown"],
-    );
+    assert.deepEqual([...new Set(reasons(html))].sort(), [
+      "not-looked-up",
+      "not-shown",
+    ]);
     assert.equal(count(html), "3");
   });
 });
@@ -133,7 +140,10 @@ describe("a page with nothing missing", () => {
     assert.ok(html.includes("data-disclosure"));
     assert.equal(count(html), "0");
     assert.ok(html.includes('data-disclosure-empty="none"'));
-    assert.ok(html.includes("nothing omitted"), "and says so in the corner too");
+    assert.ok(
+      html.includes("nothing omitted"),
+      "and says so in the corner too",
+    );
     assert.ok(html.includes("Nothing is missing."));
     assert.equal(reasons(html).length, 0);
   });

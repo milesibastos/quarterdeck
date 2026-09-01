@@ -29,12 +29,12 @@ behaviour.
 is `RAIL` in `src/ui/fleet/lifecycle-rail.tsx` and it is the only thing in the
 panel that says where a stage sits.
 
-| Recorded as | Stages | Length |
-| --- | --- | --- |
-| build, `validated` | dispatched, working, validating, pull request open, in review, landed | 6 |
-| build, `direct-pr` | dispatched, working, pull request open, in review, landed | 5 |
-| build, `local` | dispatched, working, validating, landed | 4 |
-| research | dispatched, working, landed | 3 |
+| Recorded as        | Stages                                                                | Length |
+| ------------------ | --------------------------------------------------------------------- | ------ |
+| build, `validated` | dispatched, working, validating, pull request open, in review, landed | 6      |
+| build, `direct-pr` | dispatched, working, pull request open, in review, landed             | 5      |
+| build, `local`     | dispatched, working, validating, landed                               | 4      |
+| research           | dispatched, working, landed                                           | 3      |
 
 **Kind decides first.** A scout's delivery contract is `null` by design, and
 upstream has been seen writing one anyway. An investigation carrying a shipping

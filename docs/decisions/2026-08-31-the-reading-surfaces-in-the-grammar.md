@@ -25,12 +25,12 @@ written down. This is that writing down.
 The grammar these surfaces needed was already in `grok-event`, `grok-tool` and
 `grok-write`, and it comes to four marks:
 
-| mark | where it came from | what it says here |
-| --- | --- | --- |
-| `◆` | `grok-event`, `grok-tool` card | a thing, or something that happened |
-| `┃` | `grok-tool` card, `grok-write`, `grok-permission` | this hangs off the line above it |
-| `[…]` | `grok-plan`'s action row, `grok-shortcuts` | a count, a rank, a press |
-| `─` | `grok-plan`'s file frame | the top edge of a box, carrying its name |
+| mark  | where it came from                                | what it says here                        |
+| ----- | ------------------------------------------------- | ---------------------------------------- |
+| `◆`   | `grok-event`, `grok-tool` card                    | a thing, or something that happened      |
+| `┃`   | `grok-tool` card, `grok-write`, `grok-permission` | this hangs off the line above it         |
+| `[…]` | `grok-plan`'s action row, `grok-shortcuts`        | a count, a rank, a press                 |
+| `─`   | `grok-plan`'s file frame                          | the top edge of a box, carrying its name |
 
 Nothing else was invented. A deck row is the `┃` gutter with a `◆` at its head,
 which is exactly `grok-tool`'s card. A pile heading is the same `◆` one rank up.
@@ -45,13 +45,13 @@ top edge, kept dashed.
 The deck's rail is the one place colour carries meaning, and it carries the same
 five it always did, re-pointed at `--term-*`:
 
-| the row | rail | why |
-| --- | --- | --- |
-| a decision that can be answered now | `--term-accent` | the only thing here a person can act on |
-| a hold deferred to a date | `--term-rule-soft` | still waiting on a person, but not urgent |
-| blocked | `--term-warning` | something is in its way |
-| in flight | `--term-info` | the fleet has it |
-| queued | `--term-rule` | nothing is wrong with it |
+| the row                             | rail               | why                                       |
+| ----------------------------------- | ------------------ | ----------------------------------------- |
+| a decision that can be answered now | `--term-accent`    | the only thing here a person can act on   |
+| a hold deferred to a date           | `--term-rule-soft` | still waiting on a person, but not urgent |
+| blocked                             | `--term-warning`   | something is in its way                   |
+| in flight                           | `--term-info`      | the fleet has it                          |
+| queued                              | `--term-rule`      | nothing is wrong with it                  |
 
 The `◆` at the row's head takes the rail's own hue and nothing else on the row
 competes with it. The priority moved from a filled pill to `[now]` / `[next]` /
@@ -102,7 +102,7 @@ reason headings and to the bar's own `h2`.
 there: a `┃` gutter, a real radiogroup, arrow keys. It is the wrong shape. This
 control's two buttons each submit on the press, and that is accepted behaviour -
 the fleet's answer intake takes a close mode and a channel may only carry what
-its card declared, so the press *is* the declaration. A radiogroup would make it
+its card declared, so the press _is_ the declaration. A radiogroup would make it
 select-then-confirm, which is a behaviour change wearing a reskin's clothes. The
 buttons became bracketed terminal buttons and the form semantics stayed.
 
@@ -128,7 +128,7 @@ because the deck draws one per row. The rail is grammar, not the message: every
 row says its state in words on the line below the title.
 
 **The disclosure bar's dashed rule is faint in light.** Same stop, same reason.
-It was kept dashed deliberately - a box drawn around what is *not* here should
+It was kept dashed deliberately - a box drawn around what is _not_ here should
 not be the same box the lenses draw around what is - and the alternative was a
 darker rule than the page has anywhere else.
 

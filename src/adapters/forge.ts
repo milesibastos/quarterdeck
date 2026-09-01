@@ -1,4 +1,8 @@
-import type { SnapshotCheckOutcome, SnapshotChecks, SnapshotReview } from "./contract.ts";
+import type {
+  SnapshotCheckOutcome,
+  SnapshotChecks,
+  SnapshotReview,
+} from "./contract.ts";
 import type { Clock } from "../providers/clock.ts";
 import type { Runner } from "../providers/process.ts";
 
@@ -43,7 +47,10 @@ export interface ForgeReading {
 }
 
 /** Reads one pull request. Never rejects; a failure is an unreadable reading. */
-export type ForgeRead = (url: string, signal: AbortSignal) => Promise<ForgeReading>;
+export type ForgeRead = (
+  url: string,
+  signal: AbortSignal,
+) => Promise<ForgeReading>;
 
 /** The forge client. A bare name, resolved through the child's `PATH`. */
 const FORGE_COMMAND = "gh";
@@ -125,7 +132,8 @@ function nodesOf(connection: unknown): Record<string, unknown>[] {
 }
 
 function countOf(connection: unknown, fallback: number): number {
-  if (!isRecord(connection) || typeof connection.totalCount !== "number") return fallback;
+  if (!isRecord(connection) || typeof connection.totalCount !== "number")
+    return fallback;
   return connection.totalCount;
 }
 
@@ -147,11 +155,20 @@ function countOf(connection: unknown, fallback: number): number {
  * way to tell how many of the unlisted ones have finished, so the reading is
  * `unreadable` rather than a guessed count.
  */
-function checksOf(pullRequest: Record<string, unknown>, asOf: string): SnapshotChecks {
+function checksOf(
+  pullRequest: Record<string, unknown>,
+  asOf: string,
+): SnapshotChecks {
   const commit = nodesOf(pullRequest.commits)[0]?.commit;
   const rollup = isRecord(commit) ? commit.statusCheckRollup : null;
   if (!isRecord(rollup)) {
-    return { read: "ok", outcome: "passing", finished: 0, total: 0, as_of: asOf };
+    return {
+      read: "ok",
+      outcome: "passing",
+      finished: 0,
+      total: 0,
+      as_of: asOf,
+    };
   }
 
   const contexts = nodesOf(rollup.contexts);
@@ -177,10 +194,16 @@ function checksOf(pullRequest: Record<string, unknown>, asOf: string): SnapshotC
  * second one. A review left with only inline comments carries no body either
  * and is not counted; see `docs/quality.md`.
  */
-function reviewOf(pullRequest: Record<string, unknown>, asOf: string): SnapshotReview {
-  const comments = nodesOf(pullRequest.comments).filter((c) => byAPerson(c.author)).length;
+function reviewOf(
+  pullRequest: Record<string, unknown>,
+  asOf: string,
+): SnapshotReview {
+  const comments = nodesOf(pullRequest.comments).filter((c) =>
+    byAPerson(c.author),
+  ).length;
   const reviews = nodesOf(pullRequest.reviews).filter(
-    (review) => byAPerson(review.author) && String(review.body ?? "").trim() !== "",
+    (review) =>
+      byAPerson(review.author) && String(review.body ?? "").trim() !== "",
   ).length;
   return { read: "ok", comments: comments + reviews, as_of: asOf };
 }
@@ -226,7 +249,9 @@ export function ghForge(
     try {
       parsed = JSON.parse(output);
     } catch {
-      return unreadable(`${FORGE_COMMAND} answered with something that is not JSON.`);
+      return unreadable(
+        `${FORGE_COMMAND} answered with something that is not JSON.`,
+      );
     }
 
     const data = isRecord(parsed) ? parsed.data : null;
@@ -238,10 +263,15 @@ export function ghForge(
     // fields on it. All are things the operator can correct, and none is a
     // reason to claim nobody asked.
     if (!isRecord(resource) || resource.__typename !== "PullRequest") {
-      return unreadable(`The forge did not answer for ${url} with a pull request.`);
+      return unreadable(
+        `The forge did not answer for ${url} with a pull request.`,
+      );
     }
 
     const asOf = clock.now();
-    return { checks: checksOf(resource, asOf), review: reviewOf(resource, asOf) };
+    return {
+      checks: checksOf(resource, asOf),
+      review: reviewOf(resource, asOf),
+    };
   };
 }

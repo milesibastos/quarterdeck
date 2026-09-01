@@ -80,13 +80,21 @@ function stubRunner(answer: (call: Call) => Promise<string>): Runner & {
   };
 }
 
-const silentLogger: Logger = { info: () => {}, warn: () => {}, error: () => {} };
+const silentLogger: Logger = {
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+};
 
 /** A logger that keeps every warning, so a test can assert on what it said. */
 function recordingLogger(): Logger & {
-  readonly warnings: Array<{ message: string; fields?: Record<string, unknown> }>;
+  readonly warnings: Array<{
+    message: string;
+    fields?: Record<string, unknown>;
+  }>;
 } {
-  const warnings: Array<{ message: string; fields?: Record<string, unknown> }> = [];
+  const warnings: Array<{ message: string; fields?: Record<string, unknown> }> =
+    [];
   return {
     info: () => {},
     warn: (message, fields) => warnings.push({ message, fields }),
@@ -175,15 +183,29 @@ describe("which fleets to read is configuration", () => {
   });
 
   test("a fleet home is taken from the environment, never from the code", () => {
-    const config = loadConfig(REPO_ROOT, env({ QUARTERDECK_FLEET_HOME: FLEET_HOME }));
+    const config = loadConfig(
+      REPO_ROOT,
+      env({ QUARTERDECK_FLEET_HOME: FLEET_HOME }),
+    );
     assert.deepEqual(config.fleets, [
-      { id: "fleet", label: "fleet", source: { kind: "home", home: FLEET_HOME }, intentDir: null },
+      {
+        id: "fleet",
+        label: "fleet",
+        source: { kind: "home", home: FLEET_HOME },
+        intentDir: null,
+      },
     ]);
   });
 
   test("a trailing separator does not become a doubled one downstream", () => {
-    const config = loadConfig(REPO_ROOT, env({ QUARTERDECK_FLEET_HOME: `${FLEET_HOME}/` }));
-    assert.deepEqual(config.fleets[0].source, { kind: "home", home: FLEET_HOME });
+    const config = loadConfig(
+      REPO_ROOT,
+      env({ QUARTERDECK_FLEET_HOME: `${FLEET_HOME}/` }),
+    );
+    assert.deepEqual(config.fleets[0].source, {
+      kind: "home",
+      home: FLEET_HOME,
+    });
   });
 
   test("a relative home is refused at the boundary rather than resolved later", () => {
@@ -250,16 +272,24 @@ describe("which fleets to read is configuration", () => {
   test("a fleet home wins over the fixture sets, as it always has", () => {
     const config = loadConfig(
       REPO_ROOT,
-      env({ QUARTERDECK_FLEET_HOME: FLEET_HOME, QUARTERDECK_FIXTURE_SET: "healthy:stale" }),
+      env({
+        QUARTERDECK_FLEET_HOME: FLEET_HOME,
+        QUARTERDECK_FIXTURE_SET: "healthy:stale",
+      }),
     );
-    assert.deepEqual(config.fleets.map((fleet) => fleet.source), [
-      { kind: "home", home: FLEET_HOME },
-    ]);
+    assert.deepEqual(
+      config.fleets.map((fleet) => fleet.source),
+      [{ kind: "home", home: FLEET_HOME }],
+    );
   });
 
   test("a fixture set that is not a directory name is refused at the boundary", () => {
     assert.throws(
-      () => loadConfig(REPO_ROOT, env({ QUARTERDECK_FIXTURE_SET: "healthy:../escape" })),
+      () =>
+        loadConfig(
+          REPO_ROOT,
+          env({ QUARTERDECK_FIXTURE_SET: "healthy:../escape" }),
+        ),
       /QUARTERDECK_FIXTURE_SET must be a lowercase fixture directory name/,
     );
   });
@@ -307,7 +337,10 @@ describe("which fleets to read is configuration", () => {
 });
 
 describe("a remembered selection names one of the configured fleets", () => {
-  const config = loadConfig(REPO_ROOT, env({ QUARTERDECK_FIXTURE_SET: "healthy:stale" }));
+  const config = loadConfig(
+    REPO_ROOT,
+    env({ QUARTERDECK_FIXTURE_SET: "healthy:stale" }),
+  );
 
   test("the fleet it names", () => {
     assert.equal(fleetById(config, "stale").id, "stale");
@@ -335,10 +368,21 @@ describe("the fleet source runs the command upstream publishes", () => {
     const snapshot = await readSnapshot(source, AbortSignal.timeout(5_000));
 
     assert.equal(runner.calls.length, 1);
-    assert.equal(runner.calls[0].command, `${FLEET_HOME}/bin/fm-fleet-snapshot.sh`);
+    assert.equal(
+      runner.calls[0].command,
+      `${FLEET_HOME}/bin/fm-fleet-snapshot.sh`,
+    );
     assert.deepEqual(runner.calls[0].args, ["--json"]);
-    assert.equal(runner.calls[0].env.FM_HOME, FLEET_HOME, "the home it is to report on");
-    assert.equal(runner.calls[0].env.PATH, "/usr/bin", "the tools it needs to find");
+    assert.equal(
+      runner.calls[0].env.FM_HOME,
+      FLEET_HOME,
+      "the home it is to report on",
+    );
+    assert.equal(
+      runner.calls[0].env.PATH,
+      "/usr/bin",
+      "the tools it needs to find",
+    );
     assert.equal(snapshot.tasks.length, 8);
   });
 
@@ -349,7 +393,8 @@ describe("the fleet source runs the command upstream publishes", () => {
     await assert.rejects(
       () => readSnapshot(source, AbortSignal.timeout(5_000)),
       (error: unknown) =>
-        error instanceof ContractIdentifierError && error.source === `fleet:${FLEET_HOME}`,
+        error instanceof ContractIdentifierError &&
+        error.source === `fleet:${FLEET_HOME}`,
     );
   });
 
@@ -371,14 +416,18 @@ describe("a snapshot this build does not understand is refused, loudly", () => {
     assert.ok(error instanceof ContractIdentifierError);
     assert.equal(error.expected, "fm-fleet-snapshot.v1");
     assert.equal(error.found, "fm-fleet-snapshot.v2");
-    assert.match(error.message, /refuses to render a snapshot it does not understand/);
+    assert.match(
+      error.message,
+      /refuses to render a snapshot it does not understand/,
+    );
   });
 
   test("a truncated snapshot is refused rather than half-parsed", () => {
     assert.throws(
       () => parseSnapshot(fixtureText("malformed"), "fleet:test"),
       (error: unknown) =>
-        error instanceof ContractParseError && /not valid JSON/.test(error.detail),
+        error instanceof ContractParseError &&
+        /not valid JSON/.test(error.detail),
     );
   });
 
@@ -400,7 +449,8 @@ describe("a snapshot this build does not understand is refused, loudly", () => {
     assert.throws(
       () => parseSnapshot(JSON.stringify(snapshot), "fleet:test"),
       (error: unknown) =>
-        error instanceof ContractParseError && error.detail.includes("generated"),
+        error instanceof ContractParseError &&
+        error.detail.includes("generated"),
     );
   });
 
@@ -426,13 +476,17 @@ describe("a snapshot this build does not understand is refused, loudly", () => {
     assert.throws(
       () => parseSnapshot(JSON.stringify(snapshot), "fleet:test"),
       (error: unknown) =>
-        error instanceof ContractParseError && error.detail.includes("tasks[0].backlog"),
+        error instanceof ContractParseError &&
+        error.detail.includes("tasks[0].backlog"),
     );
   });
 
   test("a joined backlog's completion that is not an object names the path", () => {
     const snapshot = JSON.parse(fixtureText("upstream-shape"));
-    assert.ok(snapshot.tasks[3].backlog, "wi-cordage-504 carries a joined backlog row");
+    assert.ok(
+      snapshot.tasks[3].backlog,
+      "wi-cordage-504 carries a joined backlog row",
+    );
     snapshot.tasks[3].backlog.completion = "merged";
     assert.throws(
       () => parseSnapshot(JSON.stringify(snapshot), "fleet:test"),
@@ -461,7 +515,8 @@ describe("the read discipline the refresh loop runs on", () => {
     const documents = await Promise.all(readers);
 
     assert.equal(runner.calls.length, 1, "four callers, one read");
-    for (const document of documents) assert.equal(document.fleet.content.length, 8);
+    for (const document of documents)
+      assert.equal(document.fleet.content.length, 8);
   });
 
   test("a cached document is served without reading again", async () => {
@@ -485,7 +540,11 @@ describe("the read discipline the refresh loop runs on", () => {
 
     assert.equal(document.fleet.status.state, "unreadable");
     assert.equal(document.deck.status.state, "unreadable");
-    assert.equal(document.health.status.state, "fresh", "health reads for itself");
+    assert.equal(
+      document.health.status.state,
+      "fresh",
+      "health reads for itself",
+    );
   });
 
   test("last known good stands, labelled, when a later read fails", async () => {
@@ -502,7 +561,11 @@ describe("the read discipline the refresh loop runs on", () => {
     runtime.publishChange();
     const degraded = await runtime.document();
 
-    assert.equal(degraded.fleet.content.length, 8, "the fleet is still on screen");
+    assert.equal(
+      degraded.fleet.content.length,
+      8,
+      "the fleet is still on screen",
+    );
     assert.equal(degraded.deck.content.length, 5);
     assert.equal(degraded.fleet.status.state, "unreadable");
     assert.ok(
@@ -517,18 +580,30 @@ describe("the read discipline the refresh loop runs on", () => {
       throw new Error("the fleet home went away");
     });
     const logger = recordingLogger();
-    const runtime = runtimeOn(fleetSource(FLEET_HOME, runner, {}), 5_000, logger);
+    const runtime = runtimeOn(
+      fleetSource(FLEET_HOME, runner, {}),
+      5_000,
+      logger,
+    );
 
     const document = await runtime.document();
 
     const lensNames = ["fleet", "deck", "landed", "health"] as const;
-    const darkened = lensNames.filter((lens) => document[lens].status.state === "unreadable");
-    assert.ok(darkened.length > 0, "the failure must darken at least one lens, or this test proves nothing");
+    const darkened = lensNames.filter(
+      (lens) => document[lens].status.state === "unreadable",
+    );
+    assert.ok(
+      darkened.length > 0,
+      "the failure must darken at least one lens, or this test proves nothing",
+    );
 
     assert.equal(logger.warnings.length, 1);
     const [warning] = logger.warnings;
     for (const lens of darkened) {
-      assert.ok(warning.message.includes(lens), `expected the warning to name the ${lens} lens: ${warning.message}`);
+      assert.ok(
+        warning.message.includes(lens),
+        `expected the warning to name the ${lens} lens: ${warning.message}`,
+      );
     }
     for (const lens of lensNames.filter((lens) => !darkened.includes(lens))) {
       assert.ok(
@@ -567,7 +642,10 @@ describe("the read discipline the refresh loop runs on", () => {
 describe("upstream's shape, projected", () => {
   async function fleetOf(set: string) {
     const snapshot = parseSnapshot(fixtureText(set), `fixture:${set}`);
-    const health = await readHealth(join(FIXTURES, set), AbortSignal.timeout(5_000));
+    const health = await readHealth(
+      join(FIXTURES, set),
+      AbortSignal.timeout(5_000),
+    );
     return projectDocument(snapshot, health, OPTIONS);
   }
 
@@ -611,8 +689,16 @@ describe("upstream's shape, projected", () => {
   test("a worker upstream could not read says so in its own words", async () => {
     const { content } = (await fleetOf("upstream-shape")).fleet;
     const lost = content.find((worker) => worker.id === "wi-saltmarsh-507")!;
-    assert.equal(lost.lifecycle.stage, "unseen", "the panel cannot see it, and says that");
-    assert.equal(lost.lifecycle.step, null, "and claims no position inside the pipeline");
+    assert.equal(
+      lost.lifecycle.stage,
+      "unseen",
+      "the panel cannot see it, and says that",
+    );
+    assert.equal(
+      lost.lifecycle.step,
+      null,
+      "and claims no position inside the pipeline",
+    );
     assert.equal(lost.lifecycle.detail, "worktree gone (torn down?)");
     assert.equal(lost.worktree.present, false);
   });
@@ -685,7 +771,11 @@ describe("upstream's shape, projected", () => {
     // so rather than deriving them from something else on the worker.
     for (const worker of content) {
       assert.deepEqual(
-        { branch: worker.dispatch.branch, model: worker.dispatch.model, effort: worker.dispatch.effort },
+        {
+          branch: worker.dispatch.branch,
+          model: worker.dispatch.model,
+          effort: worker.dispatch.effort,
+        },
         { branch: null, model: null, effort: null },
         `${worker.id} may not invent what upstream did not publish`,
       );
@@ -717,7 +807,11 @@ describe("upstream's shape, projected", () => {
       content.every((item) => item.id.length > 0),
       "an unstructured backlog line has no id to show",
     );
-    assert.equal(content.length, 5, "one unstructured line and one done row dropped");
+    assert.equal(
+      content.length,
+      5,
+      "one unstructured line and one done row dropped",
+    );
   });
 
   test("a start date stays a day; a row that did not say carries none", async () => {
@@ -727,13 +821,19 @@ describe("upstream's shape, projected", () => {
       "2099-01-01",
       "the day the record wrote, not a midnight it never stated",
     );
-    assert.equal(content[3].since, null, "not the moment upstream happened to look");
+    assert.equal(
+      content[3].since,
+      null,
+      "not the moment upstream happened to look",
+    );
   });
 
   test("a record carries the project and kind upstream published for it", async () => {
     const { content } = (await fleetOf("upstream-shape")).deck;
     assert.deepEqual(
-      content.map((item) => `${item.id} ${item.project ?? "-"} ${item.kind ?? "-"}`),
+      content.map(
+        (item) => `${item.id} ${item.project ?? "-"} ${item.kind ?? "-"}`,
+      ),
       [
         "wi-tidewater-501 tidewater build",
         "wi-cordage-512 cordage build",

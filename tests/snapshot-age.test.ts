@@ -49,16 +49,28 @@ describe("the thresholds", () => {
     // this test with it rather than leaving it asserting a stale number.
     const now = Date.parse(GENERATED);
     assert.equal(snapshotAge(GENERATED, now + 30_000), "current");
-    assert.equal(snapshotAge(GENERATED, now + SNAPSHOT_AGEING_AFTER_MS - 1), "current");
-    assert.equal(snapshotAge(GENERATED, now + SNAPSHOT_AGEING_AFTER_MS), "ageing");
-    assert.equal(snapshotAge(GENERATED, now + SNAPSHOT_OLD_AFTER_MS - 1), "ageing");
+    assert.equal(
+      snapshotAge(GENERATED, now + SNAPSHOT_AGEING_AFTER_MS - 1),
+      "current",
+    );
+    assert.equal(
+      snapshotAge(GENERATED, now + SNAPSHOT_AGEING_AFTER_MS),
+      "ageing",
+    );
+    assert.equal(
+      snapshotAge(GENERATED, now + SNAPSHOT_OLD_AFTER_MS - 1),
+      "ageing",
+    );
     assert.equal(snapshotAge(GENERATED, now + SNAPSHOT_OLD_AFTER_MS), "old");
   });
 
   test("read a snapshot dated ahead of the clock as current, not as a fourth state", () => {
     // The fresh fixtures are dated in the future on purpose, so they never
     // drift into looking old as the repository ages.
-    assert.equal(snapshotAge(GENERATED, Date.parse(GENERATED) - 60_000), "current");
+    assert.equal(
+      snapshotAge(GENERATED, Date.parse(GENERATED) - 60_000),
+      "current",
+    );
   });
 });
 
@@ -85,7 +97,9 @@ describe("the badge on the page", () => {
         // this is the element that has to reach every operator.
         assert.match(
           html,
-          new RegExp(`data-snapshot-word="true"[^>]*>${state === "current" ? "Current" : state === "ageing" ? "Ageing" : "Old"}<`),
+          new RegExp(
+            `data-snapshot-word="true"[^>]*>${state === "current" ? "Current" : state === "ageing" ? "Ageing" : "Old"}<`,
+          ),
           "the state is in words as well as in colour",
         );
       } finally {
@@ -135,21 +149,30 @@ describe("the rebuild command", () => {
   test("is on the badge, so distrusting the age and fixing it are one glance apart", async () => {
     const html = await body(panel);
     assert.equal(badge(html), "old");
-    const line = /data-snapshot-rebuild="true"[^>]*>([\s\S]*?)<\/p>/.exec(html)?.[1];
+    const line = /data-snapshot-rebuild="true"[^>]*>([\s\S]*?)<\/p>/.exec(
+      html,
+    )?.[1];
     assert.ok(line, "an old snapshot offers the command that replaces it");
     assert.ok(line.includes("bin/fm-fleet-snapshot.sh --json"), line);
   });
 
   test("stays relative, and names the home the way the picker does", async () => {
     const html = await body(panel);
-    const line = /data-snapshot-rebuild="true"[^>]*>([\s\S]*?)<\/p>/.exec(html)?.[1] ?? "";
+    const line =
+      /data-snapshot-rebuild="true"[^>]*>([\s\S]*?)<\/p>/.exec(html)?.[1] ?? "";
     const label = home.slice(home.lastIndexOf("/") + 1);
     // The command an operator is handed is the one upstream publishes,
     // relative to the home, and the home is named by the label the picker
     // already uses. An absolute path here would be the badge inventing a
     // second name for a fleet the page has already named once.
-    assert.ok(!line.includes(home), `the badge printed the home's path: ${line}`);
-    assert.ok(line.includes(label), `the badge did not name the fleet: ${line}`);
+    assert.ok(
+      !line.includes(home),
+      `the badge printed the home's path: ${line}`,
+    );
+    assert.ok(
+      line.includes(label),
+      `the badge did not name the fleet: ${line}`,
+    );
   });
 });
 

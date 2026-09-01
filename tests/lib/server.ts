@@ -31,21 +31,30 @@ const STAGING_LOCK = join(STANDALONE, ".staging.lock");
  * marker, keyed to the build, then skips it once another process has already
  * staged this exact build, and re-stages if a later build left it behind.
  */
-export async function stageAssets(): Promise<void> {
+async function stageAssets(): Promise<void> {
   await mkdir(STANDALONE, { recursive: true });
   await withStagingLock(async () => {
-    const buildId = await readFile(join(REPO_ROOT, ".next", "BUILD_ID"), "utf8").catch(
+    const buildId = await readFile(
+      join(REPO_ROOT, ".next", "BUILD_ID"),
+      "utf8",
+    ).catch(() => null);
+    const staged = await readFile(ASSETS_STAGED_MARKER, "utf8").catch(
       () => null,
     );
-    const staged = await readFile(ASSETS_STAGED_MARKER, "utf8").catch(() => null);
     if (buildId !== null && staged === buildId) return;
 
     await mkdir(join(STANDALONE, ".next"), { recursive: true });
-    await cp(join(REPO_ROOT, ".next", "static"), join(STANDALONE, ".next", "static"), {
-      recursive: true,
-    });
+    await cp(
+      join(REPO_ROOT, ".next", "static"),
+      join(STANDALONE, ".next", "static"),
+      {
+        recursive: true,
+      },
+    );
     if (existsSync(join(REPO_ROOT, "public"))) {
-      await cp(join(REPO_ROOT, "public"), join(STANDALONE, "public"), { recursive: true });
+      await cp(join(REPO_ROOT, "public"), join(STANDALONE, "public"), {
+        recursive: true,
+      });
     }
     if (buildId !== null) await writeFile(ASSETS_STAGED_MARKER, buildId);
   });
@@ -64,7 +73,9 @@ async function withStagingLock<T>(fn: () => Promise<T>): Promise<T> {
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
       if (Date.now() > deadline) {
-        throw new Error(`timed out waiting for the asset-staging lock at ${STAGING_LOCK}`);
+        throw new Error(
+          `timed out waiting for the asset-staging lock at ${STAGING_LOCK}`,
+        );
       }
       await new Promise((resolve) => setTimeout(resolve, 25));
     }
@@ -89,7 +100,7 @@ export interface Panel {
   stop(): Promise<void>;
 }
 
-export interface StartOptions {
+interface StartOptions {
   readonly port: number;
   readonly fixtureSet?: string;
   /** Pins "now", making staleness deterministic instead of a race with the clock. */
@@ -126,7 +137,8 @@ export async function startPanel(options: StartOptions): Promise<Panel> {
     try {
       await stopChild(child, url);
     } finally {
-      if (!options.fixtureRoot) await rm(fixtureRoot, { recursive: true, force: true });
+      if (!options.fixtureRoot)
+        await rm(fixtureRoot, { recursive: true, force: true });
     }
   };
 
@@ -226,10 +238,12 @@ export async function until<T>(
     if (predicate(last)) return last;
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  throw new Error(`condition not met within ${timeoutMs}ms; last value: ${String(last)}`);
+  throw new Error(
+    `condition not met within ${timeoutMs}ms; last value: ${String(last)}`,
+  );
 }
 
-export interface RawResponse {
+interface RawResponse {
   readonly status: number;
   readonly headers: NodeJS.Dict<string | string[]>;
   readonly body: string;
@@ -256,7 +270,11 @@ export function rawRequest(
         response.setEncoding("utf8");
         response.on("data", (chunk) => (body += chunk));
         response.on("end", () =>
-          resolve({ status: response.statusCode ?? 0, headers: response.headers, body }),
+          resolve({
+            status: response.statusCode ?? 0,
+            headers: response.headers,
+            body,
+          }),
         );
       },
     );

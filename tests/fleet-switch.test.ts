@@ -4,7 +4,12 @@ import { join } from "node:path";
 import { after, before, describe, test } from "node:test";
 import { FLEET_COOKIE } from "../src/types/selection.ts";
 import { portsFor } from "./lib/ports.ts";
-import { copyFixtures, rawRequest, startPanel, type Panel } from "./lib/server.ts";
+import {
+  copyFixtures,
+  rawRequest,
+  startPanel,
+  type Panel,
+} from "./lib/server.ts";
 
 /**
  * Choosing which fleet the panel is looking at, driven through the built server.
@@ -48,7 +53,11 @@ const FLEETS = [ONE.set, TWO.set, UNREADABLE, REFUSED].join(":");
  * Give one fixture set a project name that appears in no other set, so a worker
  * card drawn from it can only have come from that file.
  */
-async function mark(fixtureRoot: string, set: string, project: string): Promise<void> {
+async function mark(
+  fixtureRoot: string,
+  set: string,
+  project: string,
+): Promise<void> {
   const file = join(fixtureRoot, set, "snapshot.json");
   const snapshot = JSON.parse(await readFile(file, "utf8"));
   snapshot.tasks[0].project = project;
@@ -83,7 +92,9 @@ async function page(port: number, selected?: string): Promise<Rendered> {
 
 /** Every fleet the picker offered, in the order it drew them. */
 function choices(html: string): string[] {
-  return [...html.matchAll(/data-fleet-choice="([^"]+)"/g)].map((match) => match[1]);
+  return [...html.matchAll(/data-fleet-choice="([^"]+)"/g)].map(
+    (match) => match[1],
+  );
 }
 
 /** How many worker cards the fleet lens drew. */
@@ -94,7 +105,9 @@ function workerCards(html: string): number {
 /** The status the shell put on one lens, or null when that lens is absent. */
 function lensStatus(html: string, name: string): string | null {
   return (
-    new RegExp(`data-lens="${name}" data-lens-status="([a-z]+)"`).exec(html)?.[1] ?? null
+    new RegExp(`data-lens="${name}" data-lens-status="([a-z]+)"`).exec(
+      html,
+    )?.[1] ?? null
   );
 }
 
@@ -114,8 +127,13 @@ async function signalFrom(
   const response = await fetch(`${url}/api/events?fleet=${fleet}`, {
     signal: controller.signal,
   });
-  assert.equal(response.headers.get("content-type"), "text/event-stream; charset=utf-8");
-  const reader = response.body!.pipeThrough(new TextDecoderStream()).getReader();
+  assert.equal(
+    response.headers.get("content-type"),
+    "text/event-stream; charset=utf-8",
+  );
+  const reader = response
+    .body!.pipeThrough(new TextDecoderStream())
+    .getReader();
   try {
     let buffer = "";
     for (;;) {
@@ -139,9 +157,16 @@ async function signalFrom(
  * so it fails on content leaking in from the other fleet as loudly as it fails
  * on the wrong fleet being read.
  */
-function assertAttributedTo(rendered: Rendered, expected: { set: string; mark: string }) {
+function assertAttributedTo(
+  rendered: Rendered,
+  expected: { set: string; mark: string },
+) {
   const other = expected.set === ONE.set ? TWO : ONE;
-  assert.equal(rendered.fleet, expected.set, "the page names the fleet it was read from");
+  assert.equal(
+    rendered.fleet,
+    expected.set,
+    "the page names the fleet it was read from",
+  );
   assert.ok(
     rendered.html.includes(expected.mark),
     `expected ${expected.set}'s own content on a page showing ${expected.set}`,
@@ -189,8 +214,12 @@ describe("a panel that can see more than one fleet", () => {
   test("each fleet keeps its own picture, not the last one read", async () => {
     // `healthy` has a deck and `fleet-only` does not, which is a difference no
     // amount of shared cache could reproduce by accident.
-    assert.ok((await page(port, ONE.set)).html.includes("Settle the hold vocabulary"));
-    assert.ok(!(await page(port, TWO.set)).html.includes("Settle the hold vocabulary"));
+    assert.ok(
+      (await page(port, ONE.set)).html.includes("Settle the hold vocabulary"),
+    );
+    assert.ok(
+      !(await page(port, TWO.set)).html.includes("Settle the hold vocabulary"),
+    );
   });
 
   test("two fleets read at once are never mixed up with each other", async () => {
@@ -198,8 +227,12 @@ describe("a panel that can see more than one fleet", () => {
     // holds one runtime per fleet precisely so that a request for one cannot be
     // answered out of the other's last read. Interleaved, and repeatedly, so a
     // race has somewhere to show up rather than a single ordering.
-    const wanted = Array.from({ length: 12 }, (_, i) => (i % 2 === 0 ? ONE : TWO));
-    const rendered = await Promise.all(wanted.map((fleet) => page(port, fleet.set)));
+    const wanted = Array.from({ length: 12 }, (_, i) =>
+      i % 2 === 0 ? ONE : TWO,
+    );
+    const rendered = await Promise.all(
+      wanted.map((fleet) => page(port, fleet.set)),
+    );
     for (const [i, response] of rendered.entries()) {
       assertAttributedTo(response, wanted[i]);
     }
@@ -249,8 +282,16 @@ describe("a fleet that cannot be read", () => {
     assert.equal(fleet, UNREADABLE);
     assert.equal(lensStatus(html, "fleet"), "unreadable");
     assert.equal(lensStatus(html, "deck"), "unreadable");
-    assert.equal(lensStatus(html, "shipshape"), "fresh", "health reads on its own");
-    assert.equal(workerCards(html), 0, "nothing is drawn for a fleet nothing was read from");
+    assert.equal(
+      lensStatus(html, "shipshape"),
+      "fresh",
+      "health reads on its own",
+    );
+    assert.equal(
+      workerCards(html),
+      0,
+      "nothing is drawn for a fleet nothing was read from",
+    );
   });
 
   test("shows no other fleet's content while it is the one selected", async () => {
@@ -289,7 +330,10 @@ describe("a panel that can see exactly one fleet", () => {
   test("still names the fleet it is showing rather than hiding the control", async () => {
     const { html } = await page(port);
     assert.deepEqual(choices(html), [ONE.set]);
-    assert.ok(html.includes("showing"), "the one fleet is marked as the one being shown");
+    assert.ok(
+      html.includes("showing"),
+      "the one fleet is marked as the one being shown",
+    );
     assert.ok(
       html.includes("The only fleet this panel is configured to see."),
       "and says why there is nothing to switch to, rather than looking broken",

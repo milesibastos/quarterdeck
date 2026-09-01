@@ -32,18 +32,18 @@ touching that one.
 
 ## Map
 
-| Where | What is there |
-| --- | --- |
-| `src/types/` | The document the UI reads, the terminal tail beside it, and the fleet-selection cookie's name. Imports nothing. |
-| `src/config/` | Environment and defaults. The port derivation lives here. |
-| `src/adapters/` | The only I/O. Five files, and the forge is the only one that leaves this machine. |
-| `src/domain/` | The projection: snapshot to document. Pure. |
-| `src/runtime/` | Watch, coalesce, cache, publish the change signal. |
-| `src/ui/` | Server-rendered components. Reads the document, plus the terminal a card opens on demand. One directory per lens. |
-| `src/providers/` | The clock, the logger and the one spawn door, as dependencies. |
-| `src/app/`, `src/proxy.ts` | Next's routes and middleware: the composition point. |
-| `fixtures/` | Synthetic fleets, up to three files per set. Zero real data, by rule. |
-| `tests/` | Behavioural tests against the built server, the invariant checks, and a pure-projection walk of every fixture. |
+| Where                      | What is there                                                                                                     |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `src/types/`               | The document the UI reads, the terminal tail beside it, and the fleet-selection cookie's name. Imports nothing.   |
+| `src/config/`              | Environment and defaults. The port derivation lives here.                                                         |
+| `src/adapters/`            | The only I/O. Five files, and the forge is the only one that leaves this machine.                                 |
+| `src/domain/`              | The projection: snapshot to document. Pure.                                                                       |
+| `src/runtime/`             | Watch, coalesce, cache, publish the change signal.                                                                |
+| `src/ui/`                  | Server-rendered components. Reads the document, plus the terminal a card opens on demand. One directory per lens. |
+| `src/providers/`           | The clock, the logger and the one spawn door, as dependencies.                                                    |
+| `src/app/`, `src/proxy.ts` | Next's routes and middleware: the composition point.                                                              |
+| `fixtures/`                | Synthetic fleets, up to three files per set. Zero real data, by rule.                                             |
+| `tests/`                   | Behavioural tests against the built server, the invariant checks, and a pure-projection walk of every fixture.    |
 
 ## Run it
 
@@ -51,7 +51,13 @@ touching that one.
 npm install && npm run build   # once
 npm start                      # builds if needed, prints the URL it bound
 npm test                       # lints, checks the invariants, drives the built server
+qlty fmt                       # format: prettier is qlty's, not npm's
+qlty check --all               # markdownlint, actionlint, yamllint, gitleaks, knip
+bin/qlty-smells-gate           # duplication and complexity, as a verdict
 ```
+
+The last three are what CI gates on, and `npm test` does not run them. Format
+before you push or the `quality` job fails.
 
 `QUARTERDECK_FLEET_HOME` points the panel at real fleet homes; unset, it reads
 synthetic fixture sets picked by `QUARTERDECK_FIXTURE_SET`. Both take a
@@ -63,21 +69,27 @@ request's checks and its review comments, read through `gh`. Off by default,
 never on the first paint, and never more than once a minute per pull request -
 see `docs/decisions/2026-08-31-reading-the-forge.md`.
 
-`qlty smells --all` reports duplication and complexity, the two things neither
-eslint nor the test suite measures; `qlty metrics --all -d` prints the totals per
-directory. Nothing gates on either, no plugins and no formatter are enabled, and
-qlty never runs eslint - see
-`docs/decisions/2026-08-31-measuring-duplication-and-complexity.md`. Four paths
-are excluded and two findings are deliberately left standing, each with its
-reason beside it in `.qlty/qlty.toml` and at length in
-`docs/decisions/2026-08-31-what-the-parallel-lens-build-duplicated.md`; read that
-before adding a fifth.
+qlty owns the formatter and five checks, and CI fails on all of them. prettier
+comes from qlty and not from `package.json`, pinned, so `qlty fmt` is the only
+way to format this tree. eslint is the one thing qlty does not touch: it stays
+on npm behind `npm run lint`, which `pretest` chains. `qlty metrics --all -d`
+prints size and complexity per directory and gates nothing.
+
+Two paths are excluded from qlty entirely: `**/*.d.ts`, and
+`tests/violations/**`. That second one is load-bearing, because the invariant
+checks read those files as text and assert the line each planted fault sits on.
+Everything else qlty is told to overlook is scoped to one plugin, or listed in
+`bin/qlty-smells-gate` with the argument for keeping it. Nine findings are kept
+there. Add a tenth only with its reason, and read
+`docs/decisions/2026-08-31-measuring-duplication-and-complexity.md` and
+`docs/decisions/2026-08-31-what-the-parallel-lens-build-duplicated.md` first.
 
 ## Read before changing anything
 
 - `docs/ARCHITECTURE.md` - the layers, the seven invariants, and why each exists.
 - `docs/principles.md` - the mechanical rules a cleanup pass enforces.
-- `docs/contract.md` - the document schema and the upstream contract it is pinned to.
+- `docs/contract.md` - the document schema and the upstream contract it is
+  pinned to.
 - `docs/decisions/` - one dated file per settled decision, with its trade-offs.
 - `docs/plans/active/` - what is being built now. `docs/plans/done/` is the memory.
 - `docs/quality.md` - a grade per area, and where the gaps are.

@@ -48,9 +48,11 @@ import { cn } from "@/ui/lib/utils";
  * this lens is most likely to be read in on a bad day. Brighter than the
  * question, colourless, and dashed at the edge.
  */
-export type Tone = "good" | "watch" | "bad" | "dark";
+type Tone = "good" | "watch" | "bad" | "dark";
 
-const TONE: Readonly<Record<Tone, { readonly ink: string; readonly edge: string }>> = {
+const TONE: Readonly<
+  Record<Tone, { readonly ink: string; readonly edge: string }>
+> = {
   good: { ink: "var(--term-success)", edge: "border-l-term-success" },
   watch: { ink: "var(--term-warning)", edge: "border-l-term-warning" },
   bad: { ink: "var(--term-danger)", edge: "border-l-term-danger" },
@@ -107,7 +109,13 @@ export function SignalBlock({
  * accident. Nothing here reports an age, a count or a verdict: the document
  * carries none of those for a signal that did not read.
  */
-export function Unread({ detail, unknown }: { detail: string; unknown: string }) {
+export function Unread({
+  detail,
+  unknown,
+}: {
+  detail: string;
+  unknown: string;
+}) {
   return (
     <>
       <p className="wrap-anywhere">{detail}</p>

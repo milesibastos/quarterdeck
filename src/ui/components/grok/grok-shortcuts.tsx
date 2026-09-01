@@ -33,7 +33,10 @@ const DEFAULT_GROUPS: GrokShortcutGroup[] = [
       { action: "Send", keys: "Enter" },
       { action: "Focus scrollback", keys: "Tab" },
       { action: "Cancel turn", keys: "Ctrl+c" },
-      { action: "Cycle mode (Normal / Plan / Always-approve)", keys: "Shift+Tab" },
+      {
+        action: "Cycle mode (Normal / Plan / Always-approve)",
+        keys: "Shift+Tab",
+      },
       { action: "Quit", keys: "Ctrl+q / Ctrl+d" },
       { action: "Command palette", keys: "Ctrl+p / ?" },
       { action: "Keyboard shortcuts", keys: "Ctrl+x / Ctrl+." },
@@ -100,7 +103,9 @@ export function GrokShortcuts({
   onClose?: () => void;
   className?: string;
 }) {
-  const [expanded, setExpanded] = React.useState<string | null>(defaultExpanded);
+  const [expanded, setExpanded] = React.useState<string | null>(
+    defaultExpanded,
+  );
 
   return (
     <div

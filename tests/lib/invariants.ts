@@ -31,7 +31,7 @@ const THEME = "docs/decisions/2026-08-30-theme-and-palette.md";
  * `src/app/` and `src/proxy.ts` - and it is the only place allowed to see both
  * a way of reading the fleet and a way of rendering it.
  */
-export const ALLOWED_IMPORTS: Readonly<Record<Layer, readonly Layer[]>> = {
+const ALLOWED_IMPORTS: Readonly<Record<Layer, readonly Layer[]>> = {
   types: [],
   providers: ["types"],
   config: ["types", "providers"],
@@ -101,7 +101,7 @@ function commentRanges(text: string, path: string): ts.CommentRange[] {
   return ranges.sort((a, b) => a.pos - b.pos);
 }
 
-export function stripComments(text: string, path: string): string {
+function stripComments(text: string, path: string): string {
   let out = "";
   let i = 0;
   for (const { pos, end } of commentRanges(text, path)) {
@@ -124,7 +124,7 @@ function codeLines(file: SourceFile): { line: number; text: string }[] {
 
 /* ------------------------------------------------------------------ 1 */
 
-export function checkForwardDependencies(files: readonly SourceFile[]): Violation[] {
+function checkForwardDependencies(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
   for (const file of files) {
     const from = layerOf(file.path);
@@ -158,7 +158,7 @@ export function checkForwardDependencies(files: readonly SourceFile[]): Violatio
 
 /* ------------------------------------------------------------------ 2 */
 
-export function checkDomainPurity(files: readonly SourceFile[]): Violation[] {
+function checkDomainPurity(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
   for (const file of files) {
     if (layerOf(file.path) !== "domain") continue;
@@ -180,8 +180,8 @@ export function checkDomainPurity(files: readonly SourceFile[]): Violation[] {
 
 /* ------------------------------------------------------------------ 3 */
 
-export const PERMITTED_WRITER = "src/adapters/intent.ts";
-export const WRITER_MARKER = "quarterdeck:permitted-writer";
+const PERMITTED_WRITER = "src/adapters/intent.ts";
+const WRITER_MARKER = "quarterdeck:permitted-writer";
 
 /**
  * Starting a process is its own capability, and it has its own one file.
@@ -192,8 +192,8 @@ export const WRITER_MARKER = "quarterdeck:permitted-writer";
  * confines the second the way the writer marker confines writing: one file, one
  * marker, and a failing build for any other file that reaches for it.
  */
-export const PERMITTED_SPAWNER = "src/providers/process.ts";
-export const SPAWNER_MARKER = "quarterdeck:permitted-spawner";
+const PERMITTED_SPAWNER = "src/providers/process.ts";
+const SPAWNER_MARKER = "quarterdeck:permitted-spawner";
 
 /**
  * APIs that mutate something outside this process. Reads are not listed.
@@ -240,11 +240,17 @@ const WRITE_APIS = [
 const SPAWN_MODULES = ["node:child_process", "child_process"];
 
 /** Importing any of these at all means the file can reach outside the process. */
-const WRITE_MODULES = [...SPAWN_MODULES, "node:worker_threads", "worker_threads"];
+const WRITE_MODULES = [
+  ...SPAWN_MODULES,
+  "node:worker_threads",
+  "worker_threads",
+];
 
 const MEMBER_WRITE = new RegExp(`\\.(${WRITE_APIS.join("|")})\\s*\\(`);
 /** The same calls, reached through bracket notation: `fs["writeFile"](`. */
-const MEMBER_WRITE_BRACKET = new RegExp(`\\[\\s*["'\`](${WRITE_APIS.join("|")})["'\`]\\s*\\]\\s*\\(`);
+const MEMBER_WRITE_BRACKET = new RegExp(
+  `\\[\\s*["'\`](${WRITE_APIS.join("|")})["'\`]\\s*\\]\\s*\\(`,
+);
 
 /**
  * Changing the working directory is not writing a record - it is reaching
@@ -257,11 +263,18 @@ const CHDIR_MEMBER_BRACKET = /\[\s*["'`]chdir["'`]\s*\]\s*\(/;
 
 /** Named imports from a module: `import { a, b as c } from "..."`. */
 function namedImportsFrom(text: string, module: string): string[] {
-  const pattern = new RegExp(`import\\s*\\{([^}]*)\\}\\s*from\\s*["']${module}["']`, "g");
+  const pattern = new RegExp(
+    `import\\s*\\{([^}]*)\\}\\s*from\\s*["']${module}["']`,
+    "g",
+  );
   const names: string[] = [];
   for (const match of text.matchAll(pattern)) {
     for (const part of match[1].split(",")) {
-      const name = part.trim().replace(/^type\s+/, "").split(/\s+as\s+/)[0].trim();
+      const name = part
+        .trim()
+        .replace(/^type\s+/, "")
+        .split(/\s+as\s+/)[0]
+        .trim();
       if (name) names.push(name);
     }
   }
@@ -278,12 +291,18 @@ function namedImportsFrom(text: string, module: string): string[] {
 function moduleAliasesOf(text: string, module: string): string[] {
   const aliases: string[] = [];
   for (const match of text.matchAll(
-    new RegExp(`import\\s+(?:\\*\\s+as\\s+)?(\\w+)\\s*from\\s*["']${module}["']`, "g"),
+    new RegExp(
+      `import\\s+(?:\\*\\s+as\\s+)?(\\w+)\\s*from\\s*["']${module}["']`,
+      "g",
+    ),
   )) {
     aliases.push(match[1]);
   }
   for (const match of text.matchAll(
-    new RegExp(`(?:const|let|var)\\s+(\\w+)\\s*=\\s*require\\(\\s*["']${module}["']\\s*\\)`, "g"),
+    new RegExp(
+      `(?:const|let|var)\\s+(\\w+)\\s*=\\s*require\\(\\s*["']${module}["']\\s*\\)`,
+      "g",
+    ),
   )) {
     aliases.push(match[1]);
   }
@@ -317,7 +336,7 @@ const MARKED_CAPABILITIES = [
   { path: PERMITTED_SPAWNER, marker: SPAWNER_MARKER, verb: "start a process" },
 ] as const;
 
-export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
+function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
 
   for (const { path, marker, verb } of MARKED_CAPABILITIES) {
@@ -367,7 +386,9 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
       ...fsModules.flatMap((m) => namedImportsFrom(code, m)),
       // `import fsp from "node:fs/promises"; const { writeFile } = fsp;`
       ...fsModules.flatMap((m) =>
-        moduleAliasesOf(code, m).flatMap((alias) => destructuredFrom(code, `${alias}\\b`)),
+        moduleAliasesOf(code, m).flatMap((alias) =>
+          destructuredFrom(code, `${alias}\\b`),
+        ),
       ),
       // `const { writeFile } = require("node:fs/promises");`
       ...fsModules.flatMap((m) =>
@@ -378,7 +399,9 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
       [
         ...PROCESS_MODULES.flatMap((m) => namedImportsFrom(code, m)),
         ...PROCESS_MODULES.flatMap((m) =>
-          moduleAliasesOf(code, m).flatMap((alias) => destructuredFrom(code, `${alias}\\b`)),
+          moduleAliasesOf(code, m).flatMap((alias) =>
+            destructuredFrom(code, `${alias}\\b`),
+          ),
         ),
         ...PROCESS_MODULES.flatMap((m) =>
           destructuredFrom(code, `require\\(\\s*["']${m}["']\\s*\\)`),
@@ -396,11 +419,16 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
       }
       // Changing the working directory is banned everywhere, the permitted
       // writer included - it is not part of the fs-write exemption.
-      if (CHDIR_MEMBER.test(text) || CHDIR_MEMBER_BRACKET.test(text)) found.push("chdir");
-      if (chdirImported.has("chdir") && /\bchdir\s*\(/.test(text)) found.push("chdir");
+      if (CHDIR_MEMBER.test(text) || CHDIR_MEMBER_BRACKET.test(text))
+        found.push("chdir");
+      if (chdirImported.has("chdir") && /\bchdir\s*\(/.test(text))
+        found.push("chdir");
       if (!writerPermitted) {
         for (const name of imported) {
-          if (WRITE_APIS.includes(name) && new RegExp(`\\b${name}\\b`).test(text)) {
+          if (
+            WRITE_APIS.includes(name) &&
+            new RegExp(`\\b${name}\\b`).test(text)
+          ) {
             found.push(name);
           }
         }
@@ -436,17 +464,19 @@ export function checkSingleWriter(files: readonly SourceFile[]): Violation[] {
 
 /* ------------------------------------------------------------------ 4 */
 
-export const QUARANTINED_MODULE = "src/adapters/health.ts";
+const QUARANTINED_MODULE = "src/adapters/health.ts";
 
 /** The app's own URL space. Everything else starting with `/` is a machine path. */
 const ROUTE_PREFIXES = [/^\/api\//, /^\/api$/, /^\/_next\//, /^\/\(/];
 
-export function checkPathQuarantine(files: readonly SourceFile[]): Violation[] {
+function checkPathQuarantine(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
   for (const file of files) {
     if (`src/${file.path}` === QUARANTINED_MODULE) continue;
     for (const { line, text } of codeLines(file)) {
-      for (const match of text.matchAll(/["'`](~\/[^"'`]*|\/[^"'`\s]*\/[^"'`]*)["'`]/g)) {
+      for (const match of text.matchAll(
+        /["'`](~\/[^"'`]*|\/[^"'`\s]*\/[^"'`]*)["'`]/g,
+      )) {
         const literal = match[1];
         if (ROUTE_PREFIXES.some((p) => p.test(literal))) continue;
         violations.push({
@@ -495,15 +525,17 @@ export function checkPathQuarantine(files: readonly SourceFile[]): Violation[] {
 
 /* ------------------------------------------------------------------ 5 */
 
-export const CONTRACT_MODULE = "src/adapters/contract.ts";
+const CONTRACT_MODULE = "src/adapters/contract.ts";
 
-export function checkPinnedContract(files: readonly SourceFile[]): Violation[] {
+function checkPinnedContract(files: readonly SourceFile[]): Violation[] {
   const contract = files.find((f) => `src/${f.path}` === CONTRACT_MODULE);
   if (!contract) return [];
 
   const violations: Violation[] = [];
   const code = stripComments(contract.text, contract.path);
-  const declaration = /const\s+SNAPSHOT_SCHEMA_ID\s*=\s*["'][^"']+["']/.exec(code);
+  const declaration = /const\s+SNAPSHOT_SCHEMA_ID\s*=\s*["'][^"']+["']/.exec(
+    code,
+  );
 
   if (!declaration) {
     violations.push({
@@ -522,7 +554,9 @@ export function checkPinnedContract(files: readonly SourceFile[]): Violation[] {
   // not the identifier compared against itself: `X === X` matches the same
   // shape as `value.schema === X` but proves nothing.
   let comparedAgainstValue = false;
-  for (const match of code.matchAll(/([\w.$[\]]+)\s*(?:!==|===)\s*([\w.$[\]]+)/g)) {
+  for (const match of code.matchAll(
+    /([\w.$[\]]+)\s*(?:!==|===)\s*([\w.$[\]]+)/g,
+  )) {
     const [, left, right] = match;
     if ((left === "SNAPSHOT_SCHEMA_ID") !== (right === "SNAPSHOT_SCHEMA_ID")) {
       comparedAgainstValue = true;
@@ -533,7 +567,8 @@ export function checkPinnedContract(files: readonly SourceFile[]): Violation[] {
     violations.push({
       slug: "pinned-contract",
       file: CONTRACT_MODULE,
-      line: contract.lines.findIndex((l) => l.includes("SNAPSHOT_SCHEMA_ID")) + 1,
+      line:
+        contract.lines.findIndex((l) => l.includes("SNAPSHOT_SCHEMA_ID")) + 1,
       what: `SNAPSHOT_SCHEMA_ID is declared but never compared. The contract version is pinned and parsed at the boundary.`,
       why: `A pin nobody checks is a comment. A snapshot whose shape changed would parse into fields whose meaning has shifted, and the panel would render it as though nothing happened.`,
       fix: `Compare the parsed snapshot's schema field against SNAPSHOT_SCHEMA_ID before reading any other field, and throw ContractIdentifierError on a mismatch.`,
@@ -545,7 +580,7 @@ export function checkPinnedContract(files: readonly SourceFile[]): Violation[] {
 
 /* ------------------------------------------------------------------ 6 */
 
-export function checkUiIsolation(files: readonly SourceFile[]): Violation[] {
+function checkUiIsolation(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
   for (const file of files) {
     if (layerOf(file.path) !== "ui") continue;
@@ -568,7 +603,7 @@ export function checkUiIsolation(files: readonly SourceFile[]): Violation[] {
 
 /* ------------------------------------------------------------------ 7 */
 
-export function checkNoEgress(files: readonly SourceFile[]): Violation[] {
+function checkNoEgress(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
   for (const file of files) {
     for (const ref of importsOf(file)) {
@@ -610,7 +645,7 @@ export function checkNoEgress(files: readonly SourceFile[]): Violation[] {
  * Not one of the seven, but the reason `src/providers/` exists: nothing reaches
  * for the wall clock or the console directly. `Date.parse` is pure and stays.
  */
-export function checkProviderBypass(files: readonly SourceFile[]): Violation[] {
+function checkProviderBypass(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
   const probes: [RegExp, string][] = [
     [/\bDate\.now\s*\(/, "Date.now()"],
@@ -625,7 +660,9 @@ export function checkProviderBypass(files: readonly SourceFile[]): Violation[] {
     // `const D = Date; D.now()` renames the global before reaching for it;
     // the probes above only know the literal spelling `Date`.
     const aliasProbes: [RegExp, string][] = [];
-    for (const match of code.matchAll(/\b(?:const|let|var)\s+(\w+)\s*=\s*Date\s*[;\n]/g)) {
+    for (const match of code.matchAll(
+      /\b(?:const|let|var)\s+(\w+)\s*=\s*Date\s*[;\n]/g,
+    )) {
       const alias = match[1];
       aliasProbes.push(
         [new RegExp(`\\b${alias}\\.now\\s*\\(`), "Date.now()"],
@@ -658,16 +695,51 @@ export function checkProviderBypass(files: readonly SourceFile[]): Violation[] {
  * does not change when the theme does.
  */
 const STOCK_PALETTE = [
-  "white", "black", "slate", "gray", "grey", "zinc", "neutral", "stone",
-  "red", "orange", "amber", "yellow", "lime", "green", "emerald", "teal",
-  "cyan", "sky", "blue", "indigo", "violet", "purple", "fuchsia", "pink",
+  "white",
+  "black",
+  "slate",
+  "gray",
+  "grey",
+  "zinc",
+  "neutral",
+  "stone",
+  "red",
+  "orange",
+  "amber",
+  "yellow",
+  "lime",
+  "green",
+  "emerald",
+  "teal",
+  "cyan",
+  "sky",
+  "blue",
+  "indigo",
+  "violet",
+  "purple",
+  "fuchsia",
+  "pink",
   "rose",
 ].join("|");
 
 /** The utilities that take a colour. `bg-cover` and `text-sm` are not among them. */
 const COLOUR_UTILITIES = [
-  "bg", "text", "border", "ring", "fill", "stroke", "from", "via", "to",
-  "decoration", "outline", "shadow", "accent", "caret", "divide", "placeholder",
+  "bg",
+  "text",
+  "border",
+  "ring",
+  "fill",
+  "stroke",
+  "from",
+  "via",
+  "to",
+  "decoration",
+  "outline",
+  "shadow",
+  "accent",
+  "caret",
+  "divide",
+  "placeholder",
 ].join("|");
 
 const COLOUR_PROBES: [RegExp, (m: RegExpExecArray) => string][] = [
@@ -704,7 +776,7 @@ const COLOUR_PROBES: [RegExp, (m: RegExpExecArray) => string][] = [
  * at all: the stylesheet is where the hex is *supposed* to be, and it is not
  * scanned.
  */
-export function checkRawColour(files: readonly SourceFile[]): Violation[] {
+function checkRawColour(files: readonly SourceFile[]): Violation[] {
   const violations: Violation[] = [];
   for (const file of files) {
     for (const { line, text } of codeLines(file)) {
@@ -750,5 +822,7 @@ export function runChecks(rootDir: string, only?: CheckName): Violation[] {
 
 /** Directory names under `tests/violations/`, one planted tree per check. */
 export function plantedTrees(root: string): string[] {
-  return readdirSync(root).filter((name) => statSync(join(root, name)).isDirectory());
+  return readdirSync(root).filter((name) =>
+    statSync(join(root, name)).isDirectory(),
+  );
 }

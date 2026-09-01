@@ -67,7 +67,9 @@ function text(value: unknown, path: string): string {
 
 function instant(value: unknown, path: string): string {
   const found = text(value, path);
-  return isIsoInstant(found) ? found : fail(`${path} must be an ISO-8601 instant`);
+  return isIsoInstant(found)
+    ? found
+    : fail(`${path} must be an ISO-8601 instant`);
 }
 
 function flag(value: unknown, path: string): boolean {
@@ -114,19 +116,42 @@ function parseSupervisor(value: unknown): SupervisorSignal {
   );
 }
 
-function parseOverdue(value: unknown): OverdueSignal {
-  const entry = record(value, "overdue");
-  const dark = unreadableSignal(entry, "overdue");
+/**
+ * The shape `overdue` and `drift` share: a signal that is either unreadable, or
+ * ok with one array of rows under a name of its own. Only the signal's name,
+ * the array's field and the row's two fields differ, so the walk - record,
+ * unreadable check, indexed path per row - is written once. Written twice, the
+ * two drift apart, and the path strings in the failure messages are exactly
+ * where that would not be noticed.
+ */
+function rowsSignal<T>(
+  value: unknown,
+  name: string,
+  field: string,
+  row: (entry: Record<string, unknown>, at: string) => T,
+): Unreadable | { readonly read: "ok"; readonly rows: readonly T[] } {
+  const entry = record(value, name);
+  const dark = unreadableSignal(entry, name);
   if (dark) return dark;
-  const overdue = list(entry.overdue, "overdue.overdue").map((item, i): Overdue => {
-    const at = `overdue.overdue[${i}]`;
-    const row = record(item, at);
-    return {
+  const path = `${name}.${field}`;
+  const rows = list(entry[field], path).map((item, i): T => {
+    const at = `${path}[${i}]`;
+    return row(record(item, at), at);
+  });
+  return { read: "ok", rows };
+}
+
+function parseOverdue(value: unknown): OverdueSignal {
+  const signal = rowsSignal(
+    value,
+    "overdue",
+    "overdue",
+    (row, at): Overdue => ({
       id: text(row.id, `${at}.id`),
       waitingSince: instant(row.waitingSince, `${at}.waitingSince`),
-    };
-  });
-  return { read: "ok", overdue };
+    }),
+  );
+  return signal.read === "ok" ? { read: "ok", overdue: signal.rows } : signal;
 }
 
 function parseQueue(value: unknown): QueueSignal {
@@ -163,28 +188,33 @@ function parseAttendance(value: unknown): AttendanceSignal {
  * side of the trade for a file with no compatibility promise: this module's
  * contract is to degrade rather than throw, and it degrades one signal.
  */
-function orAbsent<T>(value: unknown, name: string, parse: (value: unknown) => T): T | Unreadable {
+function orAbsent<T>(
+  value: unknown,
+  name: string,
+  parse: (value: unknown) => T,
+): T | Unreadable {
   if (value === null || value === undefined) {
-    return { read: "unreadable", detail: `The health file carries no ${name} signal.` };
+    return {
+      read: "unreadable",
+      detail: `The health file carries no ${name} signal.`,
+    };
   }
   return parse(value);
 }
 
 function parseDrift(value: unknown): DriftSignal {
-  const entry = record(value, "drift");
-  const dark = unreadableSignal(entry, "drift");
-  if (dark) return dark;
-  const disagreements = list(entry.disagreements, "drift.disagreements").map(
-    (item, i): Disagreement => {
-      const at = `drift.disagreements[${i}]`;
-      const row = record(item, at);
-      return {
-        record: text(row.record, `${at}.record`),
-        detail: text(row.detail, `${at}.detail`),
-      };
-    },
+  const signal = rowsSignal(
+    value,
+    "drift",
+    "disagreements",
+    (row, at): Disagreement => ({
+      record: text(row.record, `${at}.record`),
+      detail: text(row.detail, `${at}.detail`),
+    }),
   );
-  return { read: "ok", disagreements };
+  return signal.read === "ok"
+    ? { read: "ok", disagreements: signal.rows }
+    : signal;
 }
 
 function parseHealth(raw: string): HealthReading {
@@ -211,9 +241,14 @@ function parseHealth(raw: string): HealthReading {
  * that is the point: a quarantined module that can take the panel down is not
  * quarantined.
  */
-export async function readHealth(dir: string, signal: AbortSignal): Promise<HealthReading> {
+export async function readHealth(
+  dir: string,
+  signal: AbortSignal,
+): Promise<HealthReading> {
   try {
-    return parseHealth(await readFile(join(dir, "health.json"), { encoding: "utf8", signal }));
+    return parseHealth(
+      await readFile(join(dir, "health.json"), { encoding: "utf8", signal }),
+    );
   } catch (error) {
     return {
       read: "unreadable",
@@ -275,13 +310,22 @@ const BEACON_GRACE_MS = 300_000;
 const WEDGE_AFTER_MS = 240_000;
 
 /** The declared waits. An idle worker that has declared one is not a wedge. */
-const DECLARED_WAIT_VERBS: ReadonlySet<string> = new Set(["paused", "captain-held"]);
+const DECLARED_WAIT_VERBS: ReadonlySet<string> = new Set([
+  "paused",
+  "captain-held",
+]);
 
 /** The verbs that open a keyed decision, and the two that close one. */
-const OPENS_DECISION: ReadonlySet<string> = new Set(["needs-decision", "blocked"]);
+const OPENS_DECISION: ReadonlySet<string> = new Set([
+  "needs-decision",
+  "blocked",
+]);
 const RESOLVED_VERB = "resolved";
 const CAPTAIN_HELD_VERB = "captain-held";
-const CLOSES_DECISION: ReadonlySet<string> = new Set([RESOLVED_VERB, CAPTAIN_HELD_VERB]);
+const CLOSES_DECISION: ReadonlySet<string> = new Set([
+  RESOLVED_VERB,
+  CAPTAIN_HELD_VERB,
+]);
 
 /** A line with no stated key names this one, so a bare `resolved:` closes it. */
 const DEFAULT_DECISION_KEY = "default";
@@ -320,7 +364,9 @@ function withDeadline<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const onAbort = (): void => reject(signal.reason);
     signal.addEventListener("abort", onAbort, { once: true });
-    promise.then(resolve, reject).finally(() => signal.removeEventListener("abort", onAbort));
+    promise
+      .then(resolve, reject)
+      .finally(() => signal.removeEventListener("abort", onAbort));
   });
 }
 
@@ -342,7 +388,10 @@ function statusVerb(line: string): string {
   const head = line.split(":")[0].split("[")[0].trim();
   if (head.length === 0) return "";
   const words = head.split(/\s+/);
-  return [words[0], ...words.slice(1).filter((w) => !CORRELATION_TOKEN.test(w))].join(" ");
+  return [
+    words[0],
+    ...words.slice(1).filter((w) => !CORRELATION_TOKEN.test(w)),
+  ].join(" ");
 }
 
 /**
@@ -356,7 +405,8 @@ function statusVerb(line: string): string {
 function decisionKey(line: string): string | null {
   const [head, ...rest] = line.split(":");
   const beforeColon = /\[key=([^\]]*)\]/.exec(head);
-  const noteHead = rest.length > 0 ? /^\s*\[key=([^\]]*)\]/.exec(rest.join(":")) : null;
+  const noteHead =
+    rest.length > 0 ? /^\s*\[key=([^\]]*)\]/.exec(rest.join(":")) : null;
   const stated = beforeColon?.[1] ?? noteHead?.[1];
   if (stated === undefined) return DEFAULT_DECISION_KEY;
   return KEY_SLUG.test(stated) ? stated : null;
@@ -377,7 +427,8 @@ function foldDecisions(text: string): ReadonlyMap<string, string> {
     const key = decisionKey(line);
     if (key === null) continue;
     const verb = statusVerb(line);
-    if (OPENS_DECISION.has(verb) || CLOSES_DECISION.has(verb)) ended.set(key, verb);
+    if (OPENS_DECISION.has(verb) || CLOSES_DECISION.has(verb))
+      ended.set(key, verb);
   }
   return ended;
 }
@@ -398,7 +449,10 @@ function readsAsAnswered(log: string): boolean {
 }
 
 /** Read a fleet file, or `null` when it is not there in the shape expected. */
-async function readMaybe(file: string, signal: AbortSignal): Promise<string | null> {
+async function readMaybe(
+  file: string,
+  signal: AbortSignal,
+): Promise<string | null> {
   try {
     return await readFile(file, { encoding: "utf8", signal });
   } catch {
@@ -428,12 +482,17 @@ async function readSupervisor(
       lastSeen: new Date(mtimeMs).toISOString(),
     };
   } catch (error) {
-    return dark(`No supervision beacon at ${STATE_DIR}/${BEACON_FILE}: ${why(error)}`);
+    return dark(
+      `No supervision beacon at ${STATE_DIR}/${BEACON_FILE}: ${why(error)}`,
+    );
   }
 }
 
 /** The ids of the workers the fleet currently has out, from `state/*.meta`. */
-async function liveWorkerIds(stateDir: string, signal: AbortSignal): Promise<readonly string[]> {
+async function liveWorkerIds(
+  stateDir: string,
+  signal: AbortSignal,
+): Promise<readonly string[]> {
   const entries = await withDeadline(readdir(stateDir), signal);
   return entries
     .filter((name) => name.endsWith(META_SUFFIX))
@@ -514,7 +573,9 @@ async function readOverdue(
   try {
     ids = await liveWorkerIds(stateDir, signal);
   } catch (error) {
-    return dark(`Could not list the fleet's workers in ${STATE_DIR}/: ${why(error)}`);
+    return dark(
+      `Could not list the fleet's workers in ${STATE_DIR}/: ${why(error)}`,
+    );
   }
 
   const overdue: Overdue[] = [];
@@ -543,7 +604,10 @@ async function readOverdue(
  * this would be the one signal still reporting a clean zero while its four
  * siblings correctly go dark for the same missing directory.
  */
-async function readQueue(stateDir: string, signal: AbortSignal): Promise<QueueSignal> {
+async function readQueue(
+  stateDir: string,
+  signal: AbortSignal,
+): Promise<QueueSignal> {
   const queue = join(stateDir, QUEUE_FILE);
   try {
     const text = await readFile(queue, { encoding: "utf8", signal });
@@ -557,10 +621,14 @@ async function readQueue(stateDir: string, signal: AbortSignal): Promise<QueueSi
         await withDeadline(readdir(stateDir), signal);
         return { read: "ok", queued: 0 };
       } catch (dirError) {
-        return dark(`Could not list ${STATE_DIR}/ for the notification queue: ${why(dirError)}`);
+        return dark(
+          `Could not list ${STATE_DIR}/ for the notification queue: ${why(dirError)}`,
+        );
       }
     }
-    return dark(`Could not read the notification queue ${STATE_DIR}/${QUEUE_FILE}: ${why(error)}`);
+    return dark(
+      `Could not read the notification queue ${STATE_DIR}/${QUEUE_FILE}: ${why(error)}`,
+    );
   }
 }
 
@@ -588,10 +656,16 @@ async function readAttendance(
   try {
     entries = await withDeadline(readdir(stateDir), signal);
   } catch (error) {
-    return dark(`Could not list ${STATE_DIR}/ for away mode and the home lock: ${why(error)}`);
+    return dark(
+      `Could not list ${STATE_DIR}/ for away mode and the home lock: ${why(error)}`,
+    );
   }
   const present = new Set(entries);
-  return { read: "ok", away: present.has(AWAY_FILE), locked: present.has(LOCK_FILE) };
+  return {
+    read: "ok",
+    away: present.has(AWAY_FILE),
+    locked: present.has(LOCK_FILE),
+  };
 }
 
 interface BacklogRow {
@@ -641,14 +715,20 @@ async function readDrift(
   stateDir: string,
   signal: AbortSignal,
 ): Promise<DriftSignal> {
-  const backlog = await readMaybe(join(home, BACKLOG_DIR, BACKLOG_FILE), signal);
-  if (backlog === null) return dark(`Could not read the work item record ${BACKLOG_RECORD}.`);
+  const backlog = await readMaybe(
+    join(home, BACKLOG_DIR, BACKLOG_FILE),
+    signal,
+  );
+  if (backlog === null)
+    return dark(`Could not read the work item record ${BACKLOG_RECORD}.`);
 
   let workers: ReadonlySet<string>;
   try {
     workers = new Set(await liveWorkerIds(stateDir, signal));
   } catch (error) {
-    return dark(`Could not list the fleet's workers in ${STATE_DIR}/: ${why(error)}`);
+    return dark(
+      `Could not list the fleet's workers in ${STATE_DIR}/: ${why(error)}`,
+    );
   }
 
   const disagreements: Disagreement[] = [];
@@ -660,7 +740,10 @@ async function readDrift(
       });
     }
     if (!row.held) continue;
-    const log = await readMaybe(join(stateDir, `${row.id}${STATUS_SUFFIX}`), signal);
+    const log = await readMaybe(
+      join(stateDir, `${row.id}${STATUS_SUFFIX}`),
+      signal,
+    );
     if (log === null) continue;
     if (readsAsAnswered(log)) {
       disagreements.push({
@@ -691,7 +774,8 @@ export async function readFleetHomeHealth(
 ): Promise<HealthReading> {
   try {
     const entry = await withDeadline(stat(home), signal);
-    if (!entry.isDirectory()) return dark(`The fleet home is not a directory: ${home}`);
+    if (!entry.isDirectory())
+      return dark(`The fleet home is not a directory: ${home}`);
   } catch (error) {
     return dark(`Could not read the fleet home: ${why(error)}`);
   }

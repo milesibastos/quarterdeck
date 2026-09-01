@@ -148,25 +148,30 @@ export function DeckLens({
 }) {
   const { rest } = needsYou(lens.content, fleet);
   const shown =
-    rest.held.length + rest.blocked.length + rest.queued.length + rest.inFlight.length;
+    rest.held.length +
+    rest.blocked.length +
+    rest.queued.length +
+    rest.inFlight.length;
 
   return (
     <LensFrame lens={lens} name="deck" title="Deck" summary={sizeOf(shown)}>
       {/* How old the picture is, which the frame's one line deliberately does
           not say - it names the policy that was breached instead. */}
       {lens.status.state === "stale" && (
-        <GrokEvent
-            label={`Current as of ${ago(lens.status.asOf, nowMs)}.`}
-        />
+        <GrokEvent label={`Current as of ${ago(lens.status.asOf, nowMs)}.`} />
       )}
       {lens.status.state === "unreadable" && lens.content.length > 0 && (
         <GrokEvent
-            label={`The read failed ${ago(lens.status.observedAt, nowMs)}; showing the last deck that read cleanly.`}
+          label={`The read failed ${ago(lens.status.observedAt, nowMs)}; showing the last deck that read cleanly.`}
         />
       )}
 
       {shown === 0 ? (
-        <EmptyDeck status={lens.status} nowMs={nowMs} counted={lens.content.length} />
+        <EmptyDeck
+          status={lens.status}
+          nowMs={nowMs}
+          counted={lens.content.length}
+        />
       ) : (
         <div className="flex flex-col gap-4">
           {/* Held, but not for a person: a queue, a date, or a word this build

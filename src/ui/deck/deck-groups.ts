@@ -63,10 +63,19 @@ const DECK_STATE_WORDS: Readonly<Record<DeckItem["state"], string>> = {
   "in-flight": "in flight",
 };
 
-function resolve(id: string, deck: ReadonlyMap<string, DeckItem>, fleet: ReadonlyMap<string, Worker>): Blocker {
+function resolve(
+  id: string,
+  deck: ReadonlyMap<string, DeckItem>,
+  fleet: ReadonlyMap<string, Worker>,
+): Blocker {
   const queued = deck.get(id);
   if (queued !== undefined) {
-    return { id, label: queued.title, where: DECK_STATE_WORDS[queued.state], cleared: false };
+    return {
+      id,
+      label: queued.title,
+      where: DECK_STATE_WORDS[queued.state],
+      cleared: false,
+    };
   }
 
   const running = fleet.get(id);
@@ -109,14 +118,23 @@ export interface DeckGroups {
 }
 
 /** The order work will be taken in. Within a tier, upstream's order stands. */
-const PRIORITY_ORDER: Readonly<Record<Priority, number>> = { now: 0, next: 1, later: 2 };
+const PRIORITY_ORDER: Readonly<Record<Priority, number>> = {
+  now: 0,
+  next: 1,
+  later: 2,
+};
 
-export function groupDeck(items: readonly DeckItem[], fleet: readonly Worker[]): DeckGroups {
+export function groupDeck(
+  items: readonly DeckItem[],
+  fleet: readonly Worker[],
+): DeckGroups {
   const deckById = new Map(items.map((item) => [item.id, item]));
   const fleetById = new Map(fleet.map((worker) => [worker.id, worker]));
 
   const rows = items.map((item): DeckRow => {
-    const blockers = (item.blocked?.ids ?? []).map((id) => resolve(id, deckById, fleetById));
+    const blockers = (item.blocked?.ids ?? []).map((id) =>
+      resolve(id, deckById, fleetById),
+    );
     return {
       item,
       blocking: blockers.filter((blocker) => !blocker.cleared),
@@ -125,7 +143,10 @@ export function groupDeck(items: readonly DeckItem[], fleet: readonly Worker[]):
   });
 
   const byPriority = (pile: readonly DeckRow[]): readonly DeckRow[] =>
-    [...pile].sort((a, b) => PRIORITY_ORDER[a.item.priority] - PRIORITY_ORDER[b.item.priority]);
+    [...pile].sort(
+      (a, b) =>
+        PRIORITY_ORDER[a.item.priority] - PRIORITY_ORDER[b.item.priority],
+    );
 
   return {
     // Actionable first: a decision that can be taken now must not be buried
@@ -133,16 +154,22 @@ export function groupDeck(items: readonly DeckItem[], fleet: readonly Worker[]):
     held: rows
       .filter((row) => row.item.hold !== null)
       .sort((a, b) => Number(b.item.actionable) - Number(a.item.actionable)),
-    blocked: rows.filter((row) => row.item.hold === null && row.blocking.length > 0),
+    blocked: rows.filter(
+      (row) => row.item.hold === null && row.blocking.length > 0,
+    ),
     queued: byPriority(
       rows.filter(
         (row) =>
-          row.item.hold === null && row.blocking.length === 0 && row.item.state === "queued",
+          row.item.hold === null &&
+          row.blocking.length === 0 &&
+          row.item.state === "queued",
       ),
     ),
     inFlight: rows.filter(
       (row) =>
-        row.item.hold === null && row.blocking.length === 0 && row.item.state === "in-flight",
+        row.item.hold === null &&
+        row.blocking.length === 0 &&
+        row.item.state === "in-flight",
     ),
   };
 }

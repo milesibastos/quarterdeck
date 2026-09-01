@@ -47,10 +47,13 @@ function stubRunner(answer: (url: string) => string | Error): Runner & {
   return {
     calls,
     run(command: string, args: readonly string[]) {
-      const url = args.find((arg) => arg.startsWith("url="))?.slice("url=".length) ?? "";
+      const url =
+        args.find((arg) => arg.startsWith("url="))?.slice("url=".length) ?? "";
       calls.push(`${command} ${url}`);
       const result = answer(url);
-      return result instanceof Error ? Promise.reject(result) : Promise.resolve(result);
+      return result instanceof Error
+        ? Promise.reject(result)
+        : Promise.resolve(result);
     },
   };
 }
@@ -147,7 +150,9 @@ describe("the cost rule", () => {
 
   test("a pull request nothing has read keeps saying nobody has read it", () => {
     const cache = cacheOn(async () => A_READING, movableClock(0));
-    const applied = cache.applyTo(snapshotOf([taskWith("wi-northreach-1", UNREAD)]));
+    const applied = cache.applyTo(
+      snapshotOf([taskWith("wi-northreach-1", UNREAD)]),
+    );
     // Absent, which the projection reports as `not-looked-up`. Filling it with
     // anything else here would be the panel answering a question nobody asked.
     assert.equal(applied.tasks[0].pr.checks, null);
@@ -189,7 +194,11 @@ describe("the cost rule", () => {
 
     clock.advance(FORGE_MIN_INTERVAL_MS - 1);
     cache.refresh(snapshot, () => {});
-    assert.equal(calls.length, 1, "a second before the floor expires, still one");
+    assert.equal(
+      calls.length,
+      1,
+      "a second before the floor expires, still one",
+    );
 
     clock.advance(1);
     const second = published();
@@ -217,7 +226,11 @@ describe("the cost rule", () => {
     // render into another call to it. The floor is stamped when a read is
     // scheduled, so it applies whatever the read came back with.
     for (let i = 0; i < 5; i++) cache.refresh(snapshot, () => {});
-    assert.equal(calls, 1, "a refusing forge is asked once a minute, like any other");
+    assert.equal(
+      calls,
+      1,
+      "a refusing forge is asked once a minute, like any other",
+    );
   });
 
   test("asks once for a pull request two workers share", async () => {
@@ -238,7 +251,11 @@ describe("the cost rule", () => {
       done.onRead,
     );
     await done.promise;
-    assert.deepEqual(calls, [A_URL, B_URL], "one call per address, not per worker");
+    assert.deepEqual(
+      calls,
+      [A_URL, B_URL],
+      "one call per address, not per worker",
+    );
   });
 
   test("never asks about a worker with no pull request", async () => {
@@ -250,7 +267,9 @@ describe("the cost rule", () => {
     }, clock);
 
     cache.refresh(
-      snapshotOf([taskWith("wi-northreach-1", { url: null, checks: null, review: null })]),
+      snapshotOf([
+        taskWith("wi-northreach-1", { url: null, checks: null, review: null }),
+      ]),
       () => {},
     );
     assert.deepEqual(calls, [], "there is nothing to ask about");
@@ -285,7 +304,11 @@ describe("what a read puts on the snapshot", () => {
       as_of: "2099-01-01T09:10:00.000Z",
     } as const;
     const snapshot = snapshotOf([
-      taskWith("wi-northreach-1", { url: A_URL, checks: upstream, review: null }),
+      taskWith("wi-northreach-1", {
+        url: A_URL,
+        checks: upstream,
+        review: null,
+      }),
     ]);
 
     const done = published();
@@ -313,13 +336,26 @@ describe("what the forge is asked, and what is made of the answer", () => {
     return JSON.stringify({ data: { resource: pullRequest } });
   }
 
-  function rollup(state: string, contexts: unknown[], totalCount = contexts.length) {
+  function rollup(
+    state: string,
+    contexts: unknown[],
+    totalCount = contexts.length,
+  ) {
     return {
       __typename: "PullRequest",
       comments: { totalCount: 0, nodes: [] },
       reviews: { totalCount: 0, nodes: [] },
       commits: {
-        nodes: [{ commit: { statusCheckRollup: { state, contexts: { totalCount, nodes: contexts } } } }],
+        nodes: [
+          {
+            commit: {
+              statusCheckRollup: {
+                state,
+                contexts: { totalCount, nodes: contexts },
+              },
+            },
+          },
+        ],
       },
     };
   }
@@ -336,7 +372,11 @@ describe("what the forge is asked, and what is made of the answer", () => {
     const { read } = forgeOn(() =>
       forgeAnswer(
         rollup("FAILURE", [
-          { __typename: "CheckRun", status: "COMPLETED", conclusion: "FAILURE" },
+          {
+            __typename: "CheckRun",
+            status: "COMPLETED",
+            conclusion: "FAILURE",
+          },
           { __typename: "CheckRun", status: "IN_PROGRESS", conclusion: null },
           { __typename: "StatusContext", state: "PENDING" },
         ]),
@@ -359,7 +399,13 @@ describe("what the forge is asked, and what is made of the answer", () => {
       forgeAnswer(
         rollup(
           "FAILURE",
-          [{ __typename: "CheckRun", status: "COMPLETED", conclusion: "FAILURE" }],
+          [
+            {
+              __typename: "CheckRun",
+              status: "COMPLETED",
+              conclusion: "FAILURE",
+            },
+          ],
           127,
         ),
       ),
@@ -374,7 +420,11 @@ describe("what the forge is asked, and what is made of the answer", () => {
     const { read } = forgeOn(() =>
       forgeAnswer(
         rollup("PENDING", [
-          { __typename: "CheckRun", status: "COMPLETED", conclusion: "SUCCESS" },
+          {
+            __typename: "CheckRun",
+            status: "COMPLETED",
+            conclusion: "SUCCESS",
+          },
           { __typename: "CheckRun", status: "IN_PROGRESS", conclusion: null },
           { __typename: "StatusContext", state: "PENDING" },
         ]),
@@ -383,7 +433,10 @@ describe("what the forge is asked, and what is made of the answer", () => {
     const reading = await read(A_URL, AbortSignal.timeout(1_000));
     assert.equal(reading.checks.read === "ok" && reading.checks.finished, 1);
     assert.equal(reading.checks.read === "ok" && reading.checks.total, 3);
-    assert.equal(reading.checks.read === "ok" && reading.checks.outcome, "pending");
+    assert.equal(
+      reading.checks.read === "ok" && reading.checks.outcome,
+      "pending",
+    );
   });
 
   test("a pull request with no checks is answered, not left unread", async () => {
@@ -417,7 +470,10 @@ describe("what the forge is asked, and what is made of the answer", () => {
         reviews: {
           totalCount: 2,
           nodes: [
-            { author: { __typename: "User" }, body: "one test addition would help" },
+            {
+              author: { __typename: "User" },
+              body: "one test addition would help",
+            },
             // An approval with no words is a person having read it, which is a
             // different fact from their having said something.
             { author: { __typename: "User" }, body: "" },
@@ -447,12 +503,15 @@ describe("what the forge is asked, and what is made of the answer", () => {
   });
 
   test("a forge that could not be reached is unreadable, never unasked", async () => {
-    const { read } = forgeOn(() => new CommandError("gh", 4, "not authenticated", "failed"));
+    const { read } = forgeOn(
+      () => new CommandError("gh", 4, "not authenticated", "failed"),
+    );
     const reading = await read(A_URL, AbortSignal.timeout(1_000));
     assert.equal(reading.checks.read, "unreadable");
     assert.equal(reading.review.read, "unreadable");
     assert.ok(
-      reading.checks.read === "unreadable" && reading.checks.detail.includes("not authenticated"),
+      reading.checks.read === "unreadable" &&
+        reading.checks.detail.includes("not authenticated"),
       "the line an operator can act on, not a bare failure",
     );
   });
@@ -461,7 +520,10 @@ describe("what the forge is asked, and what is made of the answer", () => {
     const { read } = forgeOn(() => forgeAnswer(null));
     const reading = await read(A_URL, AbortSignal.timeout(1_000));
     assert.equal(reading.checks.read, "unreadable");
-    assert.ok(reading.review.read === "unreadable" && reading.review.detail.includes(A_URL));
+    assert.ok(
+      reading.review.read === "unreadable" &&
+        reading.review.detail.includes(A_URL),
+    );
   });
 
   test("an address that resolves to something other than a pull request is unreadable", async () => {

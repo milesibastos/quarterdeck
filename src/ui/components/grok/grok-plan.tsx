@@ -56,7 +56,9 @@ export function GrokPlan({
   className?: string;
 }) {
   return (
-    <div className={cn("space-y-3 font-mono text-[13px] leading-[1.5]", className)}>
+    <div
+      className={cn("space-y-3 font-mono text-[13px] leading-[1.5]", className)}
+    >
       <div
         className="overflow-hidden rounded-sm border"
         style={{ borderColor: BORDER }}
@@ -76,7 +78,10 @@ export function GrokPlan({
           </span>
         </div>
 
-        <ol className="max-h-[16rem] overflow-auto px-2 py-1.5" style={{ color: FG }}>
+        <ol
+          className="max-h-[16rem] overflow-auto px-2 py-1.5"
+          style={{ color: FG }}
+        >
           {lines.map((line, i) => (
             <li key={i} className="flex gap-2">
               <span
@@ -86,7 +91,9 @@ export function GrokPlan({
               >
                 {i + 1}
               </span>
-              <span className="min-w-0 whitespace-pre-wrap">{line || "\u00a0"}</span>
+              <span className="min-w-0 whitespace-pre-wrap">
+                {line || "\u00a0"}
+              </span>
             </li>
           ))}
         </ol>

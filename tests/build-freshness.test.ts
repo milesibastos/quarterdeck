@@ -33,7 +33,9 @@ const BUILD_INPUTS = [
 
 test("the build is newer than the source it was built from", () => {
   const builtAt = existsSync(SERVER_ENTRY) ? statSync(SERVER_ENTRY).mtimeMs : 0;
-  const sourceAt = Math.max(...BUILD_INPUTS.map((p) => newestMtime(join(REPO_ROOT, p))));
+  const sourceAt = Math.max(
+    ...BUILD_INPUTS.map((p) => newestMtime(join(REPO_ROOT, p))),
+  );
 
   assert.ok(
     builtAt > sourceAt,
@@ -41,9 +43,10 @@ test("the build is newer than the source it was built from", () => {
       slug: "stale-build",
       file: ".next/standalone/server.js",
       line: 1,
-      what: builtAt === 0
-        ? "There is no built output. The suite drives the built server, not src/."
-        : "The build is older than the source. The suite drives the built server, not src/.",
+      what:
+        builtAt === 0
+          ? "There is no built output. The suite drives the built server, not src/."
+          : "The build is older than the source. The suite drives the built server, not src/.",
       why: "Tests that read src/ would pass against code nobody is running, which is exactly the failure a test suite exists to prevent.",
       fix: "Run npm run build, then npm test again.",
       doc: "docs/ARCHITECTURE.md - tests",

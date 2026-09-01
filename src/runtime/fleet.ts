@@ -28,14 +28,18 @@ const LENS_NAMES = ["fleet", "deck", "landed", "health"] as const;
 
 /** Which lenses a document is showing as unreadable, named rather than counted. */
 function unreadableLenses(document: PanelDocument): readonly string[] {
-  return LENS_NAMES.filter((name) => document[name].status.state === "unreadable");
+  return LENS_NAMES.filter(
+    (name) => document[name].status.state === "unreadable",
+  );
 }
 
 /** "the fleet lens" / "the fleet and deck lenses" / "the fleet, deck and landed lenses". */
 function describeLenses(names: readonly string[]): string {
   const noun = names.length === 1 ? "lens" : "lenses";
   const list =
-    names.length <= 2 ? names.join(" and ") : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+    names.length <= 2
+      ? names.join(" and ")
+      : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
   return `the ${list} ${noun}`;
 }
 
@@ -49,7 +53,7 @@ function describeLenses(names: readonly string[]): string {
  * place, so an expanded card stays expanded and the scroll does not jump.
  */
 
-export interface RuntimeDeps {
+interface RuntimeDeps {
   readonly config: Config;
   readonly source: SnapshotSource;
   readonly clock: Clock;
@@ -142,7 +146,8 @@ export class FleetRuntime {
   }
 
   async #read(): Promise<PanelDocument> {
-    const { config, source, clock, logger, healthDir, fleetHome, forge } = this.#deps;
+    const { config, source, clock, logger, healthDir, fleetHome, forge } =
+      this.#deps;
     const options = { clock, staleAfterMs: config.staleAfterMs };
 
     // Read first and unconditionally: health never throws, and it is the one
@@ -161,7 +166,11 @@ export class FleetRuntime {
       // that the document - and with it the omissions list - is built once from
       // one snapshot. A pull request nothing has read yet keeps upstream's
       // absent block and reads as `not-looked-up`, which is what it is.
-      const document = projectDocument(forge?.applyTo(snapshot) ?? snapshot, health, options);
+      const document = projectDocument(
+        forge?.applyTo(snapshot) ?? snapshot,
+        health,
+        options,
+      );
       this.#lastKnownGood = document;
       this.#stale = false;
       // Last, and deliberately: this schedules network calls and returns, so
@@ -177,10 +186,18 @@ export class FleetRuntime {
       if (error instanceof ContractIdentifierError) throw error;
 
       const detail = error instanceof Error ? error.message : String(error);
-      const document = withSnapshotUnreadable(this.#lastKnownGood, detail, health, options);
-      logger.warn(`fleet read failed; showing ${describeLenses(unreadableLenses(document))} as unreadable`, {
+      const document = withSnapshotUnreadable(
+        this.#lastKnownGood,
         detail,
-      });
+        health,
+        options,
+      );
+      logger.warn(
+        `fleet read failed; showing ${describeLenses(unreadableLenses(document))} as unreadable`,
+        {
+          detail,
+        },
+      );
       // Deliberately leaves `#stale` set, so the next render tries again.
       return document;
     }
@@ -299,7 +316,10 @@ export function fleetRuntime(config: Config, fleet: FleetRef): FleetRuntime {
  * kinds are already told apart, and one file deciding "home or fixture" is what
  * keeps a fixture fleet behaving exactly as a real one does.
  */
-export function terminalSourceFor(config: Config, fleet: FleetRef): TerminalSource {
+export function terminalSourceFor(
+  config: Config,
+  fleet: FleetRef,
+): TerminalSource {
   return fleet.source.kind === "home"
     ? fleetTerminalSource(fleet.source.home, childProcessRunner, process.env)
     : fixtureTerminalSource(config.fixtureRoot, fleet.source.set);
@@ -326,7 +346,12 @@ function forgeFor(config: Config, clock: Clock): ForgeCache | null {
 /** How one fleet's source, watchers and health reading are wired. */
 function depsFor(config: Config, fleet: FleetRef): RuntimeDeps {
   const clock = clockFor(config);
-  const common = { config, clock, logger: consoleLogger, forge: forgeFor(config, clock) };
+  const common = {
+    config,
+    clock,
+    logger: consoleLogger,
+    forge: forgeFor(config, clock),
+  };
 
   if (fleet.source.kind === "home") {
     const { home } = fleet.source;

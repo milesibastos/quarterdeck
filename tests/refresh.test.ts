@@ -26,11 +26,18 @@ async function nextEvent(
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch(`${url}/api/events`, { signal: controller.signal });
-    assert.equal(response.headers.get("content-type"), "text/event-stream; charset=utf-8");
+    const response = await fetch(`${url}/api/events`, {
+      signal: controller.signal,
+    });
+    assert.equal(
+      response.headers.get("content-type"),
+      "text/event-stream; charset=utf-8",
+    );
 
     let buffer = "";
-    const reader = response.body!.pipeThrough(new TextDecoderStream()).getReader();
+    const reader = response
+      .body!.pipeThrough(new TextDecoderStream())
+      .getReader();
     for (;;) {
       const { value, done } = await reader.read();
       if (done) throw new Error("the channel closed before the signal arrived");
@@ -56,7 +63,11 @@ describe("the refresh loop", () => {
 
   before(async () => {
     const fixtureRoot = await copyFixtures();
-    panel = await startPanel({ port: nextPort(), fixtureSet: "healthy", fixtureRoot });
+    panel = await startPanel({
+      port: nextPort(),
+      fixtureSet: "healthy",
+      fixtureRoot,
+    });
     snapshot = join(fixtureRoot, "healthy", "snapshot.json");
   });
   after(() => panel.stop());
@@ -89,7 +100,11 @@ describe("the refresh loop", () => {
 
     const { event, data } = await signal;
     assert.equal(event, "fleet-changed");
-    assert.equal(data, "", "the signal carries no data; the page re-renders to get it");
+    assert.equal(
+      data,
+      "",
+      "the signal carries no data; the page re-renders to get it",
+    );
   });
 
   test("the next render reflects the change", async () => {

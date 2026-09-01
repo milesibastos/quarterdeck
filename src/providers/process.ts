@@ -29,7 +29,11 @@ export interface RunOptions {
 
 export interface Runner {
   /** Standard output, decoded as UTF-8. Rejects with `CommandError` otherwise. */
-  run(command: string, args: readonly string[], options: RunOptions): Promise<string>;
+  run(
+    command: string,
+    args: readonly string[],
+    options: RunOptions,
+  ): Promise<string>;
 }
 
 /**
@@ -49,10 +53,19 @@ export class CommandError extends Error {
   // Written out rather than declared as constructor parameters: the test suite
   // runs TypeScript through Node's strip-only loader, which cannot erase a
   // parameter property, and this file is reached from tests.
-  constructor(command: string, exitCode: number | null, stderr: string, detail: string) {
+  constructor(
+    command: string,
+    exitCode: number | null,
+    stderr: string,
+    detail: string,
+  ) {
     super(
       `${command} ${exitCode === null ? detail : `exited ${exitCode}`}` +
-        (stderr ? `: ${stderr}` : detail && exitCode !== null ? `: ${detail}` : ""),
+        (stderr
+          ? `: ${stderr}`
+          : detail && exitCode !== null
+            ? `: ${detail}`
+            : ""),
     );
     this.command = command;
     this.exitCode = exitCode;
@@ -89,13 +102,24 @@ export const childProcessRunner: Runner = {
           encoding: "utf8",
           maxBuffer: MAX_OUTPUT_BYTES,
         },
-        (error: (Error & { code?: unknown }) | null, stdout: string, stderr: string) => {
+        (
+          error: (Error & { code?: unknown }) | null,
+          stdout: string,
+          stderr: string,
+        ) => {
           if (!error) return resolve(stdout);
           // `code` is the exit status for a command that ran and failed, and
           // absent when the failure was this side of it - not found, aborted,
           // output past the buffer. The two read differently to an operator.
           const exitCode = typeof error.code === "number" ? error.code : null;
-          reject(new CommandError(command, exitCode, firstLines(stderr), error.message));
+          reject(
+            new CommandError(
+              command,
+              exitCode,
+              firstLines(stderr),
+              error.message,
+            ),
+          );
         },
       );
     });

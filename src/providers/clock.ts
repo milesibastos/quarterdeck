@@ -25,7 +25,8 @@ export const systemClock: Clock = {
  * instant. Shared so the contract boundary and the config boundary cannot
  * drift into checking "ISO-8601 instant" two different ways.
  */
-const ISO_INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/;
+const ISO_INSTANT =
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,9})?(Z|[+-]\d{2}:\d{2})$/;
 
 export function isIsoInstant(text: string): boolean {
   return ISO_INSTANT.test(text) && !Number.isNaN(Date.parse(text));

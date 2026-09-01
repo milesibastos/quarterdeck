@@ -51,7 +51,11 @@ function allocatorNamesOf(root: ts.Node): Set<string> {
 function declarationsByName(root: ts.Node): Map<string, ts.Expression[]> {
   const map = new Map<string, ts.Expression[]>();
   const visit = (node: ts.Node) => {
-    if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer
+    ) {
       const list = map.get(node.name.text) ?? [];
       list.push(node.initializer);
       map.set(node.name.text, list);
@@ -67,7 +71,11 @@ function portArgumentOf(call: ts.CallExpression): ts.Expression | undefined {
   const [arg] = call.arguments;
   if (!arg || !ts.isObjectLiteralExpression(arg)) return undefined;
   for (const prop of arg.properties) {
-    if (ts.isPropertyAssignment(prop) && ts.isIdentifier(prop.name) && prop.name.text === "port") {
+    if (
+      ts.isPropertyAssignment(prop) &&
+      ts.isIdentifier(prop.name) &&
+      prop.name.text === "port"
+    ) {
       return prop.initializer;
     }
     if (ts.isShorthandPropertyAssignment(prop) && prop.name.text === "port") {
@@ -97,7 +105,9 @@ function isAllocatorDerived(
     seen.add(expr.text);
     const decls = declByName.get(expr.text);
     if (!decls || decls.length === 0) return false;
-    return decls.every((decl) => isAllocatorDerived(decl, allocatorNames, declByName, seen));
+    return decls.every((decl) =>
+      isAllocatorDerived(decl, allocatorNames, declByName, seen),
+    );
   }
   return false;
 }
@@ -111,7 +121,9 @@ const FIX =
   "pass `nextPort()`, or a local drawn from it, for every panel.";
 const DOC = "tests/lib/ports.ts - one block per test file";
 
-export function checkHandPickedPorts(files: readonly SourceFile[]): Violation[] {
+export function checkHandPickedPorts(
+  files: readonly SourceFile[],
+): Violation[] {
   const violations: Violation[] = [];
 
   for (const file of files) {
@@ -127,12 +139,17 @@ export function checkHandPickedPorts(files: readonly SourceFile[]): Violation[] 
     const allocatorNames = allocatorNamesOf(sourceFile);
     const declByName = declarationsByName(sourceFile);
     const lineOf = (node: ts.Node) =>
-      sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1;
+      sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line +
+      1;
 
     let sawStartPanel = false;
 
     const visit = (node: ts.Node) => {
-      if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && node.expression.text === "startPanel") {
+      if (
+        ts.isCallExpression(node) &&
+        ts.isIdentifier(node.expression) &&
+        node.expression.text === "startPanel"
+      ) {
         sawStartPanel = true;
         const portExpr = portArgumentOf(node);
         if (!portExpr) {

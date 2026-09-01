@@ -37,12 +37,17 @@ function lens(html: string, name: string): string {
 
 /** What a fragment of markup actually says, with the tags and classes gone. */
 function text(html: string): string {
-  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 /** The work items one band drew, in the order it drew them. */
 function items(html: string, name: string): string[] {
-  return [...lens(html, name).matchAll(/data-deck-item="([^"]+)"/g)].map((match) => match[1]);
+  return [...lens(html, name).matchAll(/data-deck-item="([^"]+)"/g)].map(
+    (match) => match[1],
+  );
 }
 
 describe("what needs the operator, with a deck that has plenty in it", () => {
@@ -81,7 +86,11 @@ describe("what needs the operator, with a deck that has plenty in it", () => {
   test("no deck row is drawn by neither band", async () => {
     const html = await body(panel);
     const drawn = [...items(html, "needs-you"), ...items(html, "deck")];
-    assert.equal(new Set(drawn).size, drawn.length, "and none is drawn by both");
+    assert.equal(
+      new Set(drawn).size,
+      drawn.length,
+      "and none is drawn by both",
+    );
     // Fifteen rows in, fifteen rows out. A row that belongs to one list and is
     // shown in neither is precisely the bug this layout is built against.
     assert.equal(drawn.length, 15);
@@ -89,7 +98,11 @@ describe("what needs the operator, with a deck that has plenty in it", () => {
 
   test("the deck below counts only what it is holding", async () => {
     const html = await body(panel);
-    assert.match(lens(html, "deck"), /11 items/, "fifteen rows less the four decisions");
+    assert.match(
+      lens(html, "deck"),
+      /11 items/,
+      "fifteen rows less the four decisions",
+    );
   });
 });
 
@@ -132,7 +145,10 @@ describe("a deck that could not be read", () => {
 
   test("reports no count at all, rather than the count zero", async () => {
     const band = lens(await body(panel), "needs-you");
-    const header = /<header role="status" data-lens-headline[\s\S]*?<\/header>/.exec(band)?.[0];
+    const header =
+      /<header role="status" data-lens-headline[\s\S]*?<\/header>/.exec(
+        band,
+      )?.[0];
     assert.ok(header, "the band drew its pinned header");
     const said = text(header);
 
@@ -144,8 +160,14 @@ describe("a deck that could not be read", () => {
     // quantity anywhere on the band to be believed.
     assert.ok(said.includes("Could not be read"), said);
     assert.ok(!said.includes("·"), `the header appended a summary: ${said}`);
-    assert.ok(!/\d+ decisions?/.test(text(band)), `the band claimed a count: ${text(band)}`);
-    assert.ok(!/to answer/.test(text(band)), `the band claimed something answerable`);
+    assert.ok(
+      !/\d+ decisions?/.test(text(band)),
+      `the band claimed a count: ${text(band)}`,
+    );
+    assert.ok(
+      !/to answer/.test(text(band)),
+      `the band claimed something answerable`,
+    );
   });
 
   test("and carries the unreadable trust word into its own header", async () => {
@@ -184,10 +206,17 @@ describe("an empty deck and an unreadable one, side by side", () => {
 describe("a deck that stops reading but still carries decisions from before", () => {
   test("keeps the count and its header, under a caveat no reader can miss", async () => {
     const fixtureRoot = await copyFixtures();
-    const panel = await startPanel({ port: nextPort(), fixtureSet: "healthy", fixtureRoot });
+    const panel = await startPanel({
+      port: nextPort(),
+      fixtureSet: "healthy",
+      fixtureRoot,
+    });
     try {
       const initial = items(await body(panel), "needs-you");
-      assert.deepEqual(initial.sort(), ["wi-driftwood-540", "wi-tidewater-126"]);
+      assert.deepEqual(initial.sort(), [
+        "wi-driftwood-540",
+        "wi-tidewater-126",
+      ]);
 
       // Truncate the snapshot under the running panel, the same way
       // tests/panel.test.ts does to take the fleet and deck lenses dark.
@@ -198,16 +227,23 @@ describe("a deck that stops reading but still carries decisions from before", ()
 
       const html = await until(
         () => body(panel),
-        (text) => /data-lens="needs-you" data-lens-status="unreadable"/.test(text),
+        (text) =>
+          /data-lens="needs-you" data-lens-status="unreadable"/.test(text),
       );
       const band = lens(html, "needs-you");
 
       // The decisions from the last clean read are still drawn, and the header
       // still counts them - a read failing does not erase what was last known,
       // and this is not the "Unknown, not nothing" case.
-      assert.deepEqual(items(html, "needs-you").sort(), ["wi-driftwood-540", "wi-tidewater-126"]);
+      assert.deepEqual(items(html, "needs-you").sort(), [
+        "wi-driftwood-540",
+        "wi-tidewater-126",
+      ]);
       assert.ok(!band.includes("Unknown, not nothing"));
-      const header = /<header role="status" data-lens-headline[\s\S]*?<\/header>/.exec(band)?.[0];
+      const header =
+        /<header role="status" data-lens-headline[\s\S]*?<\/header>/.exec(
+          band,
+        )?.[0];
       assert.ok(header, "the band drew its pinned header");
       assert.match(text(header), /2 decisions · 2 to answer/);
 
@@ -231,7 +267,9 @@ describe("an under-filled band", () => {
 
   test("keeps the size it is given rather than shrinking to its contents", async () => {
     const html = await body(panel);
-    const section = /<section data-lens="needs-you"[^>]*class="([^"]*)"/.exec(html)?.[1];
+    const section = /<section data-lens="needs-you"[^>]*class="([^"]*)"/.exec(
+      html,
+    )?.[1];
     assert.ok(section, "the band drew its own section");
     // Two decisions in a band sized for a first screen. The slack is the whole
     // mechanism: a zone that shrinks to fit makes two look as complete as
@@ -240,7 +278,10 @@ describe("an under-filled band", () => {
       /md:min-h-\[\d+svh\]/.test(section),
       "the band's height is a rule, not a measurement of what is in it",
     );
-    assert.deepEqual(items(html, "needs-you"), ["wi-tidewater-126", "wi-driftwood-540"]);
+    assert.deepEqual(items(html, "needs-you"), [
+      "wi-tidewater-126",
+      "wi-driftwood-540",
+    ]);
   });
 
   test("draws its decisions as cards in a grid, with the answer control on them", async () => {

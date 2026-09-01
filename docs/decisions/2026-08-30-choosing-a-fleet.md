@@ -24,7 +24,7 @@ of: a fleet home whose snapshot command is run, or a committed fixture set.
 
 **The list is configuration, and keeps the reader's notion of a fleet.**
 `QUARTERDECK_FLEET_HOME` and `QUARTERDECK_FIXTURE_SET` each take a
-colon-separated list. Nothing new decides what a fleet *is*: a fleet's identity
+colon-separated list. Nothing new decides what a fleet _is_: a fleet's identity
 is still its home path or its fixture set name, and `id` and `label` in
 `FleetRef` are derived from that one identity rather than being a second one. A
 home wins over the fixture sets exactly as it always did.

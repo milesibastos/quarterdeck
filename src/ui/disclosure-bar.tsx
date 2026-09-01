@@ -48,7 +48,11 @@ import { ago } from "@/ui/lib/age";
  */
 
 /** The three reasons, in the order they are drawn. */
-const ORDER: readonly OmissionReason[] = ["not-shown", "not-looked-up", "unreadable"];
+const ORDER: readonly OmissionReason[] = [
+  "not-shown",
+  "not-looked-up",
+  "unreadable",
+];
 
 /**
  * The operator's words for the three reasons.
@@ -65,8 +69,10 @@ const REASON: Readonly<Record<OmissionReason, string>> = {
 
 /** One line under each heading, saying what that reason means. */
 const MEANING: Readonly<Record<OmissionReason, string>> = {
-  "not-shown": "A bound was applied. It exists; this page is not drawing all of it.",
-  "not-looked-up": "Nobody has asked. The read is available and has not been done.",
+  "not-shown":
+    "A bound was applied. It exists; this page is not drawing all of it.",
+  "not-looked-up":
+    "Nobody has asked. The read is available and has not been done.",
   unreadable: "A read was attempted and failed. What is there is unknown.",
 };
 
@@ -80,14 +86,25 @@ const MEANING: Readonly<Record<OmissionReason, string>> = {
  * the other is worse than either, because a reader scanning the page takes the
  * short line and moves on.
  */
-function tally(omissions: readonly Omission[], snapshot: Lens<unknown>["status"]): string {
+function tally(
+  omissions: readonly Omission[],
+  snapshot: Lens<unknown>["status"],
+): string {
   if (omissions.length > 0) {
     return `${omissions.length} ${omissions.length === 1 ? "absence" : "absences"}`;
   }
-  return snapshot.state === "unreadable" ? "not accounted for" : "nothing omitted";
+  return snapshot.state === "unreadable"
+    ? "not accounted for"
+    : "nothing omitted";
 }
 
-function Group({ reason, omissions }: { reason: OmissionReason; omissions: readonly Omission[] }) {
+function Group({
+  reason,
+  omissions,
+}: {
+  reason: OmissionReason;
+  omissions: readonly Omission[];
+}) {
   if (omissions.length === 0) return null;
   return (
     <section
@@ -99,9 +116,13 @@ function Group({ reason, omissions }: { reason: OmissionReason; omissions: reado
           ◆
         </span>
         <span className="min-w-0">{REASON[reason]}</span>
-        <span className="shrink-0 tabular-nums text-term-faint">[{omissions.length}]</span>
+        <span className="shrink-0 tabular-nums text-term-faint">
+          [{omissions.length}]
+        </span>
       </h3>
-      <p className="pl-4 text-[12px] wrap-anywhere text-term-muted">{MEANING[reason]}</p>
+      <p className="pl-4 text-[12px] wrap-anywhere text-term-muted">
+        {MEANING[reason]}
+      </p>
       <ul className="mt-0.5 flex min-w-0 flex-col gap-1.5 pl-4">
         {omissions.map((omission) => (
           <li
@@ -109,11 +130,15 @@ function Group({ reason, omissions }: { reason: OmissionReason; omissions: reado
             data-omission-reason={omission.reason}
             className="min-w-0 border-l-2 border-term-rule pl-2.5"
           >
-            <p className="min-w-0 wrap-anywhere text-term-fg">{omission.what}</p>
+            <p className="min-w-0 wrap-anywhere text-term-fg">
+              {omission.what}
+            </p>
             {/* Upstream's own account of the absence, or the panel's own, as
                 written. A paraphrase here would be the bar restating a fact it
                 did not establish. */}
-            <p className="min-w-0 text-[12px] wrap-anywhere text-term-faint">{omission.detail}</p>
+            <p className="min-w-0 text-[12px] wrap-anywhere text-term-faint">
+              {omission.detail}
+            </p>
           </li>
         ))}
       </ul>
@@ -190,7 +215,10 @@ export function DisclosureBar({
           the grammar's; the words are the page's own.
         */}
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-dashed border-term-rule px-4 py-2 font-mono text-[13px]">
-          <h2 id="disclosure-title" className="min-w-0 font-normal text-term-fg-bright">
+          <h2
+            id="disclosure-title"
+            className="min-w-0 font-normal text-term-fg-bright"
+          >
             <span aria-hidden className="text-term-dim">
               {"─ "}
             </span>
@@ -229,7 +257,9 @@ export function DisclosureBar({
                   <Group
                     key={reason}
                     reason={reason}
-                    omissions={omissions.filter((omission) => omission.reason === reason)}
+                    omissions={omissions.filter(
+                      (omission) => omission.reason === reason,
+                    )}
                   />
                 ))}
               </div>

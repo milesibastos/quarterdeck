@@ -3,7 +3,11 @@
 import { useState } from "react";
 import type { Worker } from "@/types/document.ts";
 import { ago } from "@/ui/lib/age";
-import { ORDER_EXPLAINER, ORDER_RECORDED, ORDER_UNCONFIRMED } from "@/ui/needs-you/merge-copy";
+import {
+  ORDER_EXPLAINER,
+  ORDER_RECORDED,
+  ORDER_UNCONFIRMED,
+} from "@/ui/needs-you/merge-copy";
 
 /**
  * The card that orders a merge, and the second - and last - place the panel
@@ -73,18 +77,27 @@ function ChecksLine({
   checks,
   nowMs,
 }: {
-  checks: { readonly finished: number; readonly total: number; readonly asOf: string };
+  checks: {
+    readonly finished: number;
+    readonly total: number;
+    readonly asOf: string;
+  };
   nowMs: number;
 }) {
   return (
-    <p data-merge-checks="passing" className="flex flex-wrap items-baseline gap-x-1.5 text-[13px]">
+    <p
+      data-merge-checks="passing"
+      className="flex flex-wrap items-baseline gap-x-1.5 text-[13px]"
+    >
       <span aria-hidden className="shrink-0 text-term-success">
         ◆
       </span>
       <span className="text-term-fg">
         {`${checks.finished} of ${checks.total} checks · passing`}
       </span>
-      <span className="shrink-0 text-[12px] text-term-faint">{ago(checks.asOf, nowMs)}</span>
+      <span className="shrink-0 text-[12px] text-term-faint">
+        {ago(checks.asOf, nowMs)}
+      </span>
     </p>
   );
 }
@@ -119,15 +132,22 @@ export function MergeCard({
         },
         body: JSON.stringify({ taskId: worker.id, url }),
       });
-      const body = (await response.json()) as { detail?: string; error?: string };
+      const body = (await response.json()) as {
+        detail?: string;
+        error?: string;
+      };
       if (!response.ok) {
         setOutcome({
           state: "refused",
-          detail: body.error ?? `The panel refused the order (${response.status}).`,
+          detail:
+            body.error ?? `The panel refused the order (${response.status}).`,
         });
         return;
       }
-      setOutcome({ state: "recorded", detail: body.detail ?? "The merge order was recorded." });
+      setOutcome({
+        state: "recorded",
+        detail: body.detail ?? "The merge order was recorded.",
+      });
     } catch (error) {
       // The request may or may not have arrived. Saying so is the only honest
       // report, and re-pressing is safe: the identity is the same either way.
@@ -163,7 +183,11 @@ export function MergeCard({
       <ChecksLine checks={checks} nowMs={nowMs} />
 
       {outcome.state === "recorded" ? (
-        <div role="status" data-merge-ordered={worker.id} className="space-y-0.5">
+        <div
+          role="status"
+          data-merge-ordered={worker.id}
+          className="space-y-0.5"
+        >
           {/* Exactly what is true, and not one word past it. The fleet has not
               been asked yet, and this panel has read nothing since. */}
           <p className="text-[13px] wrap-anywhere text-term-fg">
@@ -172,9 +196,12 @@ export function MergeCard({
           <p className="text-[12px] text-term-faint">{ORDER_UNCONFIRMED}</p>
         </div>
       ) : session === null ? (
-        <p data-merge-unavailable={worker.id} className="text-[12px] text-term-faint">
-          Nothing is configured for this panel to record an order in, so a merge cannot be
-          ordered here.
+        <p
+          data-merge-unavailable={worker.id}
+          className="text-[12px] text-term-faint"
+        >
+          Nothing is configured for this panel to record an order in, so a merge
+          cannot be ordered here.
         </p>
       ) : (
         <div className="space-y-1.5">
@@ -196,7 +223,10 @@ export function MergeCard({
               the operator has to do something, and it lands while their
               attention is on the button they just pressed. */}
           {outcome.state === "refused" && (
-            <p role="alert" className="text-[13px] wrap-anywhere text-term-danger">
+            <p
+              role="alert"
+              className="text-[13px] wrap-anywhere text-term-danger"
+            >
               {outcome.detail}
             </p>
           )}

@@ -1,6 +1,11 @@
 import { cookies } from "next/headers";
 import { ContractIdentifierError } from "@/adapters/contract.ts";
-import { fleetById, loadConfig, type Config, type FleetRef } from "@/config/index.ts";
+import {
+  fleetById,
+  loadConfig,
+  type Config,
+  type FleetRef,
+} from "@/config/index.ts";
 import {
   mergeRequestIdFor,
   requestIdFor,
@@ -74,7 +79,8 @@ function parseAnswer(body: unknown): ParsedAnswer {
     ["label", label],
     ["mode", mode],
   ] as const) {
-    if (value === null) return { ok: false, error: `"${name}" must be a string.` };
+    if (value === null)
+      return { ok: false, error: `"${name}" must be a string.` };
   }
   // The close mode is checked against the fleet's own two and nothing else. A
   // channel may carry what its card declared; it may not invent a third mode.
@@ -99,7 +105,9 @@ function refuse(error: string, status: number): Response {
 }
 
 /** The body as JSON, or the refusal. Both intents want exactly this. */
-async function jsonBody(request: Request): Promise<{ body: unknown } | { error: Response }> {
+async function jsonBody(
+  request: Request,
+): Promise<{ body: unknown } | { error: Response }> {
   try {
     return { body: await request.json() };
   } catch {
@@ -168,7 +176,11 @@ async function answerDecision(request: Request): Promise<Response> {
   // decision is closed is not something this process has read, and the reply
   // must not let a caller believe otherwise.
   return Response.json(
-    { requestId: result.requestId, duplicate: result.duplicate, detail: result.detail },
+    {
+      requestId: result.requestId,
+      duplicate: result.duplicate,
+      detail: result.detail,
+    },
     { status: 200 },
   );
 }
@@ -191,7 +203,8 @@ function parseMerge(body: unknown): ParsedMerge {
     ["taskId", taskId],
     ["url", url],
   ] as const) {
-    if (value === null) return { ok: false, error: `"${name}" must be a string.` };
+    if (value === null)
+      return { ok: false, error: `"${name}" must be a string.` };
   }
   return { ok: true, taskId: taskId as string, url: url as string };
 }
@@ -212,7 +225,8 @@ function notMergeReadyReason(worker: Worker): string {
   if (pr.state !== "open") return "it has landed";
   const checks = pr.checks;
   if (checks.read === "not-looked-up") return "nothing has read its checks";
-  if (checks.read === "unreadable") return `its checks could not be read - ${checks.detail}`;
+  if (checks.read === "unreadable")
+    return `its checks could not be read - ${checks.detail}`;
   return `its checks now read ${checks.finished} of ${checks.total} ${checks.outcome}`;
 }
 
@@ -268,7 +282,9 @@ async function recheck(
     };
   }
 
-  const worker = document.fleet.content.find((candidate) => candidate.id === parsed.taskId);
+  const worker = document.fleet.content.find(
+    (candidate) => candidate.id === parsed.taskId,
+  );
   if (worker === undefined) {
     return {
       ok: false,
@@ -333,7 +349,11 @@ async function mergePullRequest(request: Request): Promise<Response> {
   // later reading of the forge shows it - and the reply must not let a caller
   // believe otherwise.
   return Response.json(
-    { requestId: result.requestId, duplicate: result.duplicate, detail: result.detail },
+    {
+      requestId: result.requestId,
+      duplicate: result.duplicate,
+      detail: result.detail,
+    },
     { status: 200 },
   );
 }

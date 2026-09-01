@@ -1,0 +1,32 @@
+# markdownlint for quarterdeck's 70 tracked `.md` files - the architecture, the
+# contract, the principles and one dated record per settled decision. Until now
+# nothing read any of them.
+#
+# qlty reads this from the repository root. `.qlty/configs/` was tried first and
+# is not a location this CLI looks in (0.644.0), which fails silently: the run
+# reports the same 212 issues as with no config at all.
+#
+# Everything markdownlint offers is on except what is retuned below, and each
+# entry says what it was measured against.
+default: true
+
+# The one rule this project genuinely disagrees with, and only in two places.
+#
+# 80 is the width this repository's prose is already written to, by hand, in
+# every file - so the limit itself stays. What does not fit is:
+#
+#   Tables. `docs/quality.md` is one row per area and one sentence-heavy cell
+#   per row; its longest is over 3,000 characters. Markdown gives a table cell
+#   no way to wrap, so the choice is not "wrap it" but "stop using a table",
+#   and the table is the right shape for a grade per area.
+#
+#   Code blocks. They quote commands, file layouts and record formats verbatim.
+#   Wrapping a quoted line makes it wrong.
+#
+# Measured: 201 of the 212 findings on the first run were these two. Turning
+# both off leaves 14 real over-long prose lines, which were rewrapped rather
+# than excused.
+MD013:
+  line_length: 80
+  tables: false
+  code_blocks: false

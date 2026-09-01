@@ -41,7 +41,7 @@ import {
 const CURRENT_FLEET_CHOICE = '[data-fleet-choice][aria-current="true"]';
 const FLEET_DISCLOSURE = "[data-fleet-open]";
 
-export const FRAME_SHORTCUTS: GrokShortcutGroup[] = [
+const FRAME_SHORTCUTS: GrokShortcutGroup[] = [
   {
     id: "panel",
     label: "Panel",

@@ -29,9 +29,9 @@ several workers build against at once, some filling it and some drawing it.
 
 ```ts
 type LensStatus =
-  | { state: "fresh",      asOf: string }
-  | { state: "stale",      asOf: string, ageMs: number, detail: string }
-  | { state: "unreadable", observedAt: string, detail: string }
+  | { state: "fresh"; asOf: string }
+  | { state: "stale"; asOf: string; ageMs: number; detail: string }
+  | { state: "unreadable"; observedAt: string; detail: string };
 ```
 
 There is deliberately no document-wide `degraded` flag. Fleet and deck come from
@@ -109,8 +109,9 @@ asked. Version 3's single `ChecksState` string could not hold that distinction:
 
 Reading the forge is a network call and is deliberately opt-in and off the first
 paint, so `not-looked-up` is the ordinary answer rather than the exceptional one
+
 - which is exactly why it is worth being able to state plainly, and why it also
-appears in `omissions`.
+  appears in `omissions`.
 
 The panel can now fill both, through `gh`, when the operator sets
 `QUARTERDECK_READ_FORGE`. It reads only where upstream published nothing, never
@@ -134,7 +135,9 @@ Lifecycle {
 
 **The coarse stage** is where the worker is. Six on-track:
 
-    dispatched -> working -> validating -> pr-open -> in-review -> landed
+```text
+dispatched -> working -> validating -> pr-open -> in-review -> landed
+```
 
 and four it stops in: `blocked` (waiting on another work item), `held` (waiting
 for a person to decide), `waiting` (waiting on something outside the fleet), and
@@ -150,7 +153,9 @@ to decide what to do with it instead of silently counting it as one of them.
 **The fine step** is which check is running inside the stage, from the
 validation pipeline's own vocabulary:
 
-    intent, rebase, review, test, document, lint, push, pr, ci
+```text
+intent, rebase, review, test, document, lint, push, pr, ci
+```
 
 `null` means the stage has no finer detail to give - not that it is unknown.
 Upstream reconciles every worker in one read, so a worker's fine detail arrives
@@ -328,12 +333,12 @@ the right side of that trade for a file with no compatibility promise.
 
 ### Version history
 
-| Version | Date | Change |
-| --- | --- | --- |
-| 1 | 2026-08-30 | First shape. Workers and their states, and one degradation reason at a time. |
-| 2 | 2026-08-30 | Three lenses with a status each. Fleet gains the lifecycle stage model, the brief and worktree pointers, and its pull request; deck and health added. |
-| 3 | 2026-08-31 | Three things the frozen shape deferred, in one bump. `DeckItem` gains `project` and `kind`, both nullable, from the `repo` and `kind` upstream publishes per backlog record. `Stage` gains `unseen`, so upstream's `unknown` stops being reported as `waiting`. `DeckItem.since` becomes nullable, so a row with no start date is not dated from the read - which also makes an answer to such a row keep one stable request id instead of minting a fresh one every read. |
-| 4 | 2026-08-31 | Everything the wireframe still needs, in one bump, so that seven features can be built against a frozen shape instead of six migrations. `Worker` gains `delivery` and `dispatch` (branch, runtime, model, effort), and its `brief` gains the instructions' own `summary` and `text` - all recorded at dispatch, never inferred. `ChecksState` becomes `ChecksSignal`, with `review` beside it: `not-looked-up` is now a value distinct from `read: "ok"`, because nobody having asked the forge and the forge having answered are different facts. `Health` gains `queue` and `attendance`. The document gains a `landed` lens, including what second mates landed in their own homes, and an `omissions` list naming every absence and which of three reasons it has. Only `delivery`, `runtime` and the landed work come from a live fleet today; the rest is accepted from a finer upstream and exercised by the fixtures, with the evidence in `docs/quality.md`. |
+| Version | Date       | Change                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1       | 2026-08-30 | First shape. Workers and their states, and one degradation reason at a time.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| 2       | 2026-08-30 | Three lenses with a status each. Fleet gains the lifecycle stage model, the brief and worktree pointers, and its pull request; deck and health added.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| 3       | 2026-08-31 | Three things the frozen shape deferred, in one bump. `DeckItem` gains `project` and `kind`, both nullable, from the `repo` and `kind` upstream publishes per backlog record. `Stage` gains `unseen`, so upstream's `unknown` stops being reported as `waiting`. `DeckItem.since` becomes nullable, so a row with no start date is not dated from the read - which also makes an answer to such a row keep one stable request id instead of minting a fresh one every read.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| 4       | 2026-08-31 | Everything the wireframe still needs, in one bump, so that seven features can be built against a frozen shape instead of six migrations. `Worker` gains `delivery` and `dispatch` (branch, runtime, model, effort), and its `brief` gains the instructions' own `summary` and `text` - all recorded at dispatch, never inferred. `ChecksState` becomes `ChecksSignal`, with `review` beside it: `not-looked-up` is now a value distinct from `read: "ok"`, because nobody having asked the forge and the forge having answered are different facts. `Health` gains `queue` and `attendance`. The document gains a `landed` lens, including what second mates landed in their own homes, and an `omissions` list naming every absence and which of three reasons it has. Only `delivery`, `runtime` and the landed work come from a live fleet today; the rest is accepted from a finer upstream and exercised by the fixtures, with the evidence in `docs/quality.md`. |
 
 Bump `DOCUMENT_VERSION` when a reader must notice the change, and add a row.
 
@@ -416,15 +421,15 @@ somebody typed `(priority: urgent)` in a list item would be the worse panel.
 A live fleet reconciles every worker to one of seven states. The document draws
 more positions than that, so several map onto one:
 
-| Upstream | Document stage | Note |
-| --- | --- | --- |
-| `working` | `working` | |
-| `parked` | `held` | Waiting for a person to decide |
-| `blocked` | `blocked` | Waiting on another work item |
-| `done` | `landed` or `pr-open` | The run finished. Upstream says `done` for a merged pull request and for one whose checks merely went green, so the worker's own backlog row decides: `completion.verb` of `merged` lands it, anything else with a pull request leaves it at `pr-open`. |
-| `failed` | `failed` | |
-| `paused` | `waiting` | Deliberately idling on a wait it expects to clear |
-| `unknown` | `unseen` | Upstream could not tell - a torn-down worktree, no source of current state answering. The document says the panel cannot see the worker rather than placing it |
+| Upstream  | Document stage        | Note                                                                                                                                                                                                                                                    |
+| --------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `working` | `working`             |                                                                                                                                                                                                                                                         |
+| `parked`  | `held`                | Waiting for a person to decide                                                                                                                                                                                                                          |
+| `blocked` | `blocked`             | Waiting on another work item                                                                                                                                                                                                                            |
+| `done`    | `landed` or `pr-open` | The run finished. Upstream says `done` for a merged pull request and for one whose checks merely went green, so the worker's own backlog row decides: `completion.verb` of `merged` lands it, anything else with a pull request leaves it at `pr-open`. |
+| `failed`  | `failed`              |                                                                                                                                                                                                                                                         |
+| `paused`  | `waiting`             | Deliberately idling on a wait it expects to clear                                                                                                                                                                                                       |
+| `unknown` | `unseen`              | Upstream could not tell - a torn-down worktree, no source of current state answering. The document says the panel cannot see the worker rather than placing it                                                                                          |
 
 `dispatched`, `validating`, `pr_open`, `in_review`, `waiting_external` and
 `landed` are also accepted and mapped. A reconciled live snapshot has not been
@@ -494,8 +499,9 @@ these signals - so there is no contract to pin and nothing to guess.
 
 Read from a directory the quarantined module is the only file allowed to name.
 Every failure - a missing file, a moved directory, a shape that changed under us
+
 - comes back as an unreadable reading. Nothing escapes that function: a
-quarantined module that can take the panel down is not quarantined.
+  quarantined module that can take the panel down is not quarantined.
 
 ## The fleet home
 
@@ -505,19 +511,20 @@ promise at all, which is why it lives in the quarantined module beside the
 fixture reader and why every read below has a stated "could not be read" answer
 rather than an assumption.
 
-| Signal | Where it comes from | What makes it unreadable |
-| --- | --- | --- |
-| `supervisor` | The liveness beacon in the state directory, touched on every supervision poll. It holds nothing; its modification time is the entire signal, and `alive` is that age against the fleet's own grace window. | No beacon. A file that has moved and a cycle that has stopped look identical from outside, and reporting the wrong one is worse than saying so. |
-| `overdue` | One entry per worker the fleet has out - a `.meta` file - whose one-line busy record says idle, for longer than the fleet's own wedge threshold, with no declared wait on the last line of its status log. | The state directory cannot be listed. A single worker's record that is missing, malformed or carrying a retired incarnation token is *unknown*, never idle: that is upstream's own rule, and inventing "idle" from a record we could not read would report a working fleet as stalled. |
-| `queue` | The delivery queue in the state directory, one queued notification per line. Its depth is the whole signal. | The state directory cannot be listed. A file that exists and will not be read is unreadable too, but an absent file only reads as an empty queue once the directory it would live in is confirmed listable - ENOENT on the file alone cannot tell "not there yet" from "the directory is gone", and the fleet creates the file when it first has something to deliver, so only the first of those is "nothing queued". |
-| `attendance` | Two markers in the state directory, read in one listing: the away marker, and the per-home session lock. Each holds nothing; its presence is the entire signal. | The state directory cannot be listed. Both facts come from the one listing on purpose - a `stat` that says ENOENT cannot tell "the marker is not there" from "the directory is not there", and answering "away mode is off" for a home the panel cannot see would be inventing a fact about it. `locked` is whether a lock is held and nothing finer: whether its holder is still alive is the fleet's own liveness policy, read from a process table with the fleet's own rules about what counts as a harness, and reimplementing that here is exactly what the quarantine refuses. |
-| `drift` | The work item record and the state directory, compared. A row in flight with no worker behind it; a row still held while its own status log records the decision answered. | Either record cannot be read. Whether a record disagrees with reality is a question about both halves, so one missing takes the signal rather than producing an answer from the half that is left. |
+| Signal       | Where it comes from                                                                                                                                                                                        | What makes it unreadable                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `supervisor` | The liveness beacon in the state directory, touched on every supervision poll. It holds nothing; its modification time is the entire signal, and `alive` is that age against the fleet's own grace window. | No beacon. A file that has moved and a cycle that has stopped look identical from outside, and reporting the wrong one is worse than saying so.                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `overdue`    | One entry per worker the fleet has out - a `.meta` file - whose one-line busy record says idle, for longer than the fleet's own wedge threshold, with no declared wait on the last line of its status log. | The state directory cannot be listed. A single worker's record that is missing, malformed or carrying a retired incarnation token is _unknown_, never idle: that is upstream's own rule, and inventing "idle" from a record we could not read would report a working fleet as stalled.                                                                                                                                                                                                                                                                                                |
+| `queue`      | The delivery queue in the state directory, one queued notification per line. Its depth is the whole signal.                                                                                                | The state directory cannot be listed. A file that exists and will not be read is unreadable too, but an absent file only reads as an empty queue once the directory it would live in is confirmed listable - ENOENT on the file alone cannot tell "not there yet" from "the directory is gone", and the fleet creates the file when it first has something to deliver, so only the first of those is "nothing queued".                                                                                                                                                                |
+| `attendance` | Two markers in the state directory, read in one listing: the away marker, and the per-home session lock. Each holds nothing; its presence is the entire signal.                                            | The state directory cannot be listed. Both facts come from the one listing on purpose - a `stat` that says ENOENT cannot tell "the marker is not there" from "the directory is not there", and answering "away mode is off" for a home the panel cannot see would be inventing a fact about it. `locked` is whether a lock is held and nothing finer: whether its holder is still alive is the fleet's own liveness policy, read from a process table with the fleet's own rules about what counts as a harness, and reimplementing that here is exactly what the quarantine refuses. |
+| `drift`      | The work item record and the state directory, compared. A row in flight with no worker behind it; a row still held while its own status log records the decision answered.                                 | Either record cannot be read. Whether a record disagrees with reality is a question about both halves, so one missing takes the signal rather than producing an answer from the half that is left.                                                                                                                                                                                                                                                                                                                                                                                    |
 
 Two things are deliberately not configuration. The paths, because they are the
 unstable dependency the quarantine exists to confine. And the two thresholds -
 the beacon's grace window and the point an idle worker becomes a possible wedge
+
 - because they are the fleet's own policy: a number that drifts out of step with
-upstream makes the lens wrong, not adjustable.
+  upstream makes the lens wrong, not adjustable.
 
 A declared wait is not a problem. `paused:` and `captain-held:` are the fleet's
 two ways of saying an idle worker is idle on purpose, and reporting either as a
@@ -550,10 +557,10 @@ dropped - before the arm is chosen, so a pane that is all blanks is `silent`.
 
 Two sources, one normaliser:
 
-| Source | Where the bytes come from | What makes it unreadable |
-| --- | --- | --- |
-| A fleet home | `bin/fm-peek.sh <worker> 15`, run through the one spawn door with `FM_HOME` set. Read-only by upstream's own contract: it resolves the worker's recorded session target and prints the tail. | The command failed. Its standard error is the detail, verbatim. A failure whose words name a missing session - "no metadata for", "no backend target recorded", "no window named" - is `no-session`; anything else is `unreadable`, which is honest rather than guessed. |
-| A fixture set | `terminal.json` beside the set's other files, one entry per work item id, in the shape above. `ok` entries carry raw captured text so a fixture normalises exactly as a fleet does. | The file exists and will not parse. An absent file, and an id the file does not name, are both `no-session`: a synthetic fleet that records no sessions is not a fleet whose machinery is broken. |
+| Source        | Where the bytes come from                                                                                                                                                                    | What makes it unreadable                                                                                                                                                                                                                                                 |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| A fleet home  | `bin/fm-peek.sh <worker> 15`, run through the one spawn door with `FM_HOME` set. Read-only by upstream's own contract: it resolves the worker's recorded session target and prints the tail. | The command failed. Its standard error is the detail, verbatim. A failure whose words name a missing session - "no metadata for", "no backend target recorded", "no window named" - is `no-session`; anything else is `unreadable`, which is honest rather than guessed. |
+| A fixture set | `terminal.json` beside the set's other files, one entry per work item id, in the shape above. `ok` entries carry raw captured text so a fixture normalises exactly as a fleet does.          | The file exists and will not parse. An absent file, and an id the file does not name, are both `no-session`: a synthetic fleet that records no sessions is not a fleet whose machinery is broken.                                                                        |
 
 The read is bounded before it starts. The worker has to be one the current
 document lists and has to match `^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`, because
@@ -582,7 +589,8 @@ find a line it cannot parse.
 Both formats are frozen. Records written by earlier builds are still sitting in
 spools, and their names are what make a replay a collision rather than a second
 action; `tests/answering.test.ts` and `tests/merging.test.ts` pin each digest and
-extension for that reason. Where they go is declared per fleet, not once for the panel:
+extension for that reason. Where they go is declared per fleet, not once for
+the panel:
 `QUARTERDECK_INTENT_DIR` is a colon-separated list positionally aligned with the
 configured fleet list, the same convention `QUARTERDECK_FLEET_HOME` and
 `QUARTERDECK_FIXTURE_SET` use. A request is written to the selected fleet's own
@@ -596,7 +604,7 @@ guessed at.
 One file per answered decision, named `<request-id>.keyed-answer-v1`, holding one
 line and nothing else:
 
-```
+```text
 <task-id>\t<answer>\t<label>\t<mode>\n
 ```
 
@@ -620,7 +628,7 @@ open, and pipes the lines in. See
 One file per merge order, named `<request-id>.merge-order-v1`, holding one line
 and nothing else:
 
-```
+```text
 <task-id>\t<pr-url>\n
 ```
 
@@ -670,9 +678,9 @@ Neither affects health, which is read separately and reports for itself.
    the refusal path must stay tested.
 4. Add a row here.
 
-| Identifier | Date | Note |
-| --- | --- | --- |
-| `fm-fleet-snapshot.v1` | 2026-08-30 | First pinned identifier. The shape above replaced a provisional reading of the same identifier once upstream was verified against a live fleet; the identifier itself never moved. |
+| Identifier             | Date       | Note                                                                                                                                                                                                                                                                                                                     |
+| ---------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `fm-fleet-snapshot.v1` | 2026-08-30 | First pinned identifier. The shape above replaced a provisional reading of the same identifier once upstream was verified against a live fleet; the identifier itself never moved.                                                                                                                                       |
 | `fm-fleet-snapshot.v1` | 2026-08-30 | Corrected against a live fleet's own output when the real source was wired: `generated` rather than `generated_at`, a coarser state vocabulary, `pr` always an object, and free text where a closed set was assumed. The identifier did not move, so this is a correction to our reading rather than an upstream change. |
 
 ## Open assumptions
@@ -688,18 +696,18 @@ Every assumption this section carried when the document seam was frozen has now
 been checked against a live fleet. Only one held; the corrections for the rest
 are above:
 
-| Assumption | What a live fleet does | What changed |
-| --- | --- | --- |
-| A snapshot carries top-level `generated_at` | It carries `generated` | The parser and the fixtures. The document type did not change. |
-| `current_state.state` is a six-stage on-track vocabulary | Seven reconciled states, coarser than the document's | The `STAGE` map gained `done`, `paused` and `unknown`; the finer values are still accepted. |
-| `priority` is `now`, `next` or `later` | Free text; a live fleet writes `1`, `2`, `3` | The projection maps both spellings and defaults to `later`. |
-| A pull request's checks are not carried | Confirmed again on 2026-08-31: `pr` carries `url` and `source` (`meta`, `status_event` or `absent`) and nothing else. No review comments either. | `ChecksState` became `ChecksSignal`, and `review` joined it. Both read `not-looked-up` for every worker a live fleet reports - which is a statement about what nobody has done, not a failure, and it is named in `omissions`. Document version 4. |
-| A worker's branch, model and effort are not recorded anywhere | Wrong twice over, and the correction matters. All three ARE recorded at dispatch, in the home's own `state/<id>.meta`: `model=`, `effort=` and the worktree. What is true is narrower - the snapshot command publishes none of them. `grep -nE 'model\|effort\|branch' bin/fm-fleet-snapshot.sh` matches nothing, and no such key appears in a live `--json`. A branch is not recorded at all, in the meta record or the snapshot. | `dispatch` carries all four nullable and the parser accepts them optionally, so a finer upstream fills them without a parser change. `runtime` is filled today from `harness`; the other three are `null` on every live read. See `docs/quality.md`. |
-| The brief path upstream publishes points at the instructions | Wrong. `paths.meta` points at `state/<id>.meta`, the key-value dispatch record - not at the brief, which `bin/fm-brief.sh` scaffolds at `data/<id>/brief.md`. The snapshot publishes no brief path and no brief text: `grep -n brief bin/fm-fleet-snapshot.sh` matches nothing. | `Brief` gained `summary` and `text`, both `null` on every live read. The `ref` mapping is unchanged, and `Brief`'s docblock now warns that the pointer is not necessarily the brief file rather than promising it is. |
-| A worker's kind is the whole of what decides its rail | Wrong. `mode` is published per task and is the delivery contract: a live fleet writes `no-mistakes`, `direct-PR` and `local-only` for ship work and `secondmate` for a mate, which `bin/fm-brief.sh` and `bin/fm-promote.sh` both name as the closed set. | `Worker.delivery` carries it, mapped to `validated`, `direct-pr` and `local`, and `null` for anything else. `upstream-shape` was corrected to the real vocabulary. Document version 4. |
-| Landed work is not published | Wrong, and this was the wireframe's own worry: prior boards lost it. This home's landed work is the backlog's `done` rows, which carry `pr_url`, `repo` and `completion: { verb, date }`; second mates' is `secondmate_landed`, whose records are stamped with the home each came from and which declares what it truncated, could not read, or does not fully trust. A live read of one home produced ten landed items with real addresses. | A `landed` lens, and an `omissions` list built partly from those three declarations. Document version 4. |
-| A completion date is a date | Wrong. It is lifted out of a hand-written record, and a live fleet was found carrying one that is a whole sentence - naming a commit, a pull request URL and what is still needed from the operator - where a date belongs. | `landedOn` takes the rule `deferredTo` already had: a calendar date or nothing. `upstream-shape` carries the sentence form. |
-| A backlog record carries no project and no kind | It carries both, per record: `repo` is the project and `kind` is `ship` or `scout` - the same build-versus-research distinction a task's kind makes. A live fleet also writes `task` and `docs`, and leaves both fields out entirely more often than not | The parser reads both, `DeckItem` carries them nullable, and the deck lens draws them. Document version 3. |
+| Assumption                                                    | What a live fleet does                                                                                                                                                                                                                                                                                                                                                                                                                       | What changed                                                                                                                                                                                                                                         |
+| ------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A snapshot carries top-level `generated_at`                   | It carries `generated`                                                                                                                                                                                                                                                                                                                                                                                                                       | The parser and the fixtures. The document type did not change.                                                                                                                                                                                       |
+| `current_state.state` is a six-stage on-track vocabulary      | Seven reconciled states, coarser than the document's                                                                                                                                                                                                                                                                                                                                                                                         | The `STAGE` map gained `done`, `paused` and `unknown`; the finer values are still accepted.                                                                                                                                                          |
+| `priority` is `now`, `next` or `later`                        | Free text; a live fleet writes `1`, `2`, `3`                                                                                                                                                                                                                                                                                                                                                                                                 | The projection maps both spellings and defaults to `later`.                                                                                                                                                                                          |
+| A pull request's checks are not carried                       | Confirmed again on 2026-08-31: `pr` carries `url` and `source` (`meta`, `status_event` or `absent`) and nothing else. No review comments either.                                                                                                                                                                                                                                                                                             | `ChecksState` became `ChecksSignal`, and `review` joined it. Both read `not-looked-up` for every worker a live fleet reports - which is a statement about what nobody has done, not a failure, and it is named in `omissions`. Document version 4.   |
+| A worker's branch, model and effort are not recorded anywhere | Wrong twice over, and the correction matters. All three ARE recorded at dispatch, in the home's own `state/<id>.meta`: `model=`, `effort=` and the worktree. What is true is narrower - the snapshot command publishes none of them. `grep -nE 'model\|effort\|branch' bin/fm-fleet-snapshot.sh` matches nothing, and no such key appears in a live `--json`. A branch is not recorded at all, in the meta record or the snapshot.           | `dispatch` carries all four nullable and the parser accepts them optionally, so a finer upstream fills them without a parser change. `runtime` is filled today from `harness`; the other three are `null` on every live read. See `docs/quality.md`. |
+| The brief path upstream publishes points at the instructions  | Wrong. `paths.meta` points at `state/<id>.meta`, the key-value dispatch record - not at the brief, which `bin/fm-brief.sh` scaffolds at `data/<id>/brief.md`. The snapshot publishes no brief path and no brief text: `grep -n brief bin/fm-fleet-snapshot.sh` matches nothing.                                                                                                                                                              | `Brief` gained `summary` and `text`, both `null` on every live read. The `ref` mapping is unchanged, and `Brief`'s docblock now warns that the pointer is not necessarily the brief file rather than promising it is.                                |
+| A worker's kind is the whole of what decides its rail         | Wrong. `mode` is published per task and is the delivery contract: a live fleet writes `no-mistakes`, `direct-PR` and `local-only` for ship work and `secondmate` for a mate, which `bin/fm-brief.sh` and `bin/fm-promote.sh` both name as the closed set.                                                                                                                                                                                    | `Worker.delivery` carries it, mapped to `validated`, `direct-pr` and `local`, and `null` for anything else. `upstream-shape` was corrected to the real vocabulary. Document version 4.                                                               |
+| Landed work is not published                                  | Wrong, and this was the wireframe's own worry: prior boards lost it. This home's landed work is the backlog's `done` rows, which carry `pr_url`, `repo` and `completion: { verb, date }`; second mates' is `secondmate_landed`, whose records are stamped with the home each came from and which declares what it truncated, could not read, or does not fully trust. A live read of one home produced ten landed items with real addresses. | A `landed` lens, and an `omissions` list built partly from those three declarations. Document version 4.                                                                                                                                             |
+| A completion date is a date                                   | Wrong. It is lifted out of a hand-written record, and a live fleet was found carrying one that is a whole sentence - naming a commit, a pull request URL and what is still needed from the operator - where a date belongs.                                                                                                                                                                                                                  | `landedOn` takes the rule `deferredTo` already had: a calendar date or nothing. `upstream-shape` carries the sentence form.                                                                                                                          |
+| A backlog record carries no project and no kind               | It carries both, per record: `repo` is the project and `kind` is `ship` or `scout` - the same build-versus-research distinction a task's kind makes. A live fleet also writes `task` and `docs`, and leaves both fields out entirely more often than not                                                                                                                                                                                     | The parser reads both, `DeckItem` carries them nullable, and the deck lens draws them. Document version 3.                                                                                                                                           |
 
 ### Still open
 
@@ -711,6 +719,6 @@ command or the file it was checked against rather than describing the result.
 
 One assumption remains.
 
-| Assumption | Why it is a guess | What happens if it is wrong |
-| --- | --- | --- |
+| Assumption                      | Why it is a guess                                                                                                                                                                                | What happens if it is wrong                                                                                                                                                                                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | A `kind` is `scout` or building | `kind` is free text, copied from a worker's dispatch record or a row's `(kind: ...)` annotation. A live fleet writes `ship`, `scout`, `task`, `docs` and `secondmate`, and often nothing at all. | Anything that is not `scout` renders as building. A deck row that named no kind says so; a worker with none still reads as building, because a worker is always doing something. A kind that deserves its own treatment gets one in `WorkerKind`, which is a document version bump. |

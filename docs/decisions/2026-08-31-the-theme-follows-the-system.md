@@ -51,11 +51,11 @@ Switching it on is the first time anybody has looked at it. Measured against
 text, so each was re-pointed at a different stop of the same palette - no new
 colour was invented, and the light theme is untouched:
 
-| Token | Was | Is | Ratio on `--card` |
-| --- | --- | --- | --- |
-| `--muted-foreground` | `ink-300` | `paper-300` | 3.70 to 8.64 |
-| `--secondary` | `navy-300` | `navy-100` | 3.77 to 12.46 (as a chip) |
-| `--destructive` | `rust-400` | `rust-300` | 3.24 to 4.49 |
+| Token                | Was        | Is          | Ratio on `--card`         |
+| -------------------- | ---------- | ----------- | ------------------------- |
+| `--muted-foreground` | `ink-300`  | `paper-300` | 3.70 to 8.64              |
+| `--secondary`        | `navy-300` | `navy-100`  | 3.77 to 12.46 (as a chip) |
+| `--destructive`      | `rust-400` | `rust-300`  | 3.24 to 4.49              |
 
 `--muted-foreground` carries most of the panel's secondary prose, which made it
 the one that mattered. `--secondary` was the odd chip out: `online` and `info`

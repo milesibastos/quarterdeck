@@ -595,9 +595,7 @@
         "hold_kind": null,
         "hold_until": null,
         "blocked_by": "wi-tidewater-501",
-        "blocked_by_ids": [
-          "wi-tidewater-501"
-        ],
+        "blocked_by_ids": ["wi-tidewater-501"],
         "blocked_reason": "Waits on the gauge landing first",
         "since": "2099-01-01",
         "completion": {

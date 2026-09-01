@@ -33,17 +33,28 @@ async function body(panel: Panel, path = "/"): Promise<string> {
 /** The verdict the lens put on one signal, or null when that signal is absent. */
 function verdict(html: string, signal: string): string | null {
   return (
-    new RegExp(`data-signal="${signal}" data-read="[a-z]+" data-verdict="([^"]*)"`).exec(html)?.[1] ??
-    null
+    new RegExp(
+      `data-signal="${signal}" data-read="[a-z]+" data-verdict="([^"]*)"`,
+    ).exec(html)?.[1] ?? null
   );
 }
 
 /** Whether one signal read at all. */
 function read(html: string, signal: string): string | null {
-  return new RegExp(`data-signal="${signal}" data-read="([a-z]+)"`).exec(html)?.[1] ?? null;
+  return (
+    new RegExp(`data-signal="${signal}" data-read="([a-z]+)"`).exec(
+      html,
+    )?.[1] ?? null
+  );
 }
 
-const SIGNALS = ["supervisor", "queue", "attendance", "overdue", "drift"] as const;
+const SIGNALS = [
+  "supervisor",
+  "queue",
+  "attendance",
+  "overdue",
+  "drift",
+] as const;
 
 /**
  * The claims a signal only makes when it read.
@@ -54,9 +65,15 @@ const SIGNALS = ["supervisor", "queue", "attendance", "overdue", "drift"] as con
  * block. Each entry belongs to exactly one signal and appears nowhere else on
  * the page, which is what makes a whole-page `includes` a fair check.
  */
-const READ_CLAIMS: Readonly<Record<(typeof SIGNALS)[number], readonly string[]>> = {
+const READ_CLAIMS: Readonly<
+  Record<(typeof SIGNALS)[number], readonly string[]>
+> = {
   supervisor: ["Last seen", "Alive", "Stopped"],
-  queue: ["Nothing queued", "notifications are waiting", "notification is waiting"],
+  queue: [
+    "Nothing queued",
+    "notifications are waiting",
+    "notification is waiting",
+  ],
   attendance: ["Away mode is", "lock is present", "home held"],
   overdue: ["Nothing overdue", "overdue<"],
   drift: ["No disagreement", "disagreeing<"],
@@ -72,14 +89,22 @@ describe("five signals that read cleanly and found nothing wrong", () => {
   let panel: Panel;
   let html: string;
   before(async () => {
-    panel = await startPanel({ port: nextPort(), fixtureSet: "healthy", now: NOW });
+    panel = await startPanel({
+      port: nextPort(),
+      fixtureSet: "healthy",
+      now: NOW,
+    });
     html = await body(panel);
   });
   after(() => panel.stop());
 
   test("draws all five signals, each with a verdict of its own", () => {
     for (const signal of SIGNALS) {
-      assert.equal(read(html, signal), "ok", `${signal} should be on screen and read`);
+      assert.equal(
+        read(html, signal),
+        "ok",
+        `${signal} should be on screen and read`,
+      );
     }
     assert.equal(verdict(html, "supervisor"), "alive");
     assert.equal(verdict(html, "queue"), "empty");
@@ -91,13 +116,22 @@ describe("five signals that read cleanly and found nothing wrong", () => {
 
   test("states an empty queue as a finding rather than as an empty area", () => {
     assert.ok(html.includes("Nothing queued"));
-    assert.ok(html.includes("found holding nothing"), "read and found empty, not unread");
+    assert.ok(
+      html.includes("found holding nothing"),
+      "read and found empty, not unread",
+    );
   });
 
   test("draws attendance as the two entries the strip asks for, under one verdict", () => {
     assert.ok(html.includes("away mode"), "the first entry");
-    assert.ok(html.includes('data-fact="away" class="font-mono text-foreground">off'));
-    assert.ok(html.includes('data-fact="locked" class="font-mono text-foreground">held by a session'));
+    assert.ok(
+      html.includes('data-fact="away" class="font-mono text-foreground">off'),
+    );
+    assert.ok(
+      html.includes(
+        'data-fact="locked" class="font-mono text-foreground">held by a session',
+      ),
+    );
     assert.ok(html.includes("Away mode is off"));
   });
 
@@ -113,8 +147,14 @@ describe("five signals that read cleanly and found nothing wrong", () => {
   });
 
   test("says when the cycle was last seen, and names the threshold it is inside", () => {
-    assert.ok(html.includes("Last seen 30s ago"), "the age, not only the verdict");
-    assert.ok(html.includes("inside the 10 minutes"), "the threshold, stated in the copy");
+    assert.ok(
+      html.includes("Last seen 30s ago"),
+      "the age, not only the verdict",
+    );
+    assert.ok(
+      html.includes("inside the 10 minutes"),
+      "the threshold, stated in the copy",
+    );
   });
 
   test("states nothing overdue and nothing disagreeing as findings, not silences", () => {
@@ -167,14 +207,22 @@ describe("signals that read cleanly and found something", () => {
     assert.equal(verdict(html, "overdue"), "overdue");
     assert.ok(html.includes("1 overdue"));
     assert.ok(html.includes("wi-tidewater-126"));
-    assert.ok(html.includes("waiting since"), "the age, from the shared helper");
-    assert.ok(!html.includes("Nothing overdue"), "one overdue item is not none");
+    assert.ok(
+      html.includes("waiting since"),
+      "the age, from the shared helper",
+    );
+    assert.ok(
+      !html.includes("Nothing overdue"),
+      "one overdue item is not none",
+    );
   });
 
   test("names each disagreeing record and upstream's line on how", () => {
     assert.equal(verdict(html, "drift"), "disagreeing");
     assert.ok(html.includes("1 disagreeing"));
-    assert.ok(html.includes("wi-lamplight-207 is queued here but has a worktree"));
+    assert.ok(
+      html.includes("wi-lamplight-207 is queued here but has a worktree"),
+    );
     assert.ok(!html.includes("No disagreement"));
   });
 
@@ -188,7 +236,11 @@ describe("signals that could not be read", () => {
   let html: string;
   before(async () => {
     // The health file reads; its five signals each report that they did not.
-    panel = await startPanel({ port: nextPort(), fixtureSet: "health-unread", now: NOW });
+    panel = await startPanel({
+      port: nextPort(),
+      fixtureSet: "health-unread",
+      now: NOW,
+    });
     html = await body(panel);
   });
   after(() => panel.stop());
@@ -196,20 +248,30 @@ describe("signals that could not be read", () => {
   test("draws every signal as unread, under a frame that is still current", () => {
     assert.ok(html.includes('data-lens="shipshape" data-lens-status="fresh"'));
     for (const signal of SIGNALS) {
-      assert.equal(read(html, signal), "unreadable", `${signal} should be dark`);
+      assert.equal(
+        read(html, signal),
+        "unreadable",
+        `${signal} should be dark`,
+      );
       assert.equal(verdict(html, signal), "unreadable");
     }
   });
 
   test("names what failed and what is therefore unknown", () => {
     assert.ok(html.includes("The wait ledger could not be opened."));
-    assert.ok(html.includes("Whether anything has been waiting too long is unknown"));
+    assert.ok(
+      html.includes("Whether anything has been waiting too long is unknown"),
+    );
     assert.ok(html.includes("Whether any record disagrees is unknown"));
     assert.ok(html.includes("Whether the cycle is running"));
     assert.ok(html.includes("No notification queue in the state directory."));
     assert.ok(html.includes("whether it is draining, is unknown"));
-    assert.ok(html.includes("Could not list the state directory for away mode"));
-    assert.ok(html.includes("whether a session holds the home, are both unknown"));
+    assert.ok(
+      html.includes("Could not list the state directory for away mode"),
+    );
+    assert.ok(
+      html.includes("whether a session holds the home, are both unknown"),
+    );
   });
 
   test("implies nothing about what an unread signal would have said", () => {
@@ -218,7 +280,10 @@ describe("signals that could not be read", () => {
     // not one of them may appear anywhere on a page where every signal is dark.
     for (const [signal, claims] of Object.entries(READ_CLAIMS)) {
       for (const claim of claims) {
-        assert.ok(!html.includes(claim), `an unread ${signal} should not claim ${claim}`);
+        assert.ok(
+          !html.includes(claim),
+          `an unread ${signal} should not claim ${claim}`,
+        );
       }
     }
   });
@@ -227,7 +292,10 @@ describe("signals that could not be read", () => {
     // Five dark blocks in one column is the state this lens is most likely to
     // be read in on a bad day. Each still carries its own question and its own
     // two sentences rather than collapsing into one repeated apology.
-    assert.equal((html.match(/data-read="unreadable"/g) ?? []).length, SIGNALS.length);
+    assert.equal(
+      (html.match(/data-read="unreadable"/g) ?? []).length,
+      SIGNALS.length,
+    );
     for (const question of [
       "Is the supervision cycle alive?",
       "Is the notification queue draining?",
@@ -245,31 +313,51 @@ describe("the whole lens dark", () => {
   let html: string;
   before(async () => {
     // The health-dark set has no health file at all.
-    panel = await startPanel({ port: nextPort(), fixtureSet: "health-dark", now: NOW });
+    panel = await startPanel({
+      port: nextPort(),
+      fixtureSet: "health-dark",
+      now: NOW,
+    });
     html = await body(panel);
   });
   after(() => panel.stop());
 
   test("says it is dark by design rather than drawing a blank area", () => {
-    assert.ok(html.includes('data-lens="shipshape" data-lens-status="unreadable"'));
+    assert.ok(
+      html.includes('data-lens="shipshape" data-lens-status="unreadable"'),
+    );
     assert.ok(html.includes("Dark by design, not broken"));
-    assert.ok(html.includes("carry no compatibility promise"), "why this lens alone can fail");
+    assert.ok(
+      html.includes("carry no compatibility promise"),
+      "why this lens alone can fail",
+    );
     for (const signal of SIGNALS) {
-      assert.equal(read(html, signal), "unreadable", `${signal} still has a block`);
+      assert.equal(
+        read(html, signal),
+        "unreadable",
+        `${signal} still has a block`,
+      );
     }
   });
 
   test("leaves fleet and deck untouched beside it", () => {
     assert.ok(html.includes('data-lens="fleet" data-lens-status="fresh"'));
     assert.ok(html.includes('data-lens="deck" data-lens-status="fresh"'));
-    assert.equal((html.match(/data-worker="/g) ?? []).length, 3, "the fleet still renders");
+    assert.equal(
+      (html.match(/data-worker="/g) ?? []).length,
+      3,
+      "the fleet still renders",
+    );
   });
 
   test("claims nothing about the state of the lenses it cannot see", () => {
     // This component is handed document.health and nothing else. Saying the
     // others are fine would be a lie the day both readers fail together.
     assert.ok(!html.includes("Fleet and deck are unaffected"));
-    assert.ok(html.includes("carry their own status"), "the separation, not their state");
+    assert.ok(
+      html.includes("carry their own status"),
+      "the separation, not their state",
+    );
   });
 });
 
@@ -290,12 +378,22 @@ describe("a mixed reading", () => {
    */
   const MIXED = {
     asOf: "2099-01-01T09:15:00.000Z",
-    supervisor: { read: "ok", alive: true, lastSeen: "2099-01-01T05:15:00.000Z" },
-    overdue: { read: "unreadable", detail: "The wait ledger could not be opened." },
+    supervisor: {
+      read: "ok",
+      alive: true,
+      lastSeen: "2099-01-01T05:15:00.000Z",
+    },
+    overdue: {
+      read: "unreadable",
+      detail: "The wait ledger could not be opened.",
+    },
     drift: {
       read: "ok",
       disagreements: [
-        { record: "backlog", detail: "wi-lamplight-207 is queued here but has a worktree" },
+        {
+          record: "backlog",
+          detail: "wi-lamplight-207 is queued here but has a worktree",
+        },
       ],
     },
   };
@@ -304,7 +402,10 @@ describe("a mixed reading", () => {
   let html: string;
   before(async () => {
     const fixtureRoot = await copyFixtures();
-    await writeFile(join(fixtureRoot, "healthy", "health.json"), JSON.stringify(MIXED, null, 2));
+    await writeFile(
+      join(fixtureRoot, "healthy", "health.json"),
+      JSON.stringify(MIXED, null, 2),
+    );
     panel = await startPanel({
       port: nextPort(),
       fixtureSet: "healthy",
@@ -325,28 +426,43 @@ describe("a mixed reading", () => {
   test("draws a signal the health file predates as dark, not as the file refusing", () => {
     assert.equal(read(html, "queue"), "unreadable");
     assert.equal(read(html, "attendance"), "unreadable");
-    assert.ok(html.includes("The health file carries no notification queue signal."));
-    assert.ok(html.includes("The health file carries no away and lock signal."));
+    assert.ok(
+      html.includes("The health file carries no notification queue signal."),
+    );
+    assert.ok(
+      html.includes("The health file carries no away and lock signal."),
+    );
     for (const claim of [...READ_CLAIMS.queue, ...READ_CLAIMS.attendance]) {
-      assert.ok(!html.includes(claim), `a signal the file predates should not claim ${claim}`);
+      assert.ok(
+        !html.includes(claim),
+        `a signal the file predates should not claim ${claim}`,
+      );
     }
   });
 
   test("reads a cycle last seen long ago as a concern, not as health", () => {
     assert.equal(verdict(html, "supervisor"), "silent");
     assert.ok(html.includes("Alive but silent"));
-    assert.ok(html.includes("quiet for longer than 10 minutes"), "the named threshold");
+    assert.ok(
+      html.includes("quiet for longer than 10 minutes"),
+      "the named threshold",
+    );
     assert.ok(html.includes("Last seen 4h ago"));
   });
 
   test("says nothing about the signal that did not read", () => {
     assert.ok(!html.includes("Nothing overdue"));
-    assert.ok(html.includes("Whether anything has been waiting too long is unknown"));
+    assert.ok(
+      html.includes("Whether anything has been waiting too long is unknown"),
+    );
   });
 
   test("keeps the lens itself current while one signal inside it is dark", () => {
     assert.ok(html.includes('data-lens="shipshape" data-lens-status="fresh"'));
-    assert.ok(!html.includes("Dark by design"), "one dark signal is not a dark lens");
+    assert.ok(
+      !html.includes("Dark by design"),
+      "one dark signal is not a dark lens",
+    );
   });
 });
 
@@ -366,7 +482,11 @@ describe("exactly one signal dark", () => {
   /** The healthy set's signals, with `name` replaced by an unreadable reading. */
   function onlyDark(name: string, detail: string): Record<string, unknown> {
     const signals: Record<string, unknown> = {
-      supervisor: { read: "ok", alive: true, lastSeen: "2099-01-01T09:15:00.000Z" },
+      supervisor: {
+        read: "ok",
+        alive: true,
+        lastSeen: "2099-01-01T09:15:00.000Z",
+      },
       queue: { read: "ok", queued: 0 },
       attendance: { read: "ok", away: false, locked: true },
       overdue: { read: "ok", overdue: [] },
@@ -409,12 +529,18 @@ describe("exactly one signal dark", () => {
       test("darkens itself and says what could not be read", () => {
         assert.equal(read(html, dark), "unreadable");
         assert.equal(verdict(html, dark), "unreadable");
-        assert.ok(html.includes(detail), "the operator is told what did not answer");
+        assert.ok(
+          html.includes(detail),
+          "the operator is told what did not answer",
+        );
       });
 
       test("never renders as healthy on the reading it did not get", () => {
         for (const claim of READ_CLAIMS[dark]) {
-          assert.ok(!html.includes(claim), `a dark ${dark} should not claim ${claim}`);
+          assert.ok(
+            !html.includes(claim),
+            `a dark ${dark} should not claim ${claim}`,
+          );
         }
       });
 
@@ -427,11 +553,20 @@ describe("exactly one signal dark", () => {
       });
 
       test("leaves the lens current, and fleet and deck untouched", () => {
-        assert.ok(html.includes('data-lens="shipshape" data-lens-status="fresh"'));
-        assert.ok(!html.includes("Dark by design"), "one dark signal is not a dark lens");
+        assert.ok(
+          html.includes('data-lens="shipshape" data-lens-status="fresh"'),
+        );
+        assert.ok(
+          !html.includes("Dark by design"),
+          "one dark signal is not a dark lens",
+        );
         assert.ok(html.includes('data-lens="fleet" data-lens-status="fresh"'));
         assert.ok(html.includes('data-lens="deck" data-lens-status="fresh"'));
-        assert.equal((html.match(/data-worker="/g) ?? []).length, 12, "the fleet still renders");
+        assert.equal(
+          (html.match(/data-worker="/g) ?? []).length,
+          12,
+          "the fleet still renders",
+        );
       });
     });
   }

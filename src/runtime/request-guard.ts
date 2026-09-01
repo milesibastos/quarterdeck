@@ -18,7 +18,7 @@ const LOOPBACK_HOSTS: ReadonlySet<string> = new Set([
   "[::1]",
 ]);
 
-export type GuardVerdict =
+type GuardVerdict =
   | { readonly ok: true }
   | { readonly ok: false; readonly reason: string };
 
@@ -29,11 +29,15 @@ function hostname(hostHeader: string): string {
   return hostHeader;
 }
 
-export function checkHost(hostHeader: string | null): GuardVerdict {
-  if (!hostHeader) return { ok: false, reason: "request carried no Host header" };
+function checkHost(hostHeader: string | null): GuardVerdict {
+  if (!hostHeader)
+    return { ok: false, reason: "request carried no Host header" };
   const name = hostname(hostHeader);
   if (!LOOPBACK_HOSTS.has(name)) {
-    return { ok: false, reason: `Host "${hostHeader}" is not a loopback address` };
+    return {
+      ok: false,
+      reason: `Host "${hostHeader}" is not a loopback address`,
+    };
   }
   return { ok: true };
 }
@@ -45,7 +49,10 @@ export function checkHost(hostHeader: string | null): GuardVerdict {
  * bound to. A page served by some other loopback-bound process is not "us"
  * just because it also happens to be on 127.0.0.1.
  */
-export function checkOrigin(originHeader: string | null, expectedPort: string): GuardVerdict {
+function checkOrigin(
+  originHeader: string | null,
+  expectedPort: string,
+): GuardVerdict {
   if (originHeader === null) return { ok: true };
   let url: URL;
   try {
@@ -54,7 +61,10 @@ export function checkOrigin(originHeader: string | null, expectedPort: string): 
     return { ok: false, reason: `Origin "${originHeader}" is not a URL` };
   }
   if (url.protocol !== "http:" || !LOOPBACK_HOSTS.has(`${url.hostname}`)) {
-    return { ok: false, reason: `Origin "${originHeader}" is not a loopback origin` };
+    return {
+      ok: false,
+      reason: `Origin "${originHeader}" is not a loopback origin`,
+    };
   }
   const port = url.port || "80";
   if (port !== expectedPort) {
@@ -74,6 +84,3 @@ export function checkRequest(
   if (!host.ok) return host;
   return checkOrigin(headers.origin, expectedPort);
 }
-
-/** Requests under this prefix act on the fleet and need the session secret. */
-export const ACTING_PREFIX = "/api/act";
