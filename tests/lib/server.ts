@@ -240,6 +240,11 @@ export function explainEarlyDeath(death: EarlyDeath): string {
 /** The child's stderr, kept to a tail: enough for an error and its stack. */
 const STDERR_KEPT = 4_000;
 
+/** Whether a child has exited or been killed by a signal, either way gone. */
+function dead(child: ChildProcess): boolean {
+  return child.exitCode !== null || child.signalCode !== null;
+}
+
 /** Drains the child's stderr, and hands back a reader for what it said. */
 function collectStderr(child: ChildProcess): () => string {
   let text = "";
@@ -304,7 +309,7 @@ export async function startPanel(options: StartOptions): Promise<Panel> {
    * cannot mistake the first one's corpse for that finding.
    */
   const stopOnce = async () => {
-    const diedUnbidden = child.exitCode !== null || child.signalCode !== null;
+    const diedUnbidden = dead(child);
     try {
       if (diedUnbidden) {
         throw new Error(
@@ -364,7 +369,7 @@ export async function stopChild(
   url: string,
   timeoutMs: number = STOP_TIMEOUT_MS,
 ): Promise<void> {
-  if (child.exitCode !== null || child.signalCode !== null) return;
+  if (dead(child)) return;
 
   child.kill("SIGTERM");
   if (await exits(child, timeoutMs)) return;
@@ -429,9 +434,9 @@ async function waitForReady(
 
   const deadline = Date.now() + 20_000;
   while (Date.now() < deadline) {
-    if (child.exitCode !== null) throw await died();
+    if (dead(child)) throw await died();
     if (await answers(url)) {
-      if (child.exitCode !== null) throw await died();
+      if (dead(child)) throw await died();
       return;
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
