@@ -25,8 +25,12 @@
  * on a port a not-yet-started panel is about to `listen()` on produces the
  * same EADDRINUSE a foreign panel would, except transient - the squatter is a
  * client, not a listener, so nothing still answers by the time anything goes
- * looking. The band now sits below both floors, and above 30000-32767, which
- * Kubernetes reserves for NodePort services a runner might have bound.
+ * looking. The band now sits below both floors, and below 30000-32767, which
+ * Kubernetes reserves for NodePort services a runner might have bound. It is
+ * also the emptiest thousand available: 29000-29999 carries one registered
+ * service in `/etc/services`, against thirty in 20000-20999 - among them
+ * DNP3 on 20000 itself, which is a listener a real machine may well be
+ * running.
  */
-export const TEST_BAND_START = 20000;
+export const TEST_BAND_START = 29000;
 export const TEST_BAND_SIZE = 1000;

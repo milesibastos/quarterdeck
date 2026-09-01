@@ -34,11 +34,18 @@ bind and after the child dies. Nothing was left to name.
 
 ## Decision
 
-**The band moves to 20000-20999.** Below 32768, so the kernel cannot hand one
+**The band moves to 29000-29999.** Below 32768, so the kernel cannot hand one
 of these out as a Linux ephemeral source port; below 49152 for the same reason
-on macOS; and above 30000-32767, which Kubernetes reserves for NodePort
+on macOS; and below 30000-32767, which Kubernetes reserves for NodePort
 services a runner might have one of bound. `tests/lib/band.ts` is the only
 file that names the number.
+
+Which thousand, among the several that satisfy those three, was settled by
+`/etc/services`: 29000-29999 carries one registered service (29167, ObTools
+Message Protocol), where 20000-20999 - the first band picked here - carries
+thirty, including DNP3 on 20000 itself. A band chosen against the constraints
+beats one that merely happens to be free, which is the whole lesson of the
+two moves above it.
 
 `tests/harness.test.ts`'s ephemeral-floor assertions move from 49152 to
 32768: the tighter of the two real floors, and the one that was wrong to
@@ -60,7 +67,7 @@ outright does not carry either problem.
 
 ## Consequences
 
-Reported test-server ports move again: 20000-20999 instead of 46000-46999.
+Reported test-server ports move again: 29000-29999 instead of 46000-46999.
 Nothing names one outside `tests/lib/band.ts` and `tests/harness.test.ts`.
 
 `src/config/port.ts` carries one behaviour-preserving comment correction: its
