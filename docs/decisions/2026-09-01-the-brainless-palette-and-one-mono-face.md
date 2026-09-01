@@ -220,11 +220,34 @@ it honest. The captain has kept light mode twice, the second time knowing that.
 neutral palette costs when six roles want a grey; they stay separate tokens so a
 palette that later distinguishes them says so once.
 
-**A test was reading a radius.** `tests/fleet-lens.test.ts` counted rail
-segments by matching `flex-1 rounded-full`, so squaring the corners took the
-count to zero without a single rail changing. The segments now carry
-`data-rail-segment` and the test counts that, which is the convention the rest
-of this suite already uses.
+## What the repaint found in the tests
+
+Worth more than the repaint that surfaced it.
+
+`tests/fleet-lens.test.ts` counted a lifecycle rail's segments by matching the
+string `flex-1 rounded-full` in the markup. Squaring the corners took that count
+to **zero on every rail in the suite**, and not one rail had changed - the
+panel drew exactly the segments it drew the day before.
+
+The defect is not that the pattern broke. It is what the pattern was: **a test
+asserting on styling as a proxy for structure.** How many segments a rail draws
+is a claim about the work - four stages, six, an open end where nobody recorded
+a length - and the test was reading it out of a corner radius. Those two facts
+had no reason to move together, and the moment they came apart the test was
+free to be wrong in either direction. It broke loudly here, which is the lucky
+case. The unlucky one is a class that survives a restyle: the count keeps
+matching, the rails change underneath it, and a green test measures nothing.
+It would have gone on passing forever without asserting anything.
+
+The segments now carry `data-rail-segment`, which is the hook convention the
+rest of this suite already uses - `data-rail`, `data-stages`, `data-fact`,
+`data-lens` - and the test counts that. The fix is three lines. The finding is
+that a presentational class had been load-bearing in an assertion about
+behaviour, and a repaint is exactly the kind of change that finds them, because
+it moves every class and no behaviour at all.
+
+Worth a sweep for the same shape elsewhere in the suite. This pass did not do
+one; it changed the rail because the rail is what it broke.
 
 ## Where the panel still differs
 
