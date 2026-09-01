@@ -47,7 +47,7 @@ import { cn } from "@/ui/lib/utils";
  * ## Why the list is behind a disclosure
  *
  * It replaced a row of chips, and a radiogroup is a column where the chips were
- * a line: four fleets cost 203 pixels of masthead where the chips cost 60. That
+ * a line: four fleets cost 203 pixels of masthead where the chips cost 48. That
  * pushed the fleet band's header below the fold, and the fold is the one thing
  * the wireframe will not trade - what needs the operator owns the first screen,
  * and underway has to peek under it. So the grammar's full chooser opens on
