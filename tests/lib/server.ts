@@ -5,6 +5,7 @@ import { request as httpRequest } from "node:http";
 import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import type { Readable } from "node:stream";
 import { PORT_RANGE_SIZE, PORT_RANGE_START } from "../../src/config/port.ts";
 
 /**
@@ -240,20 +241,20 @@ export function explainEarlyDeath(death: EarlyDeath): string {
   );
 }
 
-/** The child's stderr, kept to a tail: enough for an error and its stack. */
-const STDERR_KEPT = 4_000;
+/** Each of the child's streams, kept to a tail: enough for an error and its stack. */
+const OUTPUT_KEPT = 4_000;
 
 /** Whether a child has exited or been killed by a signal, either way gone. */
 function dead(child: ChildProcess): boolean {
   return child.exitCode !== null || child.signalCode !== null;
 }
 
-/** Drains the child's stderr, and hands back a reader for what it said. */
-function collectStderr(child: ChildProcess): () => string {
+/** Drains one of the child's streams, and hands back a reader for what it said. */
+function collect(stream: Readable | null): () => string {
   let text = "";
-  child.stderr?.setEncoding("utf8");
-  child.stderr?.on("data", (chunk: string) => {
-    text = (text + chunk).slice(-STDERR_KEPT);
+  stream?.setEncoding("utf8");
+  stream?.on("data", (chunk: string) => {
+    text = (text + chunk).slice(-OUTPUT_KEPT);
   });
   return () => text;
 }
@@ -271,6 +272,15 @@ export interface Panel {
    * loudly it went. See `tests/shutdown.test.ts`.
    */
   stderr(): string;
+  /**
+   * Everything the panel has said on standard output.
+   *
+   * Drained rather than ignored for two reasons. A child whose stdout nobody
+   * reads eventually stops on a full pipe, and the panel's own log lines go
+   * there - which is where a test reads what the panel said about something it
+   * chose not to treat as an error. See `tests/refresh.test.ts`.
+   */
+  stdout(): string;
 }
 
 interface StartOptions {
@@ -294,10 +304,11 @@ export async function startPanel(options: StartOptions): Promise<Panel> {
 
   const child: ChildProcess = spawn(process.execPath, [SERVER_ENTRY], {
     cwd: REPO_ROOT,
-    // stderr is kept rather than discarded: a panel that fails to bind says so
-    // there, and that sentence is the difference between a named cause and a
-    // day of looking for a defect in the panel.
-    stdio: ["ignore", "ignore", "pipe"],
+    // Both are kept rather than discarded: a panel that fails to bind says so
+    // on stderr, and that sentence is the difference between a named cause and
+    // a day of looking for a defect in the panel - while everything the panel
+    // itself logs goes to stdout.
+    stdio: ["ignore", "pipe", "pipe"],
     env: {
       ...process.env,
       HOSTNAME: "127.0.0.1",
@@ -313,7 +324,8 @@ export async function startPanel(options: StartOptions): Promise<Panel> {
     },
   });
 
-  const stderr = collectStderr(child);
+  const stderr = collect(child.stderr);
+  const stdout = collect(child.stdout);
 
   /**
    * A panel already dead is a finding, not a stop: it did not serve this file,
@@ -351,7 +363,7 @@ export async function startPanel(options: StartOptions): Promise<Panel> {
     await stop().catch(() => {});
     throw error;
   }
-  return { url, fixtureRoot, stop, stderr };
+  return { url, fixtureRoot, stop, stderr, stdout };
 }
 
 /**
