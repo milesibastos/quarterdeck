@@ -2,6 +2,7 @@ import type { DeckItem, Lens, Worker } from "@/types/document.ts";
 import type { AnsweringSession } from "@/ui/lib/answering";
 import { LensFrame } from "@/ui/lens-frame";
 import { ago } from "@/ui/lib/age";
+import { readVerb } from "@/ui/lib/read-outcome";
 import { DecisionCard } from "@/ui/needs-you/decision-card";
 import { MergeCard, type MergeSession } from "@/ui/needs-you/merge-card";
 import { needsYou } from "@/ui/needs-you/needs-you";
@@ -179,7 +180,7 @@ export function NeedsYouBand({
           data-needs-you-caveat="unreadable"
           className="border-l-2 border-term-danger py-1 pl-3 font-mono text-[13px] leading-[1.55] wrap-anywhere text-term-fg"
         >
-          {`The read failed ${ago(lens.status.observedAt, nowMs)}. What follows is the last deck that read cleanly, and the count above may be short.`}
+          {`The read ${readVerb(lens.status)} ${ago(lens.status.observedAt, nowMs)}. What follows is the last deck that read cleanly, and the count above may be short.`}
         </p>
       )}
 

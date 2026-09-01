@@ -4,6 +4,7 @@ import type { DeckRow } from "@/ui/deck/deck-groups";
 import { DeckItemRow } from "@/ui/deck/deck-row";
 import { LensFrame } from "@/ui/lens-frame";
 import { ago } from "@/ui/lib/age";
+import { readVerb } from "@/ui/lib/read-outcome";
 import { needsYou } from "@/ui/needs-you/needs-you";
 
 /**
@@ -162,7 +163,7 @@ export function DeckLens({
       )}
       {lens.status.state === "unreadable" && lens.content.length > 0 && (
         <GrokEvent
-          label={`The read failed ${ago(lens.status.observedAt, nowMs)}; showing the last deck that read cleanly.`}
+          label={`The read ${readVerb(lens.status)} ${ago(lens.status.observedAt, nowMs)}; showing the last deck that read cleanly.`}
         />
       )}
 

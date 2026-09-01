@@ -167,6 +167,13 @@ attempt per press is not a storm. The attempt count is stepped over rather than
 cleared, so a press that fails again leaves the renders behind it backing off
 further rather than starting the escalation over.
 
+**The forge keeps the budget it had.** `QUARTERDECK_READ_TIMEOUT_MS` was being
+handed to the `gh` reader as well, so raising it from 5s to 20s would have
+silently bought a hung network call three times longer to hold up the rest of
+its batch. The fleet's number is sized against a cost that grows with the fleet;
+one forge request has no such curve. `FORGE_READ_TIMEOUT_MS` is now its own
+constant, and stays at five seconds.
+
 **One deadline spans both reads.** Health and the snapshot ran in sequence with a
 fresh `AbortSignal.timeout` each, so the real budget was twice the configured
 number - and the configured number is the one the page now quotes back to the
@@ -187,6 +194,17 @@ says what the cost curve is and which setting raises the budget:
 > worker, so a large or busy fleet can outrun the budget - this is slowness, not
 > a fault. It will be asked again shortly; QUARTERDECK_READ_TIMEOUT_MS raises the
 > budget.
+
+The verb is derived in one place - `readVerb` - rather than written into each
+band. The badge was changed first and the bodies were not, which put `Timed out`
+in a header two inches above "the read failed" in the body of the same card:
+the page telling an operator both that their fleet is fine and that it is
+broken, with the second being the one they would act on. Two rendered shapes
+have to be checked and only one is obvious - a first read that never landed,
+where the lenses have nothing behind them, and a fleet that answered once and
+then stopped, where they are still showing the last good picture and have to
+date it. The second is where the wrong word survived, and a test that only
+covered the first passed with the fault deliberately put back.
 
 An operator can act on that. They cannot act on "failed", and being told their
 fleet is broken when it is only busy is the panel making a claim it has no
@@ -221,3 +239,19 @@ enough will time out however the budget is set, and the panel's job is then to
 say so honestly rather than to pretend it read something. The fix that would
 actually remove the ceiling - concurrency or a cache inside
 `bin/fm-fleet-snapshot.sh` - belongs to the repository that owns that file.
+
+There is a second, quieter cost that the backoff does not touch and should not.
+A fleet writing to `state/` faster than one snapshot completes keeps the panel
+reading continuously: the watcher fires, the read succeeds, success clears the
+backoff, and the next event starts another. That is not a storm - `#inFlight`
+and the success reset hold it to exactly one read at a time - but it is about
+one full-cost snapshot per read-duration, indefinitely, for as long as the fleet
+is busy and a page is open. Backing off after a _successful_ read would be the
+panel deciding an operator may not see their fleet move, which is the opposite
+of what it is for.
+
+The fix is upstream's, and it is already on that fleet's own backlog as
+`fm-snapshot-cadence-e2`: republish the snapshot on a cadence so a file-watching
+surface reads a file instead of running a command. On that day this panel's read
+becomes a file open, the budget stops mattering, and everything above becomes
+history rather than policy.
