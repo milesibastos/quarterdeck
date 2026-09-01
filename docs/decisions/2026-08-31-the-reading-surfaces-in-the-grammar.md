@@ -133,10 +133,13 @@ not be the same box the lenses draw around what is - and the alternative was a
 darker rule than the page has anywhere else.
 
 **`LensFrame` is still the product's chrome.** Deck and landed render inside it,
-so a grok body sits under a `font-display` header on a `Card`. The frame is the
-foundation's file and not this change's to touch. An unconverted frame around a
-converted body is the expected intermediate state, the same way an unconverted
-lens under a converted frame was.
+so a grok body sits under the frame's own header on a `Card`. That header was a
+`font-display` one when this was written; the 2026-09-01 repaint retired the
+display face and it is mono like everything else now - see
+`docs/decisions/2026-09-01-the-brainless-palette-and-one-mono-face.md`. The
+frame is the foundation's file and not this change's to touch. An unconverted
+frame around a converted body is the expected intermediate state, the same way
+an unconverted lens under a converted frame was.
 
 ## What this does not cover
 

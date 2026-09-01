@@ -63,15 +63,17 @@ are already pale backgrounds carrying dark text in this theme, and `navy-300`
 was not. `--destructive` now points at the same stop as `--danger`, which is the
 same thing said twice and is now said the same way.
 
-The measured ratios, including the two the light theme still fails, are in
-`docs/quality.md`.
+The measured ratios are in `docs/quality.md`. Two of them were below AA when
+this was written and both were closed by the 2026-09-01 repaint, which replaced
+the palette these tokens point at.
 
 ## Trade-offs
 
-**Dark's muted text is brighter than the mapping first specified.** `paper-300`
-against `paper-100` is a smaller step than `ink-300` was, so "muted" is a
-quieter distinction in dark than in light. The palette has no stop between them.
-A legible distinction that is smaller beats an elegant one nobody can read.
+**Dark's muted text was brighter than the mapping first specified**, because
+the warm ramp had no stop between the two the mapping wanted, so "muted" was a
+quieter distinction in dark than in light. The 2026-09-01 repaint replaced that
+ramp with a neutral one that has the stops: the five text ranks now step evenly
+in both themes. See `docs/decisions/2026-09-01-the-brainless-palette-and-one-mono-face.md`.
 
 **No switcher, so an operator cannot disagree with their machine.** Somebody who
 wants the panel light on a dark desktop cannot have it. Adding that means a

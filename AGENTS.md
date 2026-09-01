@@ -17,9 +17,11 @@ synthetic fixtures when there is none. The operator picks which of the
 configured fleets they are looking at, and their browser remembers it.
 
 The panel is drawn in a terminal grammar - the grok family from the brainless
-registry, vendored under `src/ui/components/grok/` and re-tokenised onto
-quarterdeck's palette. No component may carry a colour value; `npm test`
-enforces it. See `docs/decisions/2026-08-31-the-terminal-grammar.md`.
+registry, vendored under `src/ui/components/grok/` - in brainless's own measured
+palette, one monospace face, and square corners. No component may carry a colour
+value; `npm test` enforces it. See
+`docs/decisions/2026-08-31-the-terminal-grammar.md` and
+`docs/decisions/2026-09-01-the-brainless-palette-and-one-mono-face.md`.
 
 The panel reads. The two things it writes are an answer record and a merge
 order, both through one file, and the page executes nothing - the fleet's own
