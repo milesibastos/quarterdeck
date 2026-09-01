@@ -34,6 +34,33 @@ npm start          # builds if needed, then prints the URL it bound
 The port is derived from this worktree's absolute path, so two checkouts can run
 side by side and each always answers on the same URL.
 
+### The panel's port changed, and your bookmark is stale
+
+Panels used to answer in 45000-45999. They now answer in 28000-28999, so every
+URL derived before that move is gone and a bookmark to one will not connect.
+Nothing is wrong with your checkout.
+
+`npm start` prints the URL it bound, every time - that line is the current
+answer, and it always has been.
+
+If you would rather have a URL that no future move can take away, pin one:
+
+```sh
+QUARTERDECK_PORT=28123 npm start   # this checkout, this port, always
+```
+
+Set it per checkout - in your shell profile, a direnv file, whatever you
+already use - and the derivation is skipped entirely. Two checkouts pinned to
+the same port cannot run at once: the second refuses to start, names the port,
+and tells you to stop the other one or set `QUARTERDECK_PORT`.
+
+The band moved because 45000-45999 sits inside the range Linux hands out
+ephemeral ports from, so on Linux the kernel could be holding a panel's port
+before the panel bound it. 28000-28999 is under that floor, under the range
+Kubernetes allocates NodePort services from, and clear of the band this
+repository's own test suite uses. The ranges and where each was read from are
+in `docs/decisions/2026-09-01-the-panel-band-clears-every-kernel.md`.
+
 ```sh
 QUARTERDECK_FIXTURE_SET=stale npm start   # see fixtures/README.md for the sets
 npm test                                  # lint, invariant checks, built server
