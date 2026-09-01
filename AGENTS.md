@@ -32,6 +32,13 @@ worker card also opens that worker's terminal on demand, read only and never on
 the first paint; see `docs/decisions/2026-08-31-the-worker-terminal.md` before
 touching that one.
 
+A red error on a healthy panel is a defect even when nothing failed: React says
+`The destination stream closed early.` whenever a page stops listening while its
+refresh is still rendering, and `src/providers/logger.ts` claims that one
+sentence and says what it means. See
+`docs/decisions/2026-09-01-the-error-that-is-a-page-leaving.md` before adding a
+second claim, or before assuming this one is a shutdown fault.
+
 The panel must stop when it is asked to. The change signal is a response that
 never finishes on its own, and Next's shutdown waits for every open connection,
 so anything that holds a connection open past a request has to close itself on
