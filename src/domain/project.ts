@@ -588,16 +588,25 @@ function freshness(
 }
 
 /**
- * A lens the panel could not fill, always because something answered badly
- * rather than slowly - the two callers here are upstream declaring it could not
- * read the backlog, and health declaring its file unreadable. A read that ran
- * out of time is the runtime's to report, through `withSnapshotUnreadable`.
+ * A lens the panel could not fill.
+ *
+ * The backlog callers always pass "failed": upstream's `present` flag says the
+ * backlog itself would not parse, never that the whole snapshot read ran out of
+ * time - a read that timed out is the runtime's to report, through
+ * `withSnapshotUnreadable`, and never reaches `projectDocument` at all. Health
+ * is different: it is read under the same shared deadline as the snapshot (see
+ * `FleetRuntime#read`), so its own reading can time out independently, and
+ * `reason` carries whichever the reader actually observed.
  */
-function unreadable(detail: string, clock: Clock): LensStatus {
+function unreadable(
+  detail: string,
+  clock: Clock,
+  reason: UnreadableReason = "failed",
+): LensStatus {
   return {
     state: "unreadable",
     observedAt: clock.now(),
-    reason: "failed",
+    reason,
     detail,
   };
 }
@@ -629,7 +638,7 @@ function projectHealth(
   if (reading.read === "unreadable") {
     return {
       content: darkHealth(reading.detail),
-      status: unreadable(reading.detail, options.clock),
+      status: unreadable(reading.detail, options.clock, reading.reason),
     };
   }
   return { content: reading.health, status: freshness(reading.asOf, options) };

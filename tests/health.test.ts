@@ -404,6 +404,10 @@ describe("a deadline that has already passed", () => {
 
     const reading = await readFleetHomeHealth(home, CLOCK, AbortSignal.abort());
     assert.equal(reading.read, "unreadable");
+    assert.ok(
+      reading.read === "unreadable" && reading.reason === "timed-out",
+      "a deadline that fired is a timeout, not the fleet answering badly",
+    );
   });
 });
 

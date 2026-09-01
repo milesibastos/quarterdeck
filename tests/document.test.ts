@@ -619,6 +619,20 @@ describe("the health part", () => {
     assert.equal(content.queue.read, "unreadable");
     assert.equal(content.attendance.read, "unreadable");
   });
+
+  test("a health read that ran out of the shared deadline says timed-out, not failed", () => {
+    const document = projectDocument(
+      snapshotOf("healthy"),
+      { read: "unreadable", reason: "timed-out", detail: "ran out of time" },
+      OPTIONS,
+    );
+    assert.equal(document.health.status.state, "unreadable");
+    assert.ok(
+      document.health.status.state === "unreadable" &&
+        document.health.status.reason === "timed-out",
+      "a deadline firing on the health read is a timeout, not the fleet answering badly",
+    );
+  });
 });
 
 describe("the landed part", () => {
