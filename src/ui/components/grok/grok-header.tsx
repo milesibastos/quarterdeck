@@ -200,7 +200,7 @@ export function GrokHeader({
   return (
     <div
       className={cn(
-        "min-w-0 rounded-[6px] border border-term-rule-soft px-3 py-4 font-mono text-[13px] leading-[1.5] text-term-fg sm:px-4",
+        "min-w-0 border border-term-rule-soft px-3 py-4 font-mono text-[13px] leading-[1.5] text-term-fg sm:px-4",
         className,
       )}
     >
@@ -235,7 +235,7 @@ export function GrokHeader({
                   </>
                 );
                 const shape =
-                  "flex w-full min-w-0 items-center justify-between gap-4 rounded px-1 py-0.5 text-left";
+                  "flex w-full min-w-0 items-center justify-between gap-4 px-1 py-0.5 text-left";
                 return (
                   <li key={m.label}>
                     {m.onSelect ? (

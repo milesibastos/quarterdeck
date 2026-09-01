@@ -23,96 +23,147 @@
  *
  * OKLCH values are computed from the source hex, not eyeballed; the hex is kept
  * in the comment so the conversion stays auditable. See docs/decisions/.
+ *
+ * The palette is brainless's, measured off https://brainless.swerdlow.dev/blocks
+ * on 2026-09-01 rather than transcribed: a neutral ramp, one rust accent, and
+ * four status hues. It replaces a warm sepia palette that made the panel read
+ * as a document wearing terminal components. See
+ * `docs/decisions/2026-09-01-the-brainless-palette-and-one-mono-face.md` for
+ * what was measured, what was adopted and where the panel deliberately differs.
  */
 
 :root {
-  /* 1. palette */
-  --qd-rust-700: oklch(0.4447 0.1348 34.92); /* #8f2f17 */
-  --qd-rust-600: oklch(0.504 0.1511 34.74); /* #a93a1f */
-  --qd-rust-500: oklch(0.5569 0.1633 33.94); /* #c0452a */
-  --qd-rust-400: oklch(0.6238 0.1542 36.32); /* #d35f3f */
-  --qd-rust-300: oklch(0.7036 0.1228 38.61); /* #e08365 */
-  --qd-rust-100: oklch(0.9014 0.0373 50.03); /* #f4d8c9 */
-  --qd-rust-050: oklch(0.9525 0.0203 53.26); /* #fbece3 */
-  --qd-navy-700: oklch(0.2558 0.0433 268.07); /* #1a2238 */
-  --qd-navy-600: oklch(0.2989 0.0547 268.54); /* #222c49 */
-  --qd-navy-500: oklch(0.338 0.0589 267.59); /* #2a3656 */
-  --qd-navy-300: oklch(0.5718 0.0498 269.55); /* #6c7796 */
-  --qd-navy-100: oklch(0.9003 0.0172 267.78); /* #d9deea */
-  --qd-gold-700: oklch(0.5127 0.1016 72.44); /* #8a5c14 */
-  --qd-gold-600: oklch(0.6237 0.1247 71.91); /* #b5791c */
-  --qd-gold-500: oklch(0.7588 0.1436 79.97); /* #e0a52e */
-  --qd-gold-300: oklch(0.8754 0.0952 88.16); /* #f0d38c */
-  --qd-gold-100: oklch(0.9437 0.0475 91.33); /* #f8ecc9 */
-  --qd-ocean-600: oklch(0.4885 0.0797 238.53); /* #2f6688 */
-  --qd-ocean-500: oklch(0.5674 0.0913 237.95); /* #3c7ea6 */
-  --qd-ocean-200: oklch(0.8524 0.0375 227.66); /* #b6d4e2 */
-  --qd-ocean-050: oklch(0.9525 0.011 225.98); /* #e8f1f5 */
-  --qd-sea-700: oklch(0.3866 0.0595 161.59); /* #234e3a */
-  --qd-sea-500: oklch(0.4794 0.078 161.08); /* #2f6b4f */
-  --qd-sea-200: oklch(0.8457 0.0355 161.28); /* #b9d4c5 */
-  --qd-sea-050: oklch(0.9527 0.0124 157); /* #e9f2ec */
-  --qd-paper-000: oklch(0.9678 0.0249 89.21); /* #fbf4e2 */
-  --qd-paper-100: oklch(0.9444 0.0346 88.78); /* #f6ecd3 */
-  --qd-paper-200: oklch(0.9182 0.0432 87.96); /* #f0e3c4 */
-  --qd-paper-300: oklch(0.8799 0.0559 87.71); /* #e7d6ae */
-  --qd-cream-line: oklch(0.8395 0.0627 85.4); /* #ddc89c */
-  --qd-ink-900: oklch(0.2334 0.0193 66.65); /* #241c14 */
-  --qd-ink-700: oklch(0.3273 0.0299 68.56); /* #3f3224 */
-  --qd-ink-600: oklch(0.4092 0.037 71.31); /* #574734 */
-  --qd-ink-500: oklch(0.492 0.0422 76.04); /* #6f5e46 */
-  --qd-ink-400: oklch(0.5189 0.0421 72.02); /* #78654e */
-  --qd-ink-300: oklch(0.6417 0.0477 80.34); /* #9c8a6c */
-  --qd-white: oklch(0.9939 0.0082 91.48); /* #fffdf7 */
+  /*
+   * 1. palette
+   *
+   * The neutral ramp. Every stop is a value read off brainless: the twelve
+   * that are Tailwind's `neutral` scale, which is what brainless's own token
+   * layer resolves to, plus six the grok components carry directly - `#e8e8e8`
+   * their body text, `#c0c0c0` their dim rank, `#8b8b90` their muted rank,
+   * `#808080` their rule and marker grey, `#2b2b2b` their box border and
+   * `#1a1a1a` their panel ground.
+   */
+  --qd-n-000: oklch(1 0 0); /* #ffffff */
+  --qd-n-050: oklch(0.9851 0 0); /* #fafafa */
+  --qd-n-100: oklch(0.9702 0 0); /* #f5f5f5 */
+  --qd-n-150: oklch(0.931 0 0); /* #e8e8e8 */
+  --qd-n-200: oklch(0.9219 0 0); /* #e5e5e5 */
+  --qd-n-300: oklch(0.8699 0 0); /* #d4d4d4 */
+  --qd-n-350: oklch(0.8078 0 0); /* #c0c0c0 */
+  --qd-n-400: oklch(0.709 0 0); /* #a1a1a1 */
+  --qd-n-450: oklch(0.6383 0.0074 286.19); /* #8b8b90 */
+  --qd-n-500: oklch(0.5999 0 0); /* #808080 */
+  --qd-n-550: oklch(0.5313 0 0); /* #6c6c6c */
+  --qd-n-600: oklch(0.4386 0 0); /* #525252 */
+  --qd-n-700: oklch(0.3715 0 0); /* #404040 */
+  --qd-n-750: oklch(0.2891 0 0); /* #2b2b2b */
+  --qd-n-800: oklch(0.2686 0 0); /* #262626 */
+  --qd-n-850: oklch(0.2178 0 0); /* #1a1a1a */
+  --qd-n-900: oklch(0.2046 0 0); /* #171717 */
+  --qd-n-950: oklch(0.1448 0 0); /* #0a0a0a */
 
-  /* 2. semantic tokens - light */
-  --radius: 0.5rem;
+  /*
+   * The one accent. `#cd694a` is the rust brainless spends its whole boldness
+   * on; on its own page the token is called `--agent-claude`, which is worth
+   * knowing but does not change the value. It carries 5.4:1 as text on the dark
+   * ground and only 3.7:1 on white, so the light theme takes one darker stop -
+   * the same two-stop pattern every hue below uses, and the same reason the
+   * previous palette needed rust-600.
+   */
+  --qd-rust-500: oklch(0.6317 0.1347 37.93); /* #cd694a */
+  --qd-rust-700: oklch(0.5654 0.1306 37.19); /* #b5563a */
+
+  /*
+   * The four that carry meaning. These are hues, not accents: a stage is told
+   * apart from a stage, and brainless's own blocks colour their status lines
+   * the same way. Each is brainless's value at the pale end and a darker
+   * relative at the dark end, so both themes clear 4.5:1 as text and as a chip
+   * fill. `#4ea96f` is the green under its success wash; the other three are
+   * the amber, red and sky its token layer carries.
+   */
+  --qd-green-400: oklch(0.6638 0.1233 153.44); /* #4ea96f */
+  --qd-green-700: oklch(0.5131 0.1157 156.17); /* #177a4a */
+  --qd-amber-400: oklch(0.829 0.1712 81.04); /* #ffb900 */
+  --qd-amber-700: oklch(0.5538 0.1207 66.44); /* #a16207 */
+  --qd-red-400: oklch(0.7022 0.1892 22.23); /* #ff6467 */
+  --qd-red-700: oklch(0.5095 0.2086 28.51); /* #c10007 */
+  --qd-sky-300: oklch(0.8271 0.109 229.2); /* #74d4ff */
+  --qd-sky-700: oklch(0.504 0.1281 245.46); /* #0069a8 */
+
+  /*
+   * 2. semantic tokens - light
+   *
+   * Repainted onto brainless's own light neutrals: a pure white ground rather
+   * than cream, `#f5f5f5` for every wash, `#e5e5e5` for every rule. brainless's
+   * components stay dark when its site goes light; quarterdeck's do not,
+   * because the panel keeps a real light theme - so each token below is the
+   * light translation of the dark value beside it, measured, not the dark value
+   * reused. The ratio in each comment is against the ground the token is read
+   * on, computed in a browser rather than taken from the arithmetic alone.
+   */
+  --radius: 0rem;
   color-scheme: light;
 
-  --background: var(--qd-paper-100);
-  --foreground: var(--qd-ink-900);
-  --card: var(--qd-white);
-  --card-foreground: var(--qd-ink-900);
-  --popover: var(--qd-white);
-  --popover-foreground: var(--qd-ink-900);
-  --primary: var(--qd-rust-500);
-  --primary-foreground: var(--qd-white);
-  --secondary: var(--qd-navy-500);
-  --secondary-foreground: var(--qd-white);
-  --muted: var(--qd-paper-200);
-  --muted-foreground: var(--qd-ink-500);
-  --accent: var(--qd-paper-000);
-  --accent-foreground: var(--qd-ink-700);
-  --destructive: var(--qd-rust-600);
-  --destructive-foreground: var(--qd-white);
-  --border: var(--qd-cream-line);
-  --input: var(--qd-paper-300);
-  --ring: var(--qd-gold-300);
+  --background: var(--qd-n-000); /* #ffffff */
+  --foreground: var(--qd-n-950); /* 19.8:1 */
+  --card: var(--qd-n-000);
+  --card-foreground: var(--qd-n-950); /* 19.8:1 */
+  --popover: var(--qd-n-000);
+  --popover-foreground: var(--qd-n-950); /* 19.8:1 */
+  --primary: var(--qd-rust-700); /* 4.8:1 under --primary-foreground */
+  --primary-foreground: var(--qd-n-000);
+  /* Was navy, which the neutral palette has no room for. It is a fill in the
+     button and the badge and a word in the lifecycle rail, so it has to pass
+     both ways: 9.9:1 under `--secondary-foreground`, 10.4:1 as text on the
+     page. The same stop as `--term-dim`, which is what a finished stage should
+     read as. */
+  --secondary: var(--qd-n-700); /* 10.4:1 as text, 9.9:1 as a fill */
+  --secondary-foreground: var(--qd-n-050);
+  --muted: var(--qd-n-100);
+  /* n-550 rather than brainless's own `#737373`: the badge hovers to
+     `bg-muted text-muted-foreground`, and `#737373` on `#f5f5f5` is 4.3:1.
+     One stop darker clears it on the wash as well as on the page. */
+  --muted-foreground: var(--qd-n-550); /* 5.3:1 on page, 4.8:1 on --muted */
+  --accent: var(--qd-n-100);
+  --accent-foreground: var(--qd-n-900); /* 16.4:1 on --accent */
+  --destructive: var(--qd-red-700); /* 6.4:1 under --destructive-foreground */
+  --destructive-foreground: var(--qd-n-000);
+  --border: var(--qd-n-200);
+  --input: var(--qd-n-300);
+  /* Was gold. brainless's ring is a plain grey, `#737373`; this is the same
+     stop `--muted-foreground` took and for the same reason - 5.3:1 against the
+     page and 4.8:1 against the `--muted` wash a focused control may sit on,
+     where a focus indicator only needs 3:1. */
+  --ring: var(--qd-n-550); /* 5.3:1 */
 
-  /* worker and fleet state, the panel's own vocabulary */
-  --online: var(--qd-sea-500);
-  --online-foreground: var(--qd-white);
-  --warn: var(--qd-gold-600);
-  --warn-foreground: var(--qd-white);
-  --danger: var(--qd-rust-600);
-  --danger-foreground: var(--qd-white);
-  --info: var(--qd-ocean-500);
-  --info-foreground: var(--qd-white);
+  /* worker and fleet state, the panel's own vocabulary. Chip fills, each
+     carrying `--*-foreground` on top, so the ratio is the fill against its
+     partner rather than against the page. */
+  --online: var(--qd-green-700); /* 5.4:1 */
+  --online-foreground: var(--qd-n-000);
+  --warn: var(--qd-amber-700); /* 4.9:1 */
+  --warn-foreground: var(--qd-n-000);
+  --danger: var(--qd-red-700); /* 6.4:1 */
+  --danger-foreground: var(--qd-n-000);
+  --info: var(--qd-sky-700); /* 5.9:1 */
+  --info-foreground: var(--qd-n-000);
 
-  --chart-1: var(--qd-rust-500);
-  --chart-2: var(--qd-ocean-500);
-  --chart-3: var(--qd-sea-500);
-  --chart-4: var(--qd-gold-500);
-  --chart-5: var(--qd-navy-500);
+  /* No component names these. brainless draws its own charts in the neutral
+     ramp and so do they, rather than reintroducing five hues nothing reads. */
+  --chart-1: var(--qd-n-900);
+  --chart-2: var(--qd-n-700);
+  --chart-3: var(--qd-n-600);
+  --chart-4: var(--qd-n-550);
+  --chart-5: var(--qd-n-400);
 
-  --sidebar: var(--qd-paper-000);
-  --sidebar-foreground: var(--qd-ink-900);
-  --sidebar-primary: var(--qd-rust-500);
-  --sidebar-primary-foreground: var(--qd-white);
-  --sidebar-accent: var(--qd-paper-200);
-  --sidebar-accent-foreground: var(--qd-ink-700);
-  --sidebar-border: var(--qd-cream-line);
-  --sidebar-ring: var(--qd-gold-300);
+  --sidebar: var(--qd-n-050);
+  --sidebar-foreground: var(--qd-n-950);
+  --sidebar-primary: var(--qd-rust-700);
+  --sidebar-primary-foreground: var(--qd-n-000);
+  --sidebar-accent: var(--qd-n-100);
+  --sidebar-accent-foreground: var(--qd-n-900);
+  --sidebar-border: var(--qd-n-200);
+  --sidebar-ring: var(--qd-n-550);
 
   /*
    * The terminal grammar.
@@ -127,13 +178,14 @@
    * They come from the vendored grok family in `src/ui/components/grok/`,
    * which shipped 22 hardcoded values and no theme layer. Each one was read at
    * its usage site and mapped to the role it was playing, not to the grey it
-   * happened to be: grok is dark-native, so its `#e1e1e1` means "ordinary text
-   * on the terminal ground" and has to invert, not stay pale.
+   * happened to be.
    *
-   * Every rank below is measured against its own ground rather than eyeballed.
-   * The five text ranks all clear 4.5:1 in both themes - which is already a
-   * departure, because grok's own faintest grey does not - and the rules clear
-   * 3:1 where they bound something. See
+   * Since the repaint the dark column is grok's own greys rather than a
+   * translation of them - the ramp above is where they came from - and it is
+   * the light column that is the translation. Every rank is measured against
+   * its own ground rather than eyeballed. The five text ranks all clear 4.5:1
+   * in both themes, which is still a departure, because grok's own faintest
+   * grey does not. See
    * `docs/decisions/2026-08-31-the-terminal-grammar.md`.
    */
 
@@ -144,137 +196,122 @@
    * A box still occludes what is behind it, because occlusion is opacity and
    * not contrast, and its border is what separates it from the page.
    *
-   * The alternative was `--card`, which in the dark theme is two stops lighter
-   * than the page and split every rank into two numbers: `--term-faint`
-   * measured 5.0:1 on the page and 3.7:1 on the card. One ground, one number.
+   * The alternative was `--card`, which splits every rank into two numbers
+   * whenever the card is not the page colour. One ground, one number.
    */
   --term-bg: var(--background);
 
-  --term-fg-bright: var(--qd-ink-900); /* 14.3:1 - spinner, active label */
-  --term-fg: var(--qd-ink-700); /* 10.6:1 - ordinary terminal text */
-  --term-dim: var(--qd-ink-600); /* 7.6:1 - elapsed, counts, silver */
-  --term-muted: var(--qd-ink-500); /* 5.3:1 - labels, subheads */
-  --term-faint: var(--qd-ink-400); /* 4.7:1 - timestamps, key hints */
-  /* 2.9:1. Under the 3:1 a bounding line wants, and still twice `--border`,
-     which is what the rest of the panel draws its cards with. A box here is
-     legible without its rule; the rule is grammar, not the message. */
-  --term-rule: var(--qd-ink-300);
-  --term-rule-soft: var(
-    --qd-cream-line
-  ); /* a resting box, not a shouting one */
-  --term-selected: var(--qd-paper-300); /* the wash under a hovered row */
+  --term-fg-bright: var(--qd-n-950); /* 19.8:1 - spinner, active label */
+  --term-fg: var(--qd-n-900); /* 17.9:1 - ordinary terminal text */
+  --term-dim: var(--qd-n-700); /* 10.4:1 - elapsed, counts, silver */
+  --term-muted: var(--qd-n-600); /* 7.8:1 - labels, subheads */
+  --term-faint: var(--qd-n-550); /* 5.3:1 - timestamps, key hints */
+  /* 3.9:1, which clears the 3:1 a bounding line wants - the previous palette
+     managed 2.9:1 here and recorded the miss. It is grok's own `#808080`, and
+     it is the one rank that does not move between themes. */
+  --term-rule: var(--qd-n-500); /* 3.9:1 */
+  --term-rule-soft: var(--qd-n-200); /* a resting box, not a shouting one */
+  --term-selected: var(--qd-n-100); /* the wash under a hovered row */
 
   /*
-   * The five that carry meaning rather than depth. grok draws them as the pure
-   * terminal colours - #00ff00, #ffff00, #ff0000 - which are 1.4:1, 1.1:1 and
-   * 3.9:1 on a light ground: invisible, invisible, and short. Each is given a
-   * real light value at the same rank instead of being reused.
-   *
-   * They point one stop darker than the product's chip tokens because these are
-   * words on a ground rather than a fill behind a word: `--warn` is gold-600,
-   * which measures 3.2:1 as text here and is why gold-700 exists.
+   * The five that carry meaning rather than depth. grok draws three of them as
+   * the pure terminal colours - #00ff00, #ffff00, #ff0000 - which are 1.4:1,
+   * 1.1:1 and 3.9:1 on a white ground: invisible, invisible, and short. Each is
+   * given a real light value at the same rank instead of being reused.
    */
-  --term-success: var(--qd-sea-500); /* 5.4:1 <- #00ff00 */
-  --term-warning: var(--qd-gold-700); /* 4.9:1 <- #ffff00 */
-  --term-danger: var(--qd-rust-600); /* 5.4:1 <- #ff0000 */
-  --term-info: var(--qd-ocean-600); /* 5.3:1 <- #8db0ff */
-  /*
-   * grok's brand amber, wearing the product's identity colour. The same stop as
-   * `--term-danger`, which is the palette's own doing rather than this file's:
-   * quarterdeck's identity and its destructive colour are both rust, and
-   * rust-500 - `--primary`, the obvious choice - measures 4.3:1 as text here.
-   * Two tokens, so a palette that later separates them only has to say so once.
-   */
-  --term-accent: var(--qd-rust-600); /* 5.4:1 <- #e0af68 */
+  --term-success: var(--qd-green-700); /* 5.4:1 <- #00ff00 */
+  --term-warning: var(--qd-amber-700); /* 4.9:1 <- #ffff00 */
+  --term-danger: var(--qd-red-700); /* 6.4:1 <- #ff0000 */
+  --term-info: var(--qd-sky-700); /* 5.9:1 <- #8db0ff */
+  /* The accent, and since the repaint no longer the same stop as
+     `--term-danger`: identity is rust and destruction is red, which is the
+     separation brainless makes too. */
+  --term-accent: var(--qd-rust-700); /* 4.8:1 <- #e0af68 */
 }
 
 /*
- * Dark: ink surfaces carrying paper text, from the same palette. Accents step
- * one stop lighter (rust-500 -> rust-400) because the surface they sit on got
- * darker, not because dark mode has its own hues.
+ * Dark: brainless's own ground and its own greys, from the same ramp. The
+ * accent and the four meanings step one stop lighter because the surface they
+ * sit on got darker, not because dark mode has its own hues.
  *
  * Keyed on the operator's system setting rather than a class. There is exactly
- * one copy of the dark mapping - the class this used to be is gone, not
- * duplicated here - so the two cannot drift, and because it is plain CSS the
- * right theme is painted on the first frame with no script to run first. See
- * docs/decisions/2026-08-31-the-theme-follows-the-system.md.
+ * one copy of the dark mapping, so the two cannot drift, and because it is
+ * plain CSS the right theme is painted on the first frame with no script to run
+ * first. See docs/decisions/2026-08-31-the-theme-follows-the-system.md.
  */
 @media (prefers-color-scheme: dark) {
   :root {
     color-scheme: dark;
 
-    --background: var(--qd-ink-900);
-    --foreground: var(--qd-paper-100);
-    --card: var(--qd-ink-700);
-    --card-foreground: var(--qd-paper-100);
-    --popover: var(--qd-ink-700);
-    --popover-foreground: var(--qd-paper-100);
-    --primary: var(--qd-rust-400);
-    --primary-foreground: var(--qd-ink-900);
-    /* navy-100 rather than navy-300, which put ink-900 chip text at 3.77:1.
-       A pale chip carrying dark text is what `online` and `info` already do
-       in the dark theme; navy-300 was the odd one out. */
-    --secondary: var(--qd-navy-100);
-    --secondary-foreground: var(--qd-ink-900);
-    --muted: var(--qd-ink-700);
-    /* paper-300, not ink-300: ink-300 on the ink-700 card measures 3.7:1,
-       and this token carries most of the panel's secondary prose. See
-       docs/quality.md - the measured ratios. */
-    --muted-foreground: var(--qd-paper-300);
-    --accent: var(--qd-ink-700);
-    --accent-foreground: var(--qd-paper-200);
-    /* The same stop as `--danger`: they say the same thing, and rust-400 as
-       text on the ink-700 card measured 3.24:1. */
-    --destructive: var(--qd-rust-300);
-    --destructive-foreground: var(--qd-ink-900);
-    --border: var(--qd-ink-500);
-    --input: var(--qd-ink-500);
-    --ring: var(--qd-gold-500);
+    --background: var(--qd-n-950); /* #0a0a0a */
+    --foreground: var(--qd-n-050); /* 19.0:1 */
+    --card: var(--qd-n-900);
+    --card-foreground: var(--qd-n-050); /* 17.2:1 on --card */
+    --popover: var(--qd-n-900);
+    --popover-foreground: var(--qd-n-050); /* 17.2:1 on --popover */
+    --primary: var(--qd-rust-500); /* 5.4:1 under --primary-foreground */
+    --primary-foreground: var(--qd-n-950);
+    /* The pale end of the same neutral the light theme takes the dark end of.
+       It is a fill under `--secondary-foreground` and a word in the lifecycle
+       rail, so it has to pass both ways. */
+    --secondary: var(--qd-n-350); /* 10.9:1 both ways */
+    --secondary-foreground: var(--qd-n-950);
+    --muted: var(--qd-n-800);
+    --muted-foreground: var(--qd-n-400); /* 7.7:1 on page, 5.9:1 on --muted */
+    --accent: var(--qd-n-800);
+    --accent-foreground: var(--qd-n-050); /* 14.5:1 on --accent */
+    --destructive: var(--qd-red-400); /* 6.9:1 under --destructive-foreground */
+    --destructive-foreground: var(--qd-n-950);
+    --border: var(--qd-n-750);
+    --input: var(--qd-n-700);
+    --ring: var(--qd-n-550); /* 3.8:1, over the 3:1 a focus ring wants */
 
-    --online: var(--qd-sea-200);
-    --online-foreground: var(--qd-ink-900);
-    --warn: var(--qd-gold-300);
-    --warn-foreground: var(--qd-ink-900);
-    --danger: var(--qd-rust-300);
-    --danger-foreground: var(--qd-ink-900);
-    --info: var(--qd-ocean-200);
-    --info-foreground: var(--qd-ink-900);
+    --online: var(--qd-green-400); /* 6.8:1 */
+    --online-foreground: var(--qd-n-950);
+    --warn: var(--qd-amber-400); /* 11.5:1 */
+    --warn-foreground: var(--qd-n-950);
+    --danger: var(--qd-red-400); /* 6.9:1 */
+    --danger-foreground: var(--qd-n-950);
+    --info: var(--qd-sky-300); /* 11.9:1 */
+    --info-foreground: var(--qd-n-950);
 
-    --chart-1: var(--qd-rust-300);
-    --chart-2: var(--qd-ocean-200);
-    --chart-3: var(--qd-sea-200);
-    --chart-4: var(--qd-gold-300);
-    --chart-5: var(--qd-navy-300);
+    --chart-1: var(--qd-n-300);
+    --chart-2: var(--qd-n-400);
+    --chart-3: var(--qd-n-550);
+    --chart-4: var(--qd-n-600);
+    --chart-5: var(--qd-n-700);
 
-    --sidebar: var(--qd-navy-700);
-    --sidebar-foreground: var(--qd-paper-100);
-    --sidebar-primary: var(--qd-rust-400);
-    --sidebar-primary-foreground: var(--qd-ink-900);
-    --sidebar-accent: var(--qd-navy-600);
-    --sidebar-accent-foreground: var(--qd-paper-200);
-    --sidebar-border: var(--qd-navy-600);
-    --sidebar-ring: var(--qd-gold-500);
+    --sidebar: var(--qd-n-900);
+    --sidebar-foreground: var(--qd-n-050);
+    --sidebar-primary: var(--qd-rust-500);
+    --sidebar-primary-foreground: var(--qd-n-950);
+    --sidebar-accent: var(--qd-n-800);
+    --sidebar-accent-foreground: var(--qd-n-050);
+    --sidebar-border: var(--qd-n-750);
+    --sidebar-ring: var(--qd-n-550);
 
-    /* The terminal grammar, inverted. See the light block for the argument.
-       `--term-bg` is not repeated: it reads `--background`, which is already
-       themed, so there is one ground here too and it moved on its own. */
-    --term-fg-bright: var(--qd-white); /* 16.5:1 */
-    --term-fg: var(--qd-paper-100); /* 14.3:1 */
-    --term-dim: var(--qd-paper-300); /* 11.7:1 */
-    --term-muted: var(--qd-cream-line); /* 10.2:1 */
-    --term-faint: var(--qd-ink-300); /* 5.0:1 */
-    /* The same stop as `--term-faint`: below it the ink ramp reaches 2.7:1,
-       which is under the 3:1 a rule that bounds something needs. grok has the
-       two adjacent too - its #808080 is both a border and a marker. */
-    --term-rule: var(--qd-ink-300); /* 5.0:1 */
-    --term-rule-soft: var(--qd-ink-500);
-    --term-selected: var(--qd-ink-700);
+    /* The terminal grammar, in grok's own greys. See the light block for the
+       argument. `--term-bg` is not repeated: it reads `--background`, which is
+       already themed, so there is one ground here too and it moved on its own. */
+    --term-fg-bright: var(--qd-n-000); /* 19.8:1 */
+    --term-fg: var(--qd-n-150); /* 16.2:1 */
+    --term-dim: var(--qd-n-350); /* 10.9:1 */
+    --term-muted: var(--qd-n-450); /* 5.8:1 */
+    /* grok's own faintest grey is `#6c6c6c`, which is 3.8:1 here. The rank is
+       lifted to its `#808080` rather than copied, which is the one place the
+       five ranks depart from the source. */
+    --term-faint: var(--qd-n-500); /* 5.0:1 */
+    /* The same stop as `--term-faint`, as it is in grok, whose `#808080` is
+       both a border and a marker. */
+    --term-rule: var(--qd-n-500); /* 5.0:1 */
+    --term-rule-soft: var(--qd-n-750);
+    --term-selected: var(--qd-n-850);
 
-    --term-success: var(--qd-sea-200); /* 10.6:1 */
-    --term-warning: var(--qd-gold-300); /* 11.5:1 */
-    --term-danger: var(--qd-rust-300); /* 6.1:1 */
-    --term-info: var(--qd-ocean-200); /* 10.8:1 */
-    --term-accent: var(--qd-rust-300); /* 6.1:1 */
+    --term-success: var(--qd-green-400); /* 6.8:1 */
+    --term-warning: var(--qd-amber-400); /* 11.5:1 */
+    --term-danger: var(--qd-red-400); /* 6.9:1 */
+    --term-info: var(--qd-sky-300); /* 11.9:1 */
+    --term-accent: var(--qd-rust-500); /* 5.4:1 */
   }
 }
 
@@ -339,10 +376,15 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-display: var(--font-display);
-  --font-sans: var(--font-sans);
+  /*
+   * One face. The display and the sans are gone - see
+   * `docs/decisions/2026-09-01-the-brainless-palette-and-one-mono-face.md`.
+   * `--font-sans` is still declared because Tailwind's own preflight and the
+   * shadcn layer both name it; it points at the mono, so a stray `font-sans`
+   * cannot reintroduce a second face.
+   */
   --font-mono: var(--font-mono);
-  --font-heading: var(--font-display);
+  --font-sans: var(--font-mono);
 
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
@@ -391,6 +433,6 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    @apply font-mono;
   }
 }

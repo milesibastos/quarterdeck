@@ -243,8 +243,13 @@ describe("the rail a worker's own work has", () => {
     return {
       shape: /data-rail="([^"]*)"/.exec(block)?.[1] ?? null,
       stages: /data-stages="([^"]*)"/.exec(block)?.[1] ?? null,
-      /** Every segment on the track, including the open end when there is one. */
-      segments: (block.match(/flex-1 rounded-full/g) ?? []).length,
+      /**
+       * Every segment on the track, including the open end when there is one.
+       * Counted off `data-rail-segment` rather than off the segment's classes:
+       * this used to match `flex-1 rounded-full`, and the repaint that squared
+       * the corners took the count to zero without changing a single rail.
+       */
+      segments: (block.match(/data-rail-segment=""/g) ?? []).length,
       openEnd: block.includes("border-dashed"),
       hidden: block.includes('aria-hidden="true"'),
       line: words[0] ?? "",

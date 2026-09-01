@@ -189,7 +189,7 @@ function Checks({ checks, nowMs }: { checks: ChecksSignal; nowMs: number }) {
       <span
         aria-hidden="true"
         className={cn(
-          "size-1.5 shrink-0 self-center rounded-full",
+          "size-1.5 shrink-0 self-center",
           OUTCOME_PIP[checks.outcome],
         )}
       />

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { display, mono, sans } from "@/ui/fonts/fonts.ts";
+import { mono } from "@/ui/fonts/fonts.ts";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -21,10 +21,7 @@ export const metadata: Metadata = {
  */
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html
-      lang="en"
-      className={`${sans.variable} ${mono.variable} ${display.variable} antialiased`}
-    >
+    <html lang="en" className={`${mono.variable} antialiased`}>
       <body className="min-h-svh">{children}</body>
     </html>
   );

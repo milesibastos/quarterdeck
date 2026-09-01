@@ -156,7 +156,7 @@ export function Shell({
             />
           }
           name={
-            <h1 className="font-display text-2xl tracking-wide text-term-fg-bright sm:text-3xl">
+            <h1 className="font-mono text-sm font-semibold tracking-tight text-term-fg-bright">
               Quarterdeck
             </h1>
           }

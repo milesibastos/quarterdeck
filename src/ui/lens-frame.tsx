@@ -68,9 +68,16 @@ const TONE: Readonly<Record<Lens<unknown>["status"]["state"], string>> = {
  */
 type Prominence = "lens" | "primary";
 
+/*
+ * brainless carries no display size at all: its section heads are 16px/600 and
+ * its own wordmark 14px/600, and the step from body text is weight, colour and
+ * case rather than size. These are the two ranks that survived the experiment
+ * written up in
+ * `docs/decisions/2026-09-01-the-brainless-palette-and-one-mono-face.md`.
+ */
 const TITLE_SIZE: Readonly<Record<Prominence, string>> = {
-  lens: "text-lg",
-  primary: "text-2xl sm:text-3xl",
+  lens: "text-[13px] font-semibold tracking-wider uppercase",
+  primary: "text-base font-semibold tracking-tight",
 };
 
 const EDGE: Readonly<Record<Prominence, string>> = {
@@ -139,10 +146,7 @@ export function LensFrame<T>({
           <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-0.5">
             <h2
               id={headingId}
-              className={cn(
-                "min-w-0 font-display tracking-wide text-foreground",
-                TITLE_SIZE[prominence],
-              )}
+              className={cn("min-w-0 text-foreground", TITLE_SIZE[prominence])}
             >
               {title}
             </h2>
