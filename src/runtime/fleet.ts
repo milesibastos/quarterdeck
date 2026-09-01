@@ -302,6 +302,21 @@ export function fleetRuntime(config: Config, fleet: FleetRef): FleetRuntime {
 }
 
 /**
+ * Stop watching, for every fleet this process has looked at.
+ *
+ * The watchers are not persistent, so they do not by themselves keep the
+ * process alive - but a stopping panel that is still publishing changes tells
+ * pages to ask a server that is on its way out, and the debounce timer it holds
+ * would fire into a closed stream. See `src/runtime/shutdown.ts`.
+ */
+export function stopFleetRuntimes(): void {
+  const runtimes = (globalThis as Host)[RUNTIMES];
+  if (!runtimes) return;
+  for (const runtime of runtimes.values()) runtime.stop();
+  runtimes.clear();
+}
+
+/**
  * Where one fleet's worker terminals are read from.
  *
  * A factory rather than a part of `FleetRuntime`, deliberately. The runtime is

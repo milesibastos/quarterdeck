@@ -55,11 +55,15 @@ fleet's snapshot command can be stubbed out in a test, and so nothing reaches
 for `Date.now()`, `console.log` or `child_process` directly - all of which are
 themselves checked.
 
-**`src/app/` and `src/proxy.ts`** are the composition point. Next owns those
-filenames, and invariant 6 keeps fleet reading out of `src/ui/`, so the wiring
-has to live somewhere that is neither. Route files stay thin: read, translate,
-hand to a component. This position may import from every layer, and it is the
-only one that may. See `docs/decisions/2026-08-30-app-as-composition-point.md`.
+**`src/app/`, `src/proxy.ts` and `src/instrumentation.ts`** are the composition
+point. Next owns those filenames, and invariant 6 keeps fleet reading out of
+`src/ui/`, so the wiring has to live somewhere that is neither. Route files stay
+thin: read, translate, hand to a component. `instrumentation.ts` is thinner
+still: it is the only place Next hands the panel the process rather than a
+request, and it holds one call - putting the stop path on the process's signals.
+This position may import from every layer, and it is the only one that may. See
+`docs/decisions/2026-08-30-app-as-composition-point.md` and
+`docs/decisions/2026-09-01-stopping-the-panel.md`.
 
 The permission table is `ALLOWED_IMPORTS` in `tests/lib/invariants.ts`. That
 table is the layer model; this prose describes it.

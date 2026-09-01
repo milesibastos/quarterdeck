@@ -259,6 +259,15 @@ export interface Panel {
   readonly url: string;
   readonly fixtureRoot: string;
   stop(): Promise<void>;
+  /**
+   * Everything the panel has said on standard error.
+   *
+   * Kept for the failure messages above, and readable here because a stop that
+   * leaves an unhandled error behind it is a real fault the suite would
+   * otherwise never see: a panel that exits is a panel that passed, however
+   * loudly it went. See `tests/shutdown.test.ts`.
+   */
+  stderr(): string;
 }
 
 interface StartOptions {
@@ -339,7 +348,7 @@ export async function startPanel(options: StartOptions): Promise<Panel> {
     await stop().catch(() => {});
     throw error;
   }
-  return { url, fixtureRoot, stop };
+  return { url, fixtureRoot, stop, stderr };
 }
 
 /**
