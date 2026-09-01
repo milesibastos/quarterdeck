@@ -50,8 +50,10 @@ a given file uses are not stable across such a change. Stability is not
 something the suite needs; disjointness is, and this buys disjointness by
 construction rather than by review.
 
-The block is sixteen ports. The hungriest file uses eleven, and the nine
-hundred offsets the range offers hold fifty-six files at that size. Both limits
+The block is sixteen ports. The hungriest file uses eleven, and the nine hundred
+offsets the range offers hold fifty-six files at that size. (A thousand offsets
+and sixty-two files since `2026-09-01-test-ports-live-above-the-panels.md` moved
+the suite into a band of its own.) Both limits
 
 - a file outgrowing its block, and the suite outgrowing the range - fail loudly
   when reached rather than wrapping around onto each other.

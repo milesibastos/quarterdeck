@@ -1,6 +1,7 @@
 import { readdirSync } from "node:fs";
 import { join, relative, sep } from "node:path";
 import { derivePort, PORT_RANGE_START } from "../../src/config/port.ts";
+import { TEST_BAND_SIZE, TEST_BAND_START } from "./band.ts";
 import { REPO_ROOT } from "./server.ts";
 
 /**
@@ -21,16 +22,13 @@ import { REPO_ROOT } from "./server.ts";
 
 /**
  * Ports per test file. The hungriest file uses eleven; this leaves room to add
- * a panel to it, and the window still holds fifty-six files at this size.
+ * a panel to it, and the band still holds sixty-two files at this size.
  */
 export const BLOCK_SIZE = 16;
 
-/** The offsets the panel's own derived port is spread over. */
-const WINDOW = 900;
-
 const TESTS_DIR = join(REPO_ROOT, "tests");
 
-/** One test file's reserved block, as offsets into the window. */
+/** One test file's reserved block, as offsets into the band. */
 interface Block {
   readonly file: string;
   readonly firstOffset: number;
@@ -99,34 +97,28 @@ export function allocate(
   }
 
   const needed = bySlot.size * BLOCK_SIZE;
-  if (needed > WINDOW) {
+  if (needed > TEST_BAND_SIZE) {
     throw new Error(
       `${bySlot.size} test files at ${BLOCK_SIZE} ports each need ${needed} of the ` +
-        `${WINDOW} the range offers. Lower BLOCK_SIZE in tests/lib/ports.ts.`,
+        `${TEST_BAND_SIZE} the band offers. Lower BLOCK_SIZE in tests/lib/ports.ts.`,
     );
   }
   return blocks;
 }
 
-/** The port the panel itself would bind for this worktree - an author may well have one running while the suite runs. */
-const PANEL_PORT = derivePort(REPO_ROOT);
-
 /**
- * The port at one offset.
+ * Where this worktree's blocks start within the band.
  *
- * Derived from the worktree like the panel's own, so two checkouts can run the
- * suite at once. The window is exactly as wide as the offsets it maps, so
- * every value in it is reachable by some offset - including PANEL_PORT itself,
- * once the suite is big enough. The one offset that would land there is pushed
- * a full window clear instead: a jump too large for any other offset's port to
- * follow it to, so it cannot land on a port some other file already holds.
+ * The same hash the panel uses, read as a rotation rather than as a port. Two
+ * checkouts running the suite at once still start at different places in the
+ * band, which is all the rotation was ever for; nothing here can reach the
+ * panel range, so nothing has to dodge a panel port any more.
  */
+const ROTATION = derivePort(REPO_ROOT) - PORT_RANGE_START;
+
+/** The port at one offset. */
 export function portAt(offset: number): number {
-  const port =
-    ((PANEL_PORT - PORT_RANGE_START + offset + 100) % WINDOW) +
-    PORT_RANGE_START +
-    50;
-  return port === PANEL_PORT ? port + WINDOW : port;
+  return TEST_BAND_START + ((ROTATION + offset) % TEST_BAND_SIZE);
 }
 
 const claimedHere = new Set<string>();
