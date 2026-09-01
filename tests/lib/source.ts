@@ -116,9 +116,10 @@ export function importsOf(file: SourceFile): ImportRef[] {
 /**
  * The layer a file belongs to.
  *
- * `src/app/**` and `src/proxy.ts` are the composition position: Next owns those
- * filenames, and invariant 6 keeps fleet reading out of `src/ui/`, so the
- * wiring has to live somewhere that is neither. See docs/ARCHITECTURE.md.
+ * `src/app/**`, `src/proxy.ts` and `src/instrumentation.ts` are the composition
+ * position: Next owns those filenames, and invariant 6 keeps fleet reading out
+ * of `src/ui/`, so the wiring has to live somewhere that is neither. See
+ * docs/ARCHITECTURE.md.
  */
 export const LAYERS = [
   "types",
@@ -134,7 +135,12 @@ export const LAYERS = [
 export type Layer = (typeof LAYERS)[number];
 
 export function layerOf(path: string): Layer | null {
-  if (path.startsWith("app/") || path === "proxy.ts") return "app";
+  if (
+    path.startsWith("app/") ||
+    path === "proxy.ts" ||
+    path === "instrumentation.ts"
+  )
+    return "app";
   const head = path.split("/")[0];
   return (LAYERS as readonly string[]).includes(head) ? (head as Layer) : null;
 }

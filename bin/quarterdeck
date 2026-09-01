@@ -12,7 +12,7 @@
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
 import { existsSync } from "node:fs";
-import { cp, mkdir, readFile, readdir, stat } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { derivePort } from "../src/config/port.ts";
@@ -21,13 +21,41 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const standalone = join(root, ".next", "standalone");
 const server = join(standalone, "server.js");
 
+/**
+ * What a child's exit means when it was asked to stop.
+ *
+ * The standalone server answers a signal by exiting 128 plus the signal's
+ * number rather than by dying of it, deliberately, so that a debugger does not
+ * hold the exit. Read literally that is a non-zero status and a failure; read
+ * as the server means it, it is the stop working. A child killed outright
+ * reports the signal instead and no code at all. That reading is only ever
+ * true of that one child, so it is not applied by default - see `allowStop`
+ * below.
+ */
+const STOPPED_EXIT_CODES = new Set([130, 143]);
+
+function stopped(code, signal) {
+  return signal !== null || STOPPED_EXIT_CODES.has(code);
+}
+
+/**
+ * Runs a command to completion, resolving with how it ended.
+ *
+ * A stop is a failure unless the caller passes `allowStop`: only the server
+ * launch means "I was asked to quit" by 128+signal or a bare signal, because
+ * that is only ever true of the standalone server. `npm run build` carries no
+ * such intent - a build killed from outside is a failed build, and rejects
+ * with its stack trace like any other non-zero exit.
+ */
 function run(command, args, options = {}) {
-  const { onStart, ...spawnOptions } = options;
+  const { onStart, allowStop = false, ...spawnOptions } = options;
   return new Promise((resolveRun, rejectRun) => {
     const child = spawn(command, args, { cwd: root, stdio: "inherit", ...spawnOptions });
     child.on("error", rejectRun);
-    child.on("exit", (code) =>
-      code === 0 ? resolveRun() : rejectRun(new Error(`${command} exited with ${code}`)),
+    child.on("exit", (code, signal) =>
+      code === 0 || (allowStop && stopped(code, signal))
+        ? resolveRun({ code, signal })
+        : rejectRun(new Error(`${command} exited with ${code}`)),
     );
     onStart?.(child);
   });
@@ -64,15 +92,63 @@ async function buildIfNeeded() {
 /**
  * `next build --output standalone` emits a server that expects the static
  * assets beside it, but does not copy them itself.
+ *
+ * The copy is skipped when this exact build's assets are already beside the
+ * server, recorded in a marker holding the build's id. The marker is the same
+ * one `tests/lib/server.ts` reads and writes, so whichever gets there first
+ * spares the other the copy - and it is read and written under the same
+ * mkdir-based lock that file takes, because the marker check alone only
+ * narrows the race, it does not close it: two processes can both find it
+ * stale and then both copy into the same shared `.next/standalone` directory
+ * at once, which is a torn file in somebody else's test.
  */
+const stagedMarker = join(standalone, ".assets-staged");
+const stagingLock = join(standalone, ".staging.lock");
+
+/**
+ * A cross-process mutex: `mkdir` without `recursive` is atomic, so exactly
+ * one caller creates the lock directory and the rest retry until it is gone.
+ * The same lock as `tests/lib/server.ts`'s `withStagingLock`, over the same
+ * directory, so this launcher's copy and the suite's never race each other.
+ */
+async function withStagingLock(fn) {
+  const deadline = Date.now() + 20_000;
+  for (;;) {
+    try {
+      await mkdir(stagingLock);
+      break;
+    } catch (error) {
+      if (error.code !== "EEXIST") throw error;
+      if (Date.now() > deadline) {
+        throw new Error(`timed out waiting for the asset-staging lock at ${stagingLock}`);
+      }
+      await new Promise((resolveWait) => setTimeout(resolveWait, 25));
+    }
+  }
+  try {
+    return await fn();
+  } finally {
+    await rm(stagingLock, { recursive: true, force: true });
+  }
+}
+
 async function stageAssets() {
   await mkdir(join(standalone, ".next"), { recursive: true });
-  await cp(join(root, ".next", "static"), join(standalone, ".next", "static"), {
-    recursive: true,
+  await withStagingLock(async () => {
+    const buildId = await readFile(join(root, ".next", "BUILD_ID"), "utf8").catch(
+      () => null,
+    );
+    const staged = await readFile(stagedMarker, "utf8").catch(() => null);
+    if (buildId !== null && staged === buildId) return;
+
+    await cp(join(root, ".next", "static"), join(standalone, ".next", "static"), {
+      recursive: true,
+    });
+    if (existsSync(join(root, "public"))) {
+      await cp(join(root, "public"), join(standalone, "public"), { recursive: true });
+    }
+    if (buildId !== null) await writeFile(stagedMarker, buildId);
   });
-  if (existsSync(join(root, "public"))) {
-    await cp(join(root, "public"), join(standalone, "public"), { recursive: true });
-  }
 }
 
 const port = process.env.QUARTERDECK_PORT || String(derivePort(root));
@@ -129,8 +205,38 @@ async function announceWhenListening(child) {
   process.stdout.write(`quarterdeck did not answer on ${url} within 30s\n`);
 }
 
-await run("node", [server], {
-  onStart: announceWhenListening,
+/**
+ * Pass a polite quit request on, and outlive what it was asked of.
+ *
+ * The panel is a grandchild of the operator's shell: the shell signals the job,
+ * every process in it gets the signal at once, and this one - which has nothing
+ * to tear down - is always the first to go. The prompt then comes back while
+ * the panel is still shutting down behind it, and anything the panel says on
+ * its way out lands on top of a prompt the operator has already been given,
+ * looking like a crash that happened after the job ended. So the signal is
+ * caught rather than taken: the child is told, this process waits for it, and
+ * only then does it end itself the same way it was asked to, which is what the
+ * shell reports. See `docs/decisions/2026-09-01-stopping-the-panel.md`.
+ */
+let stopSignal = null;
+
+function forwardStopSignals(child) {
+  for (const signal of ["SIGINT", "SIGTERM"]) {
+    process.on(signal, () => {
+      stopSignal = signal;
+      // Harmless when the child already had it from the process group, and the
+      // whole of the stop when the signal was aimed at this process alone.
+      child.kill(signal);
+    });
+  }
+}
+
+const ended = await run("node", [server], {
+  allowStop: true,
+  onStart: (child) => {
+    forwardStopSignals(child);
+    announceWhenListening(child);
+  },
   env: {
     ...process.env,
     // Loopback only. Never an address reachable from the network.
@@ -140,3 +246,20 @@ await run("node", [server], {
     QUARTERDECK_FIXTURE_ROOT: join(root, "fixtures"),
   },
 });
+
+if (stopSignal) {
+  // Re-raise what was asked, now that the panel is actually gone, so the shell
+  // reports the stop it requested rather than an exit status standing in for it.
+  process.removeAllListeners(stopSignal);
+  process.kill(process.pid, stopSignal);
+} else if (stopped(ended.code, ended.signal)) {
+  // Nobody in this terminal asked for that. An operator whose panel vanishes
+  // has to be able to find out why, so the one thing known about it - that
+  // something outside this terminal asked the panel to quit, and how - is said
+  // rather than left as a silent exit.
+  process.stderr.write(
+    `quarterdeck stopped: something outside this terminal asked the panel on ${url} to quit ` +
+      `(${ended.signal ? `killed by ${ended.signal}` : `exited ${ended.code}`}).\n`,
+  );
+  process.exit(ended.code ?? 1);
+}

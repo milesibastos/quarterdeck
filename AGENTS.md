@@ -32,20 +32,26 @@ worker card also opens that worker's terminal on demand, read only and never on
 the first paint; see `docs/decisions/2026-08-31-the-worker-terminal.md` before
 touching that one.
 
+The panel must stop when it is asked to. The change signal is a response that
+never finishes on its own, and Next's shutdown waits for every open connection,
+so anything that holds a connection open past a request has to close itself on
+the stop - `src/runtime/shutdown.ts` is where that is registered, and
+`docs/decisions/2026-09-01-stopping-the-panel.md` is why.
+
 ## Map
 
-| Where                      | What is there                                                                                                     |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `src/types/`               | The document the UI reads, the terminal tail beside it, and the fleet-selection cookie's name. Imports nothing.   |
-| `src/config/`              | Environment and defaults. The port derivation lives here.                                                         |
-| `src/adapters/`            | The only I/O. Five files, and the forge is the only one that leaves this machine.                                 |
-| `src/domain/`              | The projection: snapshot to document. Pure.                                                                       |
-| `src/runtime/`             | Watch, coalesce, cache, publish the change signal.                                                                |
-| `src/ui/`                  | Server-rendered components. Reads the document, plus the terminal a card opens on demand. One directory per lens. |
-| `src/providers/`           | The clock, the logger and the one spawn door, as dependencies.                                                    |
-| `src/app/`, `src/proxy.ts` | Next's routes and middleware: the composition point.                                                              |
-| `fixtures/`                | Synthetic fleets, up to three files per set. Zero real data, by rule.                                             |
-| `tests/`                   | Behavioural tests against the built server, the invariant checks, and a pure-projection walk of every fixture.    |
+| Where                                                | What is there                                                                                                     |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `src/types/`                                         | The document the UI reads, the terminal tail beside it, and the fleet-selection cookie's name. Imports nothing.   |
+| `src/config/`                                        | Environment and defaults. The port derivation lives here.                                                         |
+| `src/adapters/`                                      | The only I/O. Five files, and the forge is the only one that leaves this machine.                                 |
+| `src/domain/`                                        | The projection: snapshot to document. Pure.                                                                       |
+| `src/runtime/`                                       | Watch, coalesce, cache, publish the change signal.                                                                |
+| `src/ui/`                                            | Server-rendered components. Reads the document, plus the terminal a card opens on demand. One directory per lens. |
+| `src/providers/`                                     | The clock, the logger and the one spawn door, as dependencies.                                                    |
+| `src/app/`, `src/proxy.ts`, `src/instrumentation.ts` | Next's routes, middleware and the stop path: the composition point.                                               |
+| `fixtures/`                                          | Synthetic fleets, up to three files per set. Zero real data, by rule.                                             |
+| `tests/`                                             | Behavioural tests against the built server, the invariant checks, and a pure-projection walk of every fixture.    |
 
 ## Run it
 
