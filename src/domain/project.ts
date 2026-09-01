@@ -286,7 +286,9 @@ const LAST_ACTIVE_STAGE: Readonly<Record<SnapshotActiveState, ActiveStage>> = {
  * because the projection cannot see which rail a worker has and so cannot tell
  * that its own answer is impossible. Upstream asserts this or nobody does.
  */
-function lastActiveStageOf(state: SnapshotActiveState | null): ActiveStage | null {
+function lastActiveStageOf(
+  state: SnapshotActiveState | null,
+): ActiveStage | null {
   return state === null ? null : LAST_ACTIVE_STAGE[state];
 }
 

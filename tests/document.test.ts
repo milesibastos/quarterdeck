@@ -183,10 +183,10 @@ const SHAPES: Readonly<Record<string, Shape>> = {
     health: "stale",
     omissions: [],
   },
-  // Every rail shape in its working, stopped and finished states, plus the two
-  // ways a rail's length can be unknown; see tests/fleet-lens.test.ts.
+  // Every rail shape in its working, stopped and finished states, plus the
+  // three ways a rail's length can be unknown; see tests/fleet-lens.test.ts.
   rails: {
-    fleet: ["fresh", 19],
+    fleet: ["fresh", 21],
     deck: ["fresh", 0],
     landed: ["fresh", 0],
     health: "fresh",
@@ -328,6 +328,7 @@ describe("the fleet part", () => {
       lifecycle: {
         stage: "pr-open",
         step: null,
+        lastActiveStage: null,
         detail: "pull request opened",
         observedAt: "2099-01-01T09:12:20.000Z",
       },
