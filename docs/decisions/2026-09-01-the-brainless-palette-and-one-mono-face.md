@@ -176,6 +176,23 @@ colours its own status lines green and red for the same reason. Collapsing them
 would not have made the panel more like brainless; it would have made a lens
 stop being scannable, which the brief named as the line to stop at.
 
+**The rule is one accent, not one hue, and the difference is what the colour is
+spent on.** An accent is a brand spend: it says whose page this is, it is
+arbitrary, and a second one competes with the first for the same job, which is
+why the panel has exactly one and why navy and gold had to go. A status hue is
+an information spend: it says which of four things is true, the reader decodes
+it rather than recognises it, and removing it does not tidy the page - it
+deletes a channel and pushes the work onto text somebody then has to read
+instead. Four of those is not four accents; it is one four-valued signal.
+
+So this record does not want the next reader to "fix" it. If the count of status
+hues ever looks like a violation of one-accent, the thing to check is whether
+each one is still carrying meaning no other channel carries - the rail also
+gives every stage a glyph and a solid-or-dashed edge, precisely so hue is never
+the only carrier - not whether there are more than one of them. Adding a fifth
+identity colour would be the violation. Deleting a meaning to get the count down
+would be the worse one.
+
 `--destructive` was rust and is now the red, which separates identity from
 destruction. The terminal-grammar record's standing trade-off - "`--term-accent`
 and `--term-danger` are the same stop" - is resolved by that, not carried.
