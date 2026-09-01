@@ -156,6 +156,9 @@
   --chart-4: var(--qd-n-550);
   --chart-5: var(--qd-n-400);
 
+  /* No component names these either; they follow the neutral ramp so that a
+     sidebar, if one is ever drawn, starts in the palette the rest of the page
+     is in rather than in the one it was scaffolded with. */
   --sidebar: var(--qd-n-050);
   --sidebar-foreground: var(--qd-n-950);
   --sidebar-primary: var(--qd-rust-700);
@@ -281,6 +284,9 @@
     --chart-4: var(--qd-n-600);
     --chart-5: var(--qd-n-700);
 
+    /* No component names these either; they follow the neutral ramp so that a
+       sidebar, if one is ever drawn, starts in the palette the rest of the page
+       is in rather than in the one it was scaffolded with. */
     --sidebar: var(--qd-n-900);
     --sidebar-foreground: var(--qd-n-050);
     --sidebar-primary: var(--qd-rust-500);
