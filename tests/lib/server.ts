@@ -6,7 +6,7 @@ import { connect } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { Readable } from "node:stream";
-import { PORT_RANGE_SIZE, PORT_RANGE_START } from "../../src/config/port.ts";
+import { TEST_BAND_SIZE, TEST_BAND_START } from "./band.ts";
 
 /**
  * Starting the built panel, for tests that drive it over HTTP.
@@ -16,13 +16,14 @@ import { PORT_RANGE_SIZE, PORT_RANGE_START } from "../../src/config/port.ts";
  * to change a snapshot mid-run, and none of them may touch the committed ones.
  *
  * A panel is only ever driven on a port this suite owns. `tests/lib/ports.ts`
- * keeps the suite's own files off each other's ports, but it can say nothing
- * about the rest of the machine: ports are derived from the worktree's path, so
- * a sibling checkout's panel can sit on one of this checkout's. Nothing about
- * that looks like a port clash - the foreign server answers, the assertions
- * read as wrong content, and the panel that failed to bind is never mentioned.
- * So `startPanel` asks who is on the port before it starts anything, and
- * refuses; see `docs/decisions/2026-09-01-a-suite-owns-its-ports.md`.
+ * keeps the suite's own files off each other's ports, and its band keeps them
+ * off every checkout's panel, but neither can say anything about a sibling
+ * checkout running this same suite: that one derives into the same band and can
+ * sit on one of this checkout's ports. Nothing about that looks like a port
+ * clash - the foreign server answers, the assertions read as wrong content, and
+ * the panel that failed to bind is never mentioned. So `startPanel` asks who is
+ * on the port before it starts anything, and refuses; see
+ * `docs/decisions/2026-09-01-a-suite-owns-its-ports.md`.
  */
 
 export const REPO_ROOT = join(import.meta.dirname, "..", "..");
@@ -121,8 +122,8 @@ const PROBE_TIMEOUT_MS = 1_000;
 /** How much of an occupant's answer a failure quotes. */
 const EXCERPT = 160;
 
-/** The range test ports and the panel's own port are both derived into. */
-const RANGE_END = PORT_RANGE_START + PORT_RANGE_SIZE - 1;
+/** The band this suite's ports are derived into. */
+const BAND_END = TEST_BAND_START + TEST_BAND_SIZE - 1;
 
 /**
  * What already answers on `port`, in one line, or null when nothing does.
@@ -187,8 +188,9 @@ function occupiedPortError(port: number, occupant: string): Error {
       `this file made would have been answered by that server, and the assertions would ` +
       `have failed as wrong content rather than as a port clash.\n\n` +
       `Test ports are derived from this worktree's absolute path, inside ` +
-      `${PORT_RANGE_START}-${RANGE_END}, so a panel or a suite in a sibling checkout can ` +
-      `land on one of this checkout's. Find it with:\n${findIt(port)}\n` +
+      `${TEST_BAND_START}-${BAND_END}, so a suite running in a sibling checkout can ` +
+      `land on one of this checkout's. A panel cannot: those derive into a band of ` +
+      `their own. Find it with:\n${findIt(port)}\n` +
       `then stop it, or stop the checkout it belongs to, and run this suite again.`,
   );
 }

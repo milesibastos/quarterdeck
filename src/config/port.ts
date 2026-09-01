@@ -9,8 +9,12 @@ import { createHash } from "node:crypto";
  * which point `bin/quarterdeck`'s port-taken check refuses to start rather
  * than colliding silently.
  *
- * The range sits below the ephemeral range (49152+ on macOS and Linux) so the
- * kernel never hands our port to something else first.
+ * The range sits below macOS's ephemeral floor (49152+), so the kernel never
+ * hands our port to something else first there. Linux's default floor is
+ * lower (32768+) and does reach into this range - a smaller, unfixed risk
+ * than the one that moved this suite's own test ports into a band of their
+ * own; see
+ * `docs/decisions/2026-09-01-the-band-still-sat-in-the-kernels-range.md`.
  */
 export const PORT_RANGE_START = 45000;
 export const PORT_RANGE_SIZE = 1000;

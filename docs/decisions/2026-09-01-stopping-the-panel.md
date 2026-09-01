@@ -110,7 +110,9 @@ loudly and named the occupant and the command to find it, which is
 designed. It is a property of the derivation rather than of any change: the port
 comes out the same with and without the file added here, and only a sibling
 checkout running a panel can produce it, so CI never sees it. Verified passing
-on a free port.
+on a free port. (Test ports moved into a band no panel can reach later the same
+day, in `2026-09-01-test-ports-live-above-the-panels.md`; `real-fleet.test.ts`
+cannot derive a panel port any more.)
 
 ## What is checked
 

@@ -372,9 +372,12 @@ races the clock. They do not pick a port: `node --test` runs test files in
 parallel, so each file claims a block of ports by naming itself to
 `portsFor(import.meta.filename)` and no two files can claim one - see
 `docs/decisions/2026-08-31-one-port-block-per-test-file.md`. A block keeps this
-suite's files off each other's ports and says nothing about the rest of the
-machine, so `startPanel` refuses a port anything else is already answering on -
-see `docs/decisions/2026-09-01-a-suite-owns-its-ports.md`. Stopping a panel is
+suite's files off each other's ports, and the band they are drawn from keeps
+them off every checkout's panel too - see
+`docs/decisions/2026-09-01-test-ports-live-above-the-panels.md`. What no
+partition can reach is a sibling checkout running this same suite, so
+`startPanel` refuses a port anything else is already answering on - see
+`docs/decisions/2026-09-01-a-suite-owns-its-ports.md`. Stopping a panel is
 bounded: a child that ignores SIGTERM fails its test instead of hanging the
 run.
 

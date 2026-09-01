@@ -3,6 +3,13 @@
 Date: 2026-09-01
 Status: accepted
 
+Every "45000-45999" below is the range as it was on the day: test ports moved
+into a band of their own later the same day - see
+`2026-09-01-test-ports-live-above-the-panels.md` and
+`2026-09-01-the-band-still-sat-in-the-kernels-range.md` for where it landed.
+The guard this decision is about is unchanged, and is still what covers a
+sibling checkout's suite.
+
 ## Context
 
 `docs/decisions/2026-08-31-one-port-block-per-test-file.md` keeps this suite's
@@ -167,7 +174,13 @@ serves only so the tests can recognise it - shipping a seam in the product for
 the suite's benefit. Not worth it for a window this narrow, and it is where to
 go if the window is ever observed.
 
-**Changing the derivation or the range.** The derivation is not the defect. It
+**Changing the derivation or the range.** _Superseded in part on 2026-09-01 by
+`2026-09-01-test-ports-live-above-the-panels.md`: what follows holds for two
+panels and for two suites, but not for a suite meeting a panel - those are two
+derivations in one codebase, and they now have disjoint bands. The guard below
+is unchanged, and is still what covers a sibling suite._
+
+The derivation is not the defect. It
 is doing what it was built for: a stable port per worktree, so an author's URL
 never moves and two checkouts can both run. A wider range or a test-only range
 would lower the odds of an overlap without changing the failure when one

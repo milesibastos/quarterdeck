@@ -4,7 +4,12 @@ import { readFileSync } from "node:fs";
 import { createServer, type Server } from "node:http";
 import { join } from "node:path";
 import { describe, test } from "node:test";
-import { derivePort, PORT_RANGE_START } from "../src/config/port.ts";
+import {
+  derivePort,
+  PORT_RANGE_SIZE,
+  PORT_RANGE_START,
+} from "../src/config/port.ts";
+import { TEST_BAND_SIZE, TEST_BAND_START } from "./lib/band.ts";
 import {
   BLOCK_SIZE,
   allocate,
@@ -36,7 +41,10 @@ import { formatViolation, formatViolations } from "./lib/violation.ts";
  * The third cost a day. Allocation keeps this suite's files off each other's
  * ports and says nothing about the rest of the machine, so a sibling checkout's
  * panel sitting on one of these ports was answered, believed, and asserted
- * against - as wrong content, never as a port clash.
+ * against - as wrong content, never as a port clash. The suite now draws from a
+ * band no panel can be derived into, which removes the panel half of that for
+ * good; a sibling checkout running this same suite remains, and is what the
+ * occupancy check below is for.
  */
 
 /**
@@ -47,6 +55,15 @@ import { formatViolation, formatViolations } from "./lib/violation.ts";
  */
 const nextPort = portsFor(import.meta.filename);
 const drawnHere = new Set<number>();
+
+/**
+ * Where the kernel starts handing out ephemeral source ports on Linux.
+ *
+ * `/proc/sys/net/ipv4/ip_local_port_range` defaults to 32768-60999 - lower
+ * than macOS's 49152, and the reason 46000-46999 still let an outbound
+ * connection this suite made land on a port a panel was about to bind.
+ */
+const LINUX_EPHEMERAL_FLOOR = 32768;
 
 /** Something on a port that is not a panel, for the tests that need one. */
 function squat(port: number, body: string): Promise<Server> {
@@ -120,10 +137,10 @@ describe("no two test files can claim the same panel ports", () => {
         );
         owner.set(port, block.file);
 
-        assert.ok(port >= PORT_RANGE_START, `${port} is below the range`);
+        assert.ok(port >= TEST_BAND_START, `${port} is below the band`);
         assert.ok(
-          port < 49152,
-          "the kernel hands out 49152+ as ephemeral ports",
+          port < TEST_BAND_START + TEST_BAND_SIZE,
+          `${port} is above the band`,
         );
         assert.notEqual(
           port,
@@ -132,6 +149,56 @@ describe("no two test files can claim the same panel ports", () => {
         );
       }
     }
+  });
+
+  /**
+   * The 2026-09-01 defect, as an assertion.
+   *
+   * A worker's suite in a disposable worktree drew 45229 and met the operator's
+   * panel from the primary checkout, which derives exactly that. The two
+   * worktrees do not collide by hash - 45659 and 45229 - and nothing was
+   * hashing the wrong path. The suite simply drew from the thousand ports every
+   * checkout's panel is derived into, so it could land on any of them.
+   *
+   * Stating it as "this worktree and the primary checkout must not agree" would
+   * be the wrong test: it names two paths, and the collision is with whatever
+   * checkout happens to exist. What actually has to hold is that no port this
+   * suite can hand out is reachable by `derivePort` at all, for any path
+   * whatsoever - which is a property of the two ranges and needs no paths.
+   */
+  test("no test port is one any checkout's panel could take", () => {
+    const panelRangeEnd = PORT_RANGE_START + PORT_RANGE_SIZE;
+
+    for (const block of allocate().values()) {
+      for (let i = 0; i < block.size; i += 1) {
+        const port = portAt(block.firstOffset + i);
+        assert.ok(
+          port < PORT_RANGE_START || port >= panelRangeEnd,
+          `${block.file} would use port ${port}, which is inside the ` +
+            `${PORT_RANGE_START}-${panelRangeEnd - 1} range every checkout's panel ` +
+            `is derived into - so a panel in any other checkout can be sitting on it`,
+        );
+        assert.ok(
+          port < LINUX_EPHEMERAL_FLOOR,
+          "the kernel can hand this out as an outbound source port, on Linux, " +
+            "once a listener above 32768 is free",
+        );
+      }
+    }
+  });
+
+  test("the band cannot overlap the range the panels are derived into", () => {
+    assert.ok(
+      TEST_BAND_START >= PORT_RANGE_START + PORT_RANGE_SIZE ||
+        TEST_BAND_START + TEST_BAND_SIZE <= PORT_RANGE_START,
+      "the two bands must be disjoint, or a suite can land on a foreign panel",
+    );
+    assert.ok(
+      TEST_BAND_START + TEST_BAND_SIZE <= LINUX_EPHEMERAL_FLOOR,
+      "Linux's default ip_local_port_range starts at 32768, well below " +
+        "macOS's 49152 - a band above either can be handed out from under a " +
+        "listener that has not bound yet",
+    );
   });
 
   test("a file that is not a test file has no block", () => {
@@ -234,8 +301,8 @@ describe("no test file picks a panel port by hand", () => {
  * file's block would hand out: taking a neighbour's port to prove a point would
  * be the very collision this is about, and would fail that file instead. What
  * matters is not whose block the number came from - it is that something the
- * suite did not start is on it, which is exactly what a sibling checkout's
- * panel is.
+ * suite did not start is on it, which is exactly what a sibling checkout
+ * running this same suite is.
  */
 describe("a panel refuses a port it does not own", () => {
   test("a port nobody holds answers nothing", async () => {
