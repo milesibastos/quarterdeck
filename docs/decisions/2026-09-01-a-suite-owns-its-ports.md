@@ -3,10 +3,12 @@
 Date: 2026-09-01
 Status: accepted
 
-Every "45000-45999" below is the range as it was on the day: test ports moved to
-46000-46999 later the same day, in
-`2026-09-01-test-ports-live-above-the-panels.md`. The guard this decision is
-about is unchanged, and is still what covers a sibling checkout's suite.
+Every "45000-45999" below is the range as it was on the day: test ports moved
+into a band of their own later the same day - see
+`2026-09-01-test-ports-live-above-the-panels.md` and
+`2026-09-01-the-band-still-sat-in-the-kernels-range.md` for where it landed.
+The guard this decision is about is unchanged, and is still what covers a
+sibling checkout's suite.
 
 ## Context
 
