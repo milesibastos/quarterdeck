@@ -81,10 +81,12 @@ choice is remembered in their browser. See `fixtures/README.md`.
 
 `QUARTERDECK_INTENT_DIR` is what lights the answer and merge controls up: a
 colon-separated list too, one slot per configured fleet in the same order, each
-naming the directory that fleet's own process-event sources watch. A fleet whose
-slot is empty has no spool and both controls say so on the card instead of
-acting. See the README's "Letting the panel answer and merge" for the operator's
-copy of this, and `docs/contract.md` for the bytes each record carries.
+naming the directory that fleet's own reader watches. A fleet whose slot is
+empty has no spool and both controls say so on the card instead of acting.
+Upstream firstmate ships no such reader, so a record written today is read by
+nothing unless the operator built one. See the README's "Letting the panel
+answer and merge" for the operator's copy of this, and `docs/contract.md` for
+the bytes each record carries.
 
 `QUARTERDECK_READ_TIMEOUT_MS` is the budget one fleet read gets, 20s by
 default. It is a measured number, not a taste: a fleet snapshot costs about a
