@@ -105,12 +105,14 @@ both controls and `stale` says it has nowhere to record an answer. There is no
 single value for the whole panel on purpose: broadcasting one directory across
 every fleet is what would let an answer meant for one land in another's.
 
-Each fleet's spool must be the directory that fleet's own process-event sources
-watch; the panel is told it and never derives it from a fleet home. What lands
-there is one line per record and nothing else, and the panel still executes
-nothing - the fleet's guarded commands do the acting. The exact bytes of both
-formats are in `docs/contract.md`, and why the path is shaped this way is in
-`docs/decisions/2026-08-30-answering-a-held-decision.md` and
+Each fleet's spool must be the directory that fleet's own reader watches; the
+panel is told it and never derives it from a fleet home. Nothing reads these
+records today: firstmate ships no adapter for either format, so an operator who
+has not built and armed one themselves gets a record on disk and nothing
+further. What lands there is one line per record and nothing else, and the panel
+executes nothing either way - the acting is a fleet command's to do. The exact
+bytes of both formats are in `docs/contract.md`, and why the path is shaped this
+way is in `docs/decisions/2026-08-30-answering-a-held-decision.md` and
 `docs/decisions/2026-08-31-ordering-a-merge.md`.
 
 ## Where things are

@@ -293,12 +293,14 @@ anything behind it to protect:
 There are two acting endpoints, `POST /api/act/answer-decision` and `POST
 /api/act/merge-pull-request`, and neither executes anything. Each records a
 durable intent through `src/adapters/intent.ts` - one file, one line, the shape
-the fleet command that consumes it takes its input in - and the fleet picks that
-up on its next check and decides for itself whether to act. A web request is
-never the thing that spawns a fleet command, and invariant 3 is what makes that
-structural rather than careful: no file in `src/` may reach `child_process` at
-all except the dedicated spawn door, and that ban holds inside the permitted
-writer too - it may write a file and nothing more.
+the fleet command that consumes it takes its input in - and a fleet-side reader
+picks that up on its next check and decides for itself whether to act. No such
+reader exists: upstream firstmate ships none, so today the record on disk is
+where this path ends. A web request is never the thing that spawns a fleet
+command, and invariant 3 is what makes that structural rather than careful: no
+file in `src/` may reach `child_process` at all except the dedicated spawn door,
+and that ban holds inside the permitted writer too - it may write a file and
+nothing more.
 
 The two intents are one union with a per-kind format table, not two writers.
 Adding a kind is a member and a row; a second file that writes would end the

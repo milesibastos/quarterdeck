@@ -621,9 +621,9 @@ for this panel is that exactly one file writes, and a second intent kind
 arriving as a second file would end that argument quietly.
 
 The extension is part of each format rather than a constant beside it, because
-the fleet's sources watch for the shapes they can read - a merge order landing
-with `.keyed-answer-v1` on it would be handed to the answer intake, which would
-find a line it cannot parse.
+it is what lets a reader route a record to the right intake - a merge order
+landing with `.keyed-answer-v1` on it would be handed to the answer intake,
+which would find a line it cannot parse.
 
 Both formats are frozen. Records written by earlier builds are still sitting in
 spools, and their names are what make a replay a collision rather than a second
@@ -657,9 +657,11 @@ which makes the same question-and-answer name the same record every time. The
 record is published with `link`, so a replay collides with the existing name and
 writes nothing.
 
-The panel does not feed the intake and does not run anything. A registered
-process-event source reads these records, re-verifies the decision is still
-open, and pipes the lines in. See
+The panel does not feed the intake and does not run anything. Feeding it is a
+reader's job: one that picks these records up, re-verifies the decision is still
+open, and pipes the lines in. Upstream firstmate ships no such reader, so the
+line above is written and read by nothing until an operator builds one - which
+is what this format is here to be built against. See
 `docs/decisions/2026-08-30-answering-a-held-decision.md`.
 
 ### `merge-pull-request`
