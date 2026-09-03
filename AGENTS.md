@@ -47,18 +47,19 @@ the stop - `src/runtime/shutdown.ts` is where that is registered, and
 
 ## Map
 
-| Where                                                | What is there                                                                                                     |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
-| `src/types/`                                         | The document the UI reads, the terminal tail beside it, and the fleet-selection cookie's name. Imports nothing.   |
-| `src/config/`                                        | Environment and defaults. The port derivation lives here.                                                         |
-| `src/adapters/`                                      | The only I/O. Five files, and the forge is the only one that leaves this machine.                                 |
-| `src/domain/`                                        | The projection: snapshot to document. Pure.                                                                       |
-| `src/runtime/`                                       | Watch, coalesce, cache, publish the change signal.                                                                |
-| `src/ui/`                                            | Server-rendered components. Reads the document, plus the terminal a card opens on demand. One directory per lens. |
-| `src/providers/`                                     | The clock, the logger and the one spawn door, as dependencies.                                                    |
-| `src/app/`, `src/proxy.ts`, `src/instrumentation.ts` | Next's routes, middleware and the stop path: the composition point.                                               |
-| `fixtures/`                                          | Synthetic fleets, up to three files per set. Zero real data, by rule.                                             |
-| `tests/`                                             | Behavioural tests against the built server, the invariant checks, and a pure-projection walk of every fixture.    |
+| Where                                                | What is there                                                                                                       |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `src/types/`                                         | The document the UI reads, the terminal tail beside it, and the fleet-selection cookie's name. Imports nothing.     |
+| `src/config/`                                        | Environment and defaults. The port derivation lives here.                                                           |
+| `src/adapters/`                                      | The only I/O. Five files, and the forge is the only one that leaves this machine.                                   |
+| `src/domain/`                                        | The projection: snapshot to document. Pure.                                                                         |
+| `src/runtime/`                                       | Watch, coalesce, cache, publish the change signal.                                                                  |
+| `src/ui/`                                            | Server-rendered components. Reads the document, plus the terminal a card opens on demand. One directory per lens.   |
+| `src/providers/`                                     | The clock, the logger and the one spawn door, as dependencies.                                                      |
+| `src/app/`, `src/proxy.ts`, `src/instrumentation.ts` | Next's routes, middleware and the stop path: the composition point.                                                 |
+| `tui/`                                               | The terminal panel: a Go module of its own, read-only, whose one action hands the terminal to `no-mistakes attach`. |
+| `fixtures/`                                          | Synthetic fleets, up to three files per set. Zero real data, by rule.                                               |
+| `tests/`                                             | Behavioural tests against the built server, the invariant checks, and a pure-projection walk of every fixture.      |
 
 ## Run it
 
@@ -66,6 +67,7 @@ the stop - `src/runtime/shutdown.ts` is where that is registered, and
 npm install && npm run build   # once
 npm start                      # builds if needed, prints the URL it bound
 npm test                       # lints, checks the invariants, drives the built server
+npm run tui                    # the terminal panel; npm run test:tui is its suite
 qlty fmt                       # format: prettier is qlty's, not npm's
 qlty check --all               # markdownlint, actionlint, yamllint, gitleaks, knip
 bin/qlty-smells-gate           # duplication and complexity, as a verdict
