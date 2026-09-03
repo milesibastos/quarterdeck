@@ -31,6 +31,33 @@ jobs:
       - run: npm run build
       - run: npm test
 
+  # The terminal panel is a Go module of its own under `tui/`, so it gets a job
+  # of its own: the Node job has no Go toolchain, and wiring one into `npm
+  # test` would make the suite everybody runs depend on a compiler most of this
+  # repository does not use. `gofmt -l` prints the files it would rewrite and
+  # says nothing when there are none, so the test is that it printed nothing -
+  # it exits 0 either way.
+  tui:
+    runs-on: ubuntu-latest
+    # No network beyond the module download and no server to bind, so this is
+    # the fastest job here. Ten minutes is a wedge detector, not a budget.
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: tui
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          # The module's own declared version, so the toolchain CI builds with
+          # is the one `tui/go.mod` names and there is no second place to bump.
+          go-version-file: tui/go.mod
+          cache-dependency-path: tui/go.sum
+      - name: Check formatting
+        run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - run: go test ./...
+
   # Beside build-and-test rather than after it, so the fast pipeline stays fast
   # and a formatting failure is visible without waiting for the suite.
   quality:
