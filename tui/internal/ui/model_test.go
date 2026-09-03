@@ -168,14 +168,19 @@ func TestEnterOnlyOpensWhatCanBeOpened(t *testing.T) {
 	}
 }
 
-// While no-mistakes owns the terminal, a tick refreshes nothing and arms
-// nothing: the child exiting is what starts the clock again.
+// While no-mistakes owns the terminal, a tick starts no read but re-arms the
+// next one, so the one chain that has run since Init survives the handover
+// instead of dying with it - a tick that returned nil here would leave no
+// clock running until the child exited to start a fresh one.
 func TestNoRefreshWhileTheChildOwnsTheTerminal(t *testing.T) {
 	source := newLoads([]app.Item{attachable})
 	model := listed(t, source)
 	opened, _ := model.Update(tea.KeyMsg{Type: tea.KeyEnter})
 
 	ticked, cmd := opened.(Model).Update(tickMsg{})
+	if cmd == nil {
+		t.Fatal("a tick during the handover armed nothing; the clock would die with the child")
+	}
 	if msgs := run(cmd); len(msgs) != 0 {
 		t.Errorf("a tick during the handover produced %v", msgs)
 	}
@@ -188,7 +193,10 @@ func TestNoRefreshWhileTheChildOwnsTheTerminal(t *testing.T) {
 }
 
 // Coming back from no-mistakes re-reads the fleet, because what the operator
-// just watched may well have moved it.
+// just watched may well have moved it. It does not also arm a tick: the one
+// chain running since Init is still alive, having re-armed itself through any
+// tick that arrived during the handover, and arming a second one here is what
+// let a quick handover double the chain and halve the refresh interval.
 func TestReturningFromTheChildRefreshes(t *testing.T) {
 	source := newLoads([]app.Item{attachable})
 	model := listed(t, source)
@@ -202,15 +210,18 @@ func TestReturningFromTheChildRefreshes(t *testing.T) {
 	if back.childErr != "" {
 		t.Errorf("a clean exit was reported as a failure: %q", back.childErr)
 	}
-	msgs := run(cmd)
+	if cmd == nil {
+		t.Fatal("returning from the child started no read")
+	}
+	msg := cmd()
+	if _, batched := msg.(tea.BatchMsg); batched {
+		t.Fatalf("returning from the child armed a second tick alongside the refresh: %v", msg)
+	}
+	if _, ok := msg.(itemsMsg); !ok {
+		t.Errorf("returning produced %T, want a fresh list", msg)
+	}
 	if source.count() != 1 {
 		t.Errorf("reads started = %d, want 1", source.count())
-	}
-	if len(msgs) != 1 {
-		t.Fatalf("messages = %v", msgs)
-	}
-	if _, ok := msgs[0].(itemsMsg); !ok {
-		t.Errorf("returning produced %T, want a fresh list", msgs[0])
 	}
 }
 

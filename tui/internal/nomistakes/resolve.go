@@ -2,6 +2,8 @@ package nomistakes
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"os/exec"
 	"strings"
 	"time"
@@ -82,6 +84,9 @@ func runCommand(ctx context.Context, dir string, args ...string) (string, error)
 	cmd := exec.CommandContext(ctx, Executable, args...)
 	cmd.Dir = dir
 	out, err := cmd.CombinedOutput()
+	if ctx.Err() == context.DeadlineExceeded {
+		return string(out), context.DeadlineExceeded
+	}
 	return string(out), err
 }
 
@@ -96,6 +101,9 @@ func (r Resolver) Resolve(ctx context.Context, dir, branch string) Attach {
 	}
 	out, err := r.Run(ctx, dir, "axi", "status")
 	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			return Attach{Why: fmt.Sprintf("no-mistakes did not answer within %s", lookupTimeout)}
+		}
 		return Attach{Why: refusal(out)}
 	}
 	status := ParseStatus(out)

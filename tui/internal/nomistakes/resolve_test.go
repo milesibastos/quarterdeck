@@ -103,6 +103,18 @@ func TestResolveCarriesTheRefusalThrough(t *testing.T) {
 	}
 }
 
+// A lookup killed by its own budget is a different fact from one that ran and
+// refused, and the row says which - the same distinction readFleet draws for
+// the fleet snapshot read.
+func TestResolveWhenTheLookupTimesOut(t *testing.T) {
+	var asked []string
+	resolver := Resolver{LookPath: found, Run: answering("", context.DeadlineExceeded, &asked)}
+	attach := resolver.Resolve(context.Background(), "/opt/worktrees/demo-alpha-a1", "fm/demo-alpha-a1")
+	if attach.RunID != "" || !strings.Contains(attach.Why, "did not answer within") {
+		t.Errorf("attach = %+v", attach)
+	}
+}
+
 func TestResolveWhenNothingWasSaid(t *testing.T) {
 	var asked []string
 	resolver := Resolver{LookPath: found, Run: answering("", errors.New("signal: killed"), &asked)}

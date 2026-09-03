@@ -50,8 +50,6 @@ type Task struct {
 	// in a live fleet and a bare name in the fixtures. Only its last segment
 	// is ever drawn.
 	Project string `json:"project"`
-	Kind    string `json:"kind"`
-	Mode    string `json:"mode"`
 	// Remote names the machine a worker runs on, and is absent for a local
 	// one. A remote worker's terminal is not this terminal's to hand over.
 	Remote *string `json:"remote"`
