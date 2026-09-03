@@ -42,4 +42,7 @@ next-env.d.ts
 
 # quarterdeck
 /dist/
+# The terminal panel is run with `go run` and built ad hoc; a compiled binary
+# left in the tree would be scanned by the leak guard and committed by nobody.
+/tui/quarterdeck-tui
 /.claude/settings.local.json

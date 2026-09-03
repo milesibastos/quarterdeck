@@ -571,6 +571,34 @@ stall would teach an operator to ignore the signal. `blocked:` and
 `needs-decision:` are not declared waits: a worker stopped for those is waiting
 on the machinery this lens watches.
 
+## The no-mistakes run (the terminal panel's second boundary)
+
+`quarterdeck-tui` reads one thing the web panel does not: which no-mistakes
+pipeline run belongs to a work item. Its surface is `no-mistakes axi status`,
+no-mistakes' own agent interface, and the shape it prints is TOON. The schema
+is not copied here - `no-mistakes axi status --help` and the output itself are
+authoritative, and this reader is written to skip a table or a column it does
+not recognise rather than to require one.
+
+Two facts about the join are this project's rather than upstream's, and they
+are the ones worth writing down:
+
+- The join is the branch, `fm/<task-id>`, matched exactly. Firstmate publishes
+  no run identifier on a task - a live `bin/fm-fleet-snapshot.sh --json` carries
+  no such field on any task - so the branch a worker was dispatched onto is the
+  only thing the two sides agree about. Prefix matching would make
+  `demo-alpha-a1` and `demo-alpha-a10` the same item.
+- The listing is bounded and the count beside it is not, so a run can exist and
+  not be listed. When `runs_on_current_branch` disagrees with the rows, the
+  count is believed and the operator is told the run is out of reach rather
+  than absent.
+
+The one command the terminal panel runs on an operator's word is `no-mistakes
+attach --run <id>`, as an argument vector in the work item's worktree, never
+through a shell. Nothing else about no-mistakes is touched: its database is
+never read, and its daemon - one instance serving every repository on the
+machine - is never started, stopped or restarted.
+
 ## The terminal tail (the one shape read on demand)
 
 `src/types/terminal.ts`. The panel's own shape, and the only one that is not

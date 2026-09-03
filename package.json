@@ -11,6 +11,8 @@
     "build": "next build",
     "start": "node bin/quarterdeck",
     "lint": "eslint",
+    "tui": "QUARTERDECK_FIXTURE_ROOT=\"$PWD/fixtures\" go -C tui run ./cmd/quarterdeck-tui",
+    "test:tui": "go -C tui test ./...",
     "test": "node --test \"tests/**/*.test.ts\"",
     "pretest": "npm run lint"
   },

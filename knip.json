@@ -16,5 +16,6 @@
     "src/app/*.css"
   ],
   "ignore": ["tests/violations/**", "fixtures/**"],
+  "ignoreBinaries": ["go"],
   "ignoreDependencies": ["postcss"]
 }

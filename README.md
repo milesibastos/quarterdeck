@@ -115,6 +115,64 @@ bytes of both formats are in `docs/contract.md`, and why the path is shaped this
 way is in `docs/decisions/2026-08-30-answering-a-held-decision.md` and
 `docs/decisions/2026-08-31-ordering-a-merge.md`.
 
+## The same fleet in a terminal
+
+`quarterdeck-tui` is the panel's terminal half: a list of the fleet's work in
+progress, and one key that hands this terminal to the selected work item's
+own no-mistakes screen. It is a Go program under `tui/`, separate from the web
+panel and sharing no code with it.
+
+```sh
+npm run tui        # reads QUARTERDECK_FLEET_HOME, or the fixtures with none
+npm run test:tui   # the Go tests; CI runs them in a job of their own
+```
+
+Both are thin wrappers around `go -C tui`, which needs a Go toolchain and
+nothing else. Nothing is compiled into the tree.
+
+`up`/`down` or `j`/`k` move, `enter` opens the selected work item's
+no-mistakes run, `r` re-reads the fleet, and `q` or `ctrl+c` leaves. The list
+also re-reads itself every few seconds and again whenever no-mistakes hands the
+terminal back, because what you just watched may well have moved the fleet.
+
+It reads the same fleet the web panel does, through the same command - the
+snapshot a fleet home publishes - and honours `QUARTERDECK_FLEET_HOME`,
+`QUARTERDECK_FIXTURE_SET`, `QUARTERDECK_FIXTURE_ROOT` and
+`QUARTERDECK_READ_TIMEOUT_MS` as the panel defines them. With several fleets
+configured it opens the first: choosing between them is the web panel's.
+
+**It only reads.** No answer, no merge order, no instruction to a worker,
+nothing written anywhere, and the shared no-mistakes daemon is never started or
+restarted. The one thing it runs on purpose is `no-mistakes attach`, on Enter,
+with whatever ordinary effects that command has.
+
+### What Enter can and cannot open
+
+A work item is joined to its pipeline run by the branch firstmate dispatches it
+on, `fm/<task-id>`, matched exactly and never by prefix - `demo-alpha-a1` and
+`demo-alpha-a10` are different pieces of work. Firstmate publishes no run
+identifier on a task, so the branch is the only thing the two sides agree
+about; the runs themselves are read from `no-mistakes axi status`, which is
+no-mistakes' own machine-readable surface. Where a branch has several runs, the
+newest is opened.
+
+That listing is bounded, so a run can exist and still not be in it. When
+no-mistakes says the branch it is standing on has runs and none of them was
+listed, the row says exactly that rather than claiming there is none.
+
+A row is never hidden for being unopenable. A worker on another machine, a
+worktree that has gone, a repository no-mistakes was never initialised in, a
+run that has not started, a daemon that did not answer - each stays on the list
+with its own reason in place of the action.
+
+### What this first version is not
+
+It navigates and it opens. There is no filtering, no mouse, no preview pane, no
+steering, no merge control, no second pane and no remote attachment, and it
+draws no no-mistakes screen of its own - the point is that you get the real
+one. Why it is a separate program, and what the branch join costs, are in
+`docs/decisions/2026-09-03-the-terminal-panel-and-the-handover.md`.
+
 ## Where things are
 
 `AGENTS.md` is the map. `docs/ARCHITECTURE.md` has the six layers, the seven
