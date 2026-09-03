@@ -1,0 +1,92 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2099-01-01T09:00:00Z",
+  "fm_home": "/opt/fleet",
+  "an_upstream_field_this_build_has_never_heard_of": {
+    "nested": [1, 2, 3]
+  },
+  "tasks": [
+    {
+      "id": "demo-alpha-a1",
+      "project": "/opt/fleet/projects/almanac",
+      "kind": "ship",
+      "harness": "claude",
+      "mode": "no-mistakes",
+      "remote": null,
+      "spawn_gen": "s1.2.3",
+      "paths": {
+        "meta": {
+          "path": "/opt/fleet/state/demo-alpha-a1.meta",
+          "present": true
+        },
+        "worktree": { "path": "/opt/worktrees/demo-alpha-a1", "present": true }
+      },
+      "current_state": {
+        "state": "working",
+        "detail": "harness busy",
+        "observed_at": "2099-01-01T09:00:00Z",
+        "freshness": "fresh"
+      },
+      "backlog": { "title": "Draw the lifecycle rail", "state": "in_flight" }
+    },
+    {
+      "id": "demo-alpha-a10",
+      "project": "almanac",
+      "kind": "ship",
+      "remote": null,
+      "paths": {
+        "worktree": { "path": "/opt/worktrees/demo-alpha-a10", "present": true }
+      },
+      "current_state": {
+        "state": "validating",
+        "detail": "validating (running)"
+      }
+    },
+    {
+      "id": "demo-beacon-b2",
+      "project": "/opt/fleet/projects/beacon",
+      "remote": "another-machine",
+      "paths": {
+        "worktree": { "path": "/opt/worktrees/demo-beacon-b2", "present": true }
+      },
+      "current_state": { "state": "working", "detail": "harness busy" }
+    },
+    {
+      "id": "demo-cutter-c3",
+      "project": "/opt/fleet/projects/cutter",
+      "paths": {
+        "worktree": {
+          "path": "/opt/worktrees/demo-cutter-c3",
+          "present": false
+        }
+      },
+      "current_state": { "state": "blocked", "detail": "waiting on a decision" }
+    },
+    {
+      "id": "demo-dory-d4",
+      "project": "/opt/fleet/projects/dory",
+      "paths": {
+        "worktree": { "path": "/opt/worktrees/demo-dory-d4", "present": true }
+      },
+      "current_state": { "state": "done", "detail": "landed" }
+    },
+    {
+      "id": "demo-ensign-e5",
+      "project": "/opt/fleet/projects/ensign",
+      "paths": {
+        "worktree": { "path": "/opt/worktrees/demo-ensign-e5", "present": true }
+      },
+      "current_state": {
+        "state": "a-state-from-a-later-upstream",
+        "detail": ""
+      }
+    }
+  ],
+  "backlog": { "present": true, "records": [] },
+  "secondmate_landed": {
+    "records": [],
+    "truncated": [],
+    "unreadable": [],
+    "partial": []
+  }
+}
