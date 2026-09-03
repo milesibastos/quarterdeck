@@ -174,11 +174,16 @@ func (m Model) indexOf(id string) int {
 }
 
 // ticked is the periodic read, and the two guards on it. A tick that arrives
-// while no-mistakes owns the terminal is dropped without re-arming; the child
-// exiting arms the next one.
+// while no-mistakes owns the terminal, or while a read is already in flight,
+// arms the next one and reads nothing.
+//
+// Every path through here arms exactly one tick and nothing else ever arms
+// one, which is what keeps the program to a single chain: arming a second on
+// the way back from a handover would halve the interval, and halve it again on
+// the next one.
 func (m Model) ticked() (tea.Model, tea.Cmd) {
 	if m.childRunning {
-		return m, nil
+		return m, tick()
 	}
 	if m.loading {
 		return m, tick()
@@ -197,7 +202,7 @@ func (m Model) childDone(msg childDoneMsg) (tea.Model, tea.Cmd) {
 		m.childErr = msg.err.Error()
 	}
 	cmd := m.refresh()
-	return m, tea.Batch(cmd, tick())
+	return m, cmd
 }
 
 // refresh starts a read unless one is already in flight, which is the whole of

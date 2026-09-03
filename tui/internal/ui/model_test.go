@@ -176,8 +176,8 @@ func TestNoRefreshWhileTheChildOwnsTheTerminal(t *testing.T) {
 	opened, _ := model.Update(tea.KeyMsg{Type: tea.KeyEnter})
 
 	ticked, cmd := opened.(Model).Update(tickMsg{})
-	if cmd != nil {
-		t.Error("a tick during the handover produced work")
+	if msgs := run(cmd); len(msgs) != 0 {
+		t.Errorf("a tick during the handover produced %v", msgs)
 	}
 	if source.count() != 0 {
 		t.Errorf("reads started = %d, want none", source.count())

@@ -7,7 +7,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"time"
 )
+
+// waitDelay is how long a killed snapshot command has to let go of its output
+// pipe. The command spawns children of its own, and a grandchild still holding
+// the pipe would keep the read waiting long after the budget it was given.
+const waitDelay = time.Second
 
 // SchemaID is the snapshot shape this build understands, pinned. When upstream
 // ships a new one it changes this string, and the panel then refuses instead of
@@ -125,12 +131,33 @@ func SourceFor(config Config) Source {
 	}
 	command := filepath.Join(config.Home, snapshotCommand)
 	home := config.Home
+	budget := config.ReadTimeout
+	if budget <= 0 {
+		budget = defaultReadTimeout
+	}
 	return Source{
 		Description: "fleet:" + config.Label,
 		read: func(ctx context.Context) ([]byte, error) {
-			cmd := exec.CommandContext(ctx, command, snapshotArgs...)
-			cmd.Env = append(os.Environ(), "FM_HOME="+home)
-			return cmd.Output()
+			return readFleet(ctx, command, home, budget)
 		},
 	}
+}
+
+// readFleet runs the snapshot command under the configured budget.
+//
+// A read that outruns it is a different fact from a read that failed, and it
+// says so: the fleet ran out of time, which is upstream being slow rather than
+// upstream being broken. The distinction is the web panel's too - see
+// `docs/decisions/2026-09-01-the-fleet-read-budget-and-what-a-timeout-means.md`.
+func readFleet(ctx context.Context, command, home string, budget time.Duration) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(ctx, budget)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, command, snapshotArgs...)
+	cmd.Env = append(os.Environ(), "FM_HOME="+home)
+	cmd.WaitDelay = waitDelay
+	out, err := cmd.Output()
+	if ctx.Err() == context.DeadlineExceeded {
+		return nil, fmt.Errorf("the fleet did not answer within %s", budget)
+	}
+	return out, err
 }

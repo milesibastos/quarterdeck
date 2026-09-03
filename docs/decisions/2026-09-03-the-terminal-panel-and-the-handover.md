@@ -72,7 +72,10 @@ two writes, through one file, and duplicating them here would double the
 surface the safety argument has to cover. It sends no instruction to a worker.
 It never starts, stops or restarts the no-mistakes daemon, which is one
 instance serving every repository on the machine: restarting it would kill
-other lanes' runs.
+other lanes' runs. That is a property of the surface it reads as well as of
+this code - checked on 2026-09-03 against the installed binary, whose only
+daemon-starting entry points sit under `no-mistakes daemon start`, and whose
+`axi` path answers "daemon not running" rather than arranging for one.
 
 The one thing it runs on purpose is `no-mistakes attach --run <id>`, as an
 argument vector in the work item's own worktree, never through a shell, and
