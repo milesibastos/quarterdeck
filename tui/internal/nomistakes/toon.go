@@ -22,6 +22,10 @@ var tableHeader = regexp.MustCompile(`^(\s*)([A-Za-z_][A-Za-z0-9_]*)\[(\d+)\]\{(
 
 var scalarLine = regexp.MustCompile(`^([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$`)
 
+// nestedField is the same `name: value` one indent in, which is how the fields
+// of a nested object arrive.
+var nestedField = regexp.MustCompile(`^([ \t]+)([A-Za-z_][A-Za-z0-9_]*):\s*(.*)$`)
+
 // Run is one pipeline run, as `axi status` lists it.
 type Run struct {
 	ID     string
@@ -30,6 +34,14 @@ type Run struct {
 }
 
 // Status is what one `axi status` read said.
+//
+// `axi status` prints one of two shapes, and both are read here. When the
+// branch it is standing on has a run it describes that one run in a nested
+// `run:` object; when it has none it falls back to the overview - the scalars
+// and a bounded table. Detailed says which arrived, and Current is the object's
+// run. Detailed with an empty Current is a third answer and not a fourth
+// silence: the shape was understood and what it carried was incomplete, which
+// a caller must not report as a branch with no run.
 //
 // The runs are gathered from every table that names both a run and its branch,
 // so a release that splits the current branch's runs into a table of their own
@@ -41,6 +53,8 @@ type Status struct {
 	CurrentBranch       string
 	RunsOnCurrentBranch int
 	CountedRuns         bool
+	Detailed            bool
+	Current             Run
 	Runs                []Run
 }
 
@@ -54,6 +68,12 @@ func ParseStatus(out string) Status {
 	status := Status{}
 	lines := strings.Split(out, "\n")
 	for i := 0; i < len(lines); i++ {
+		if strings.TrimRight(lines[i], " \t") == "run:" {
+			run, consumed := readNestedRun(lines[i+1:])
+			status.Detailed, status.Current = true, run
+			i += consumed
+			continue
+		}
 		if header := tableHeader.FindStringSubmatch(lines[i]); header != nil {
 			count, _ := strconv.Atoi(header[3])
 			runs, consumed := readRuns(lines[i+1:], count, splitFields(header[4]))
@@ -83,6 +103,42 @@ func readScalar(status *Status, line string) {
 	}
 }
 
+// readNestedRun reads the object under a top-level `run:`, and reports how many
+// lines it consumed so the scan resumes past the whole block.
+//
+// The whole block, because a run object carries a table of its own - the
+// pipeline steps - and a table header is recognised at any indent. Leaving the
+// block to the outer scan would offer that table to the run reader, which is
+// how a parser starts answering about something it was never asked about.
+//
+// Only the object's own fields are read: the first indent seen is the object's,
+// and anything deeper belongs to something nested inside it. `branch_sync`
+// names a branch two levels down, and it is not this run's branch.
+func readNestedRun(lines []string) (Run, int) {
+	run := Run{}
+	indent := ""
+	known := false
+	read := 0
+	for read < len(lines) {
+		line := lines[read]
+		if strings.TrimSpace(line) == "" || !strings.HasPrefix(line, " ") && !strings.HasPrefix(line, "\t") {
+			break
+		}
+		read++
+		field := nestedField.FindStringSubmatch(line)
+		if field == nil {
+			continue
+		}
+		if !known {
+			indent, known = field[1], true
+		}
+		if field[1] == indent {
+			assign(&run, field[2], unquote(strings.TrimSpace(field[3])))
+		}
+	}
+	return run, read
+}
+
 // readRuns takes the rows under one table header, and reports how many lines
 // it consumed so the scan resumes after them.
 func readRuns(lines []string, count int, columns []string) ([]Run, int) {
@@ -107,16 +163,23 @@ func runFrom(columns, fields []string) (Run, bool) {
 	}
 	run := Run{}
 	for i, column := range columns {
-		switch column {
-		case "id":
-			run.ID = fields[i]
-		case "branch":
-			run.Branch = fields[i]
-		case "status":
-			run.Status = fields[i]
-		}
+		assign(&run, column, fields[i])
 	}
 	return run, run.ID != "" && run.Branch != ""
+}
+
+// assign fills in the three fields this program has a use for, by the name
+// upstream gave them. A field it does not know is not an error - it is one of
+// the several a run carries that no operator decision here depends on.
+func assign(run *Run, name, value string) {
+	switch name {
+	case "id":
+		run.ID = value
+	case "branch":
+		run.Branch = value
+	case "status":
+		run.Status = value
+	}
 }
 
 // splitFields splits one TOON row on commas, honouring the double quotes it
