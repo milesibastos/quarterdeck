@@ -580,7 +580,25 @@ is not copied here - `no-mistakes axi status --help` and the output itself are
 authoritative, and this reader is written to skip a table or a column it does
 not recognise rather than to require one.
 
-Two facts about the join are this project's rather than upstream's, and they
+What is worth pinning is that `axi status` answers in two shapes, because the
+panel once asked for it and read only the other one. Checked on 2026-09-04
+against v1.64.0:
+
+- With a run on the branch it is standing on, it describes that one run in a
+  nested `run:` object - `id`, `branch` and `status` indented beneath it, beside
+  fields and tables this reader has no use for. This is the ordinary answer for
+  a working item, and it is the one Enter opens.
+- With none, it falls back to an overview: `current_branch`,
+  `runs_on_current_branch`, and a bounded `runs[...]` table. A worktree that has
+  left its branch answers this way too, with `current_branch: unknown` and no
+  count, there being no branch to count runs on.
+
+Bare `no-mistakes axi` is a third shape - the same bounded overview, without
+`runs_on_current_branch` - and it is not what the panel asks for. It never
+describes the current branch's run, so that run is found only when the bound
+happens to reach it.
+
+Four facts about the join are this project's rather than upstream's, and they
 are the ones worth writing down:
 
 - The join is the branch, `fm/<task-id>`, matched exactly. Firstmate publishes
@@ -588,10 +606,17 @@ are the ones worth writing down:
   no such field on any task - so the branch a worker was dispatched onto is the
   only thing the two sides agree about. Prefix matching would make
   `demo-alpha-a1` and `demo-alpha-a10` the same item.
-- The listing is bounded and the count beside it is not, so a run can exist and
-  not be listed. When `runs_on_current_branch` disagrees with the rows, the
-  count is believed and the operator is told the run is out of reach rather
-  than absent.
+- The overview's listing is bounded and the count beside it is not, so a run can
+  exist and not be listed. When `runs_on_current_branch` disagrees with the
+  rows, the count is believed and the operator is told the run is out of reach
+  rather than absent. It is a safeguard rather than an everyday path: a branch
+  with a run is answered with the detailed object instead. On 2026-09-04 the
+  overview carried `runs_on_current_branch: 0` on a branch with no run, and no
+  count at all in a detached worktree.
+- An answer that was understood and came up short is not an absence. A `run:`
+  object without an id, or without a branch, gets its own sentence, because
+  turning what this reader could not use into a fact about the operator's branch
+  is exactly the defect that made a live run read as none.
 - A refusal is placed where no-mistakes' words arrive and not where they are
   drawn. `nomistakes.Availability` is that placement - `ready`, `no run`,
   `not listed`, `repo setup`, `remote`, `worktree gone`, `tool missing`,

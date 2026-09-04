@@ -166,13 +166,23 @@ A work item is joined to its pipeline run by the branch firstmate dispatches it
 on, `fm/<task-id>`, matched exactly and never by prefix - `demo-alpha-a1` and
 `demo-alpha-a10` are different pieces of work. Firstmate publishes no run
 identifier on a task, so the branch is the only thing the two sides agree
-about; the runs themselves are read from `no-mistakes axi status`, which is
-no-mistakes' own machine-readable surface. Where a branch has several runs, the
-newest is opened.
+about; the run itself is read from `no-mistakes axi status`, which is
+no-mistakes' own machine-readable surface.
 
-That listing is bounded, so a run can exist and still not be in it. When
+That command answers in one of two shapes. When the branch it is standing on
+has a run it describes that one run in detail, and that description is what
+Enter opens - after its own branch is checked against the row's, exactly. When
+there is no run to describe it falls back to an overview: a bounded list of
+recent runs, from which the newest on the branch is opened. Bare `no-mistakes
+axi` prints that overview and nothing else, so the run it would have described
+in detail is only ever found if the bound happens to reach it. That is why the
+panel asks for `axi status`.
+
+The overview is bounded, so a run can exist and still not be in it. When
 no-mistakes says the branch it is standing on has runs and none of them was
-listed, the row says exactly that rather than claiming there is none.
+listed, the row says exactly that rather than claiming there is none. A run
+described but not fully named gets its own sentence for the same reason: an
+answer this panel could not use is not a branch with no run.
 
 A row is never hidden for being unopenable. A worker on another machine, a
 worktree that has gone, a repository no-mistakes was never initialised in, a

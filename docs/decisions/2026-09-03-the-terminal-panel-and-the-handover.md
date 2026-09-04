@@ -56,14 +56,48 @@ The alternative was to have firstmate publish the run identifier. That is the
 better fix and it stays available; it is upstream's change to make, and this
 version does not need it.
 
+## Which shape `axi status` answers in
+
+`no-mistakes axi status` answers in two shapes, and the first version of this
+reader knew only the second. With a run on the branch it is standing on it
+describes that one run in a nested `run:` object; with none it falls back to an
+overview - two scalars and a bounded table. So the ordinary case, a worker with
+a live pipeline run, was the case that parsed to nothing, and the row told the
+operator there was no run at the exact moment there was one. Corrected on
+2026-09-04, against v1.64.0.
+
+The object names its own branch, and that branch is matched against the row's
+exactly, the same way a listed row's is. Nothing is inferred from the object
+being the one this repository is standing in: `axi status --run <id>` names an
+unrelated run's section `other_branch_run:`, so upstream is careful about the
+distinction and so is this.
+
+The overview stays as the fallback it turned out to be, rather than being
+replaced by bare `no-mistakes axi`. That command answers with the same bounded
+overview and nothing more: it never describes the current branch's run, so the
+run this panel is looking for would be found only when the bound happened to
+reach it. `axi status` describes that run outside the bound, which is the whole
+reason to ask it.
+
 ## Why a bounded listing gets its own sentence
 
-`no-mistakes axi status` lists a bounded number of runs and, separately, counts
-the runs on the branch it is standing on. The two can disagree, and when they
-do the count is the truth. So a row whose branch is counted but not listed says
-the run was not among those listed rather than that there is none - the same
-rule the web panel follows when it says a fleet timed out instead of saying it
-failed. Different facts get different sentences.
+The overview lists a bounded number of runs and, separately, counts the runs on
+the branch it is standing on. The two can disagree, and when they do the count
+is the truth. So a row whose branch is counted but not listed says the run was
+not among those listed rather than that there is none - the same rule the web
+panel follows when it says a fleet timed out instead of saying it failed.
+Different facts get different sentences.
+
+That path is a safeguard now rather than the everyday one, because a branch
+with runs is answered with the detailed object instead: every overview seen on
+2026-09-04 counted zero. It is kept because the count is upstream's own and
+costs nothing to believe.
+
+The same rule reaches one shape further. A `run:` object that arrives without an
+id, or without a branch, is neither a run to open nor a branch with no run: the
+command was understood and its answer was short. Calling that "no run" is how
+one unparsed shape became a claim about the operator's work, so it gets a
+sentence of its own instead.
 
 ## What it may not do
 
