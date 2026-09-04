@@ -88,6 +88,90 @@ func TestNarrowKeepsSelectionStateAndRunFirst(t *testing.T) {
 	}
 }
 
+// The yield order, demonstrated by taking the width away.
+//
+// Line one is the marker, the place in the list, the state and what Enter will
+// do; the project is appended only while it fits, the column padding and then
+// the place go after it, and the state and the run label go never. The title
+// preview shortens all the way down rather than being the thing that decides
+// the row's shape.
+func TestNarrowShedsFieldsInPriorityOrder(t *testing.T) {
+	// The title preview is the first thing to give, and it gives ground long
+	// before any column does.
+	wide := narrowRowLines(four(t, 88, 3).View())
+	tighter := narrowRowLines(four(t, 60, 3).View())
+	if widthOf(tighter[1]) >= widthOf(wide[1]) {
+		t.Errorf("the title preview did not yield first: %q against %q", tighter[1], wide[1])
+	}
+	if !strings.Contains(tighter[0], "almanac-app") {
+		t.Errorf("the project left before the title had finished yielding: %q", tighter[0])
+	}
+
+	// Then the project, which is in the detail block either way.
+	dropped := narrowRowLines(four(t, 36, 3).View())
+	if strings.Contains(dropped[0], "almanac-app") {
+		t.Errorf("the project outlived the room for it: %q", dropped[0])
+	}
+	if len(dropped) != 8 {
+		t.Errorf("the title preview left before the project: %d row lines", len(dropped))
+	}
+
+	// Then the alignment and the place in the list. What is left is what the
+	// row is for.
+	bare := narrowRowLines(four(t, 20, 3).View())
+	if strings.Contains(bare[0], "1/4") {
+		t.Errorf("the place survived a width that could not hold it: %q", bare[0])
+	}
+	for width, rows := range map[int][]string{36: dropped, 20: bare} {
+		if !strings.HasPrefix(rows[0], cursorAway) || !strings.HasPrefix(rows[6], cursorHere) {
+			t.Errorf("at %d columns the selection is not on the fourth row: %q", width, rows[6])
+		}
+		if !strings.Contains(rows[0], "working") || !strings.Contains(rows[0], nomistakes.NoRun.Label()) {
+			t.Errorf("at %d columns the state or the run availability was lost: %q", width, rows[0])
+		}
+		if !strings.Contains(rows[2], nomistakes.RepoSetup.Label()) {
+			t.Errorf("at %d columns a refusal kind was lost: %q", width, rows[2])
+		}
+	}
+
+	// And the selected work item is still explained whole, which is the point
+	// of taking anything away from the rows at all. At twenty columns the
+	// wrapping has to break inside words, so what is checked is that every
+	// character is still there and none of it was thrown away.
+	view := four(t, 20, 3).View()
+	squashed := strings.Join(strings.Fields(view), "")
+	for _, want := range []string{
+		"read-onlyclusterdiagnostic",
+		"reponotinitialized(run'no-mistakesinit'first)",
+	} {
+		if !strings.Contains(squashed, want) {
+			t.Errorf("at 20 columns the selected work item lost %q:\n%s", want, view)
+		}
+	}
+	for _, line := range detailLines(view) {
+		if strings.Contains(line, ellipsis) {
+			t.Errorf("the detail block elided rather than wrapped: %q", line)
+		}
+	}
+}
+
+// detailLines is everything from the selected heading to the footer.
+func detailLines(view string) []string {
+	var block []string
+	seen := false
+	for _, line := range lines(view) {
+		switch {
+		case strings.HasPrefix(line, "selected "):
+			seen = true
+		case seen && strings.TrimSpace(line) == "":
+			return block
+		case seen:
+			block = append(block, line)
+		}
+	}
+	return block
+}
+
 // A panel too narrow for the whole footer says the same four keys shorter
 // rather than losing one off the end.
 func TestTheFooterShrinksWithoutLosingAKey(t *testing.T) {

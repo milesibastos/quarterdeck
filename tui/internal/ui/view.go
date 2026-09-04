@@ -249,29 +249,78 @@ func (m Model) wideRows(sized table) []string {
 
 // narrowRows keeps the comparison on line one and moves the title to line two.
 //
-// The order is the priority order: the marker, where the operator is in the
-// list, what the worker is doing, and whether Enter opens it. Project is
-// dropped from the line before any of those is, and the title preview is
-// dropped before project - both of them are in the detail block whole.
+// The order fields are shed in is the priority order: the project leaves line
+// one before the title preview leaves the row, the column padding leaves
+// before the place in the list does, and the state and what Enter will do
+// never leave at all. Which form is used is decided once for the whole list
+// rather than per row, because a column an operator can read down is the
+// reason this layout exists.
 func (m Model) narrowRows(sized table) []string {
 	places := widthOf(m.place(len(m.items) - 1))
+	form := m.narrowForm(sized, places)
 	// The title falls under the state column rather than under the marker, so
 	// line two reads as this row's continuation and not as a row of its own.
-	indent := strings.Repeat(" ", 2+places+widthOf(gap))
+	indent := strings.Repeat(" ", 2)
+	if form <= withoutProject {
+		indent = strings.Repeat(" ", 2+places+widthOf(gap))
+	}
 	var lines []string
 	for i, item := range m.items {
-		line := m.mark(m.marker(i), pad(m.place(i), places)) + gap +
-			pad(stateLabel(item.State), sized.state) + gap +
-			pad(runKind(item).Label(), sized.run)
-		if withProject := line + gap + item.Project; widthOf(withProject) <= m.columns() {
-			line = withProject
-		}
-		lines = append(lines, strings.TrimRight(line, " "))
+		lines = append(lines, m.narrowRow(form, sized, places, i, item))
 		if work := m.columns() - widthOf(indent); work >= minimumWork {
 			lines = append(lines, indent+elide(item.Title, work))
 		}
 	}
 	return lines
+}
+
+// narrowForm is how much of a row line one still has room for.
+type narrowForm int
+
+const (
+	// withProject is the whole comparison: aligned columns, project included.
+	withProject narrowForm = iota
+	// withoutProject keeps the columns and gives the project up to the detail
+	// block, where it always is anyway.
+	withoutProject
+	// tight gives up the alignment, which is a real loss and still a smaller
+	// one than losing a field.
+	tight
+	// tightest gives up the place in the list. Past here nothing can be given
+	// up without hiding what the row is for, and the row is drawn too wide
+	// rather than drawn wrong.
+	tightest
+)
+
+func (m Model) narrowForm(sized table, places int) narrowForm {
+	for _, form := range []narrowForm{withProject, withoutProject, tight} {
+		widest := 0
+		for i, item := range m.items {
+			widest = max(widest, widthOf(m.narrowRow(form, sized, places, i, item)))
+		}
+		if widest <= m.columns() {
+			return form
+		}
+	}
+	return tightest
+}
+
+func (m Model) narrowRow(form narrowForm, sized table, places, index int, item Item) string {
+	state, run := stateLabel(item.State), runKind(item).Label()
+	var line string
+	switch form {
+	case withProject:
+		line = m.mark(m.marker(index), pad(m.place(index), places)) + gap +
+			pad(state, sized.state) + gap + pad(run, sized.run) + gap + item.Project
+	case withoutProject:
+		line = m.mark(m.marker(index), pad(m.place(index), places)) + gap +
+			pad(state, sized.state) + gap + run
+	case tight:
+		line = m.marker(index) + " " + m.place(index) + " " + state + " " + run
+	default:
+		line = m.marker(index) + " " + state + " " + run
+	}
+	return strings.TrimRight(line, " ")
 }
 
 // place is where one row sits in the list, which replaces the number column
@@ -304,8 +353,15 @@ func (m Model) footer() []string {
 	return []string{help}
 }
 
-// fit is the last resort, and it is only ever a resort: every line above is
-// built to the width already, and wrapped prose is wrapped rather than cut.
+// fit is the last resort, and it is only ever a resort.
+//
+// Every line above is built to the width: the header collapses, the rows shed
+// fields in priority order, and the detail block wraps rather than cuts. What
+// is left for this to catch is a terminal so narrow that even a marker, a
+// state and a run label do not fit on one line - roughly twenty columns for
+// the fleet's longest pair of words, well under the forty-eight the layout is
+// designed to stay useful at. There, and only there, a row is shortened from
+// its tail.
 func (m Model) fit(text string) string {
 	if m.width <= 0 || widthOf(text) <= m.width {
 		return text
