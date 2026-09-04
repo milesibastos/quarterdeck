@@ -20,10 +20,6 @@ import (
 // end.
 const labels = 8
 
-// detailIndent is the hanging indent every wrapped line falls under, which is
-// the label column plus its colon and space.
-const detailIndent = labels + 2
-
 func (m Model) detail() []string {
 	if !m.loaded || m.loadErr != "" || len(m.items) == 0 {
 		return nil

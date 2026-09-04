@@ -156,10 +156,15 @@ func (m Model) availability() map[nomistakes.Availability]int {
 // Attachable is the authority, not the kind the lookup wrote down: the two
 // agree everywhere a lookup produced them, and where they could not - a value
 // assembled by hand - the label must follow the key rather than the note
-// beside it.
+// beside it. An item that is not attachable and carries no kind at all is
+// normalised to Failed here, once, so the row label and the header's fold
+// over nomistakes.Order always agree on what a zero-value Attach means.
 func runKind(item Item) nomistakes.Availability {
 	if item.Attachable() {
 		return nomistakes.Ready
+	}
+	if item.Attach.Kind == "" {
+		return nomistakes.Failed
 	}
 	return item.Attach.Kind
 }
