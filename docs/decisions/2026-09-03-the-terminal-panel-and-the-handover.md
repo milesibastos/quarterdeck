@@ -80,7 +80,8 @@ daemon-starting entry points sit under `no-mistakes daemon start`, and whose
 The one thing it runs on purpose is `no-mistakes attach --run <id>`, as an
 argument vector in the work item's own worktree, never through a shell, and
 never without an operator pressing Enter first. A row it cannot open is never
-hidden: it keeps its place on the list and says why in place of the action.
+hidden: it keeps its place on the list and says what kind of refusal it is in
+place of the action, with the exact words beside the selected row.
 
 ## The cost
 
@@ -92,6 +93,9 @@ free.
 
 The two front ends can now disagree about what is in progress, because they
 refresh on their own clocks. Both read the same command, so the disagreement is
-never worse than the age difference between two reads - but only the web panel
-says how old its picture is. The terminal panel does not draw a snapshot age,
-and until it does, `r` is the only way to be certain.
+never worse than the age difference between two reads. When this was written
+only the web panel said how old its picture was; the terminal panel now draws a
+snapshot age of its own, from the same `generated` field - see
+`docs/decisions/2026-09-04-the-terminal-panels-columns-and-its-detail-block.md`,
+which also replaced this version's one-sentence rows with columns and a
+detail block.

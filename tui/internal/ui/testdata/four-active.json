@@ -8,7 +8,10 @@
       "project": "/opt/fleet/projects/almanac-app",
       "remote": null,
       "paths": {
-        "worktree": { "path": "/opt/worktrees/demo-almanac-a1", "present": true }
+        "worktree": {
+          "path": "/opt/worktrees/demo-almanac-a1",
+          "present": true
+        }
       },
       "current_state": { "state": "working", "detail": "harness busy" },
       "backlog": {
@@ -20,7 +23,10 @@
       "project": "/opt/fleet/projects/harbour",
       "remote": null,
       "paths": {
-        "worktree": { "path": "/opt/worktrees/demo-harbour-b2", "present": true }
+        "worktree": {
+          "path": "/opt/worktrees/demo-harbour-b2",
+          "present": true
+        }
       },
       "current_state": {
         "state": "paused",
@@ -35,7 +41,10 @@
       "project": "/opt/fleet/projects/harbour",
       "remote": null,
       "paths": {
-        "worktree": { "path": "/opt/worktrees/demo-harbour-b3", "present": true }
+        "worktree": {
+          "path": "/opt/worktrees/demo-harbour-b3",
+          "present": true
+        }
       },
       "current_state": { "state": "working", "detail": "" },
       "backlog": {
@@ -47,7 +56,10 @@
       "project": "/opt/fleet/projects/harbour",
       "remote": null,
       "paths": {
-        "worktree": { "path": "/opt/worktrees/demo-harbour-b4", "present": true }
+        "worktree": {
+          "path": "/opt/worktrees/demo-harbour-b4",
+          "present": true
+        }
       },
       "current_state": {
         "state": "paused",

@@ -592,6 +592,13 @@ are the ones worth writing down:
   not be listed. When `runs_on_current_branch` disagrees with the rows, the
   count is believed and the operator is told the run is out of reach rather
   than absent.
+- A refusal is placed where no-mistakes' words arrive and not where they are
+  drawn. `nomistakes.Availability` is that placement - `ready`, `no run`,
+  `not listed`, `repo setup`, `remote`, `worktree gone`, `tool missing`,
+  `timed out`, `daemon down`, `error` - and it travels beside the exact
+  sentence rather than replacing it. Only two of those are read out of
+  upstream's prose, because only two change what the operator does next; see
+  `docs/decisions/2026-09-04-the-terminal-panels-columns-and-its-detail-block.md`.
 
 The one command the terminal panel runs on an operator's word is `no-mistakes
 attach --run <id>`, as an argument vector in the work item's worktree, never
