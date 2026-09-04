@@ -94,7 +94,12 @@ func runCommand(ctx context.Context, dir string, args ...string) (string, error)
 	return string(out), err
 }
 
-// Resolve looks a branch's newest run up in the repository at dir.
+// Resolve looks a branch's run up in the repository at dir.
+//
+// `axi status` answers about the branch it is standing on, so its detailed
+// `run:` object is read first and its branch is checked against the one asked
+// for exactly, the same way a listed row is. The overview it falls back to when
+// there is no current run to detail is read after that, unchanged.
 //
 // It reads and never acts: `axi status` is no-mistakes' own read-only surface,
 // and nothing here starts a run, answers a gate or touches the daemon. A
@@ -114,12 +119,43 @@ func (r Resolver) Resolve(ctx context.Context, dir, branch string) Attach {
 		why := refusal(out)
 		return Attach{Why: why, Kind: kindOf(why)}
 	}
-	status := ParseStatus(out)
+	return decide(ParseStatus(out), branch)
+}
+
+// decide turns one read answer into the row's conclusion, in the order the two
+// shapes arrive in: the detailed run first, then the overview's listing, then
+// the reasons neither produced anything to open.
+func decide(status Status, branch string) Attach {
+	if status.Detailed && status.Current.ID != "" && status.Current.Branch == branch {
+		return Attach{RunID: status.Current.ID, Kind: Ready}
+	}
 	if run, ok := Newest(status.Runs, branch); ok {
 		return Attach{RunID: run.ID, Kind: Ready}
 	}
+	if why, incomplete := unreadable(status); incomplete {
+		return Attach{Why: why, Kind: Failed}
+	}
 	why, kind := missing(status, branch)
 	return Attach{Why: why, Kind: kind}
+}
+
+// unreadable is the run no-mistakes described and did not finish describing.
+//
+// It is kept apart from every kind of nothing below, because it is not one. The
+// command was understood, it answered, and the answer was short of the two
+// things a handover needs. Saying "no run" there would turn an answer this
+// program could not use into a fact about the operator's branch - which is the
+// defect this path was written to close.
+func unreadable(status Status) (string, bool) {
+	switch {
+	case !status.Detailed:
+		return "", false
+	case status.Current.ID == "":
+		return "no-mistakes described a run without an identifier to open it", true
+	case status.Current.Branch == "":
+		return "no-mistakes described a run without saying which branch it is on", true
+	}
+	return "", false
 }
 
 // missing says which kind of nothing was found.
