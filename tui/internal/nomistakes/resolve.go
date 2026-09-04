@@ -34,8 +34,12 @@ func BranchFor(taskID string) string { return "fm/" + taskID }
 // why there is nothing to open. Exactly one of the two is set.
 type Attach struct {
 	RunID string
-	// Why is shown on the row in place of the action. Never a machine path.
+	// Why is the whole sentence, kept for the selected row. Never a machine
+	// path.
 	Why string
+	// Kind is the same conclusion as a value, so the list can draw one short
+	// label per row without reading Why.
+	Kind Availability
 }
 
 // Newest is the run to attach to when a branch has several.
@@ -97,20 +101,25 @@ func runCommand(ctx context.Context, dir string, args ...string) (string, error)
 // lookup that fails is a sentence on one row, not a failure of the list.
 func (r Resolver) Resolve(ctx context.Context, dir, branch string) Attach {
 	if _, err := r.LookPath(Executable); err != nil {
-		return Attach{Why: "no-mistakes is not installed"}
+		return Attach{Why: "no-mistakes is not installed", Kind: ToolMissing}
 	}
 	out, err := r.Run(ctx, dir, "axi", "status")
 	if err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			return Attach{Why: fmt.Sprintf("no-mistakes did not answer within %s", lookupTimeout)}
+			return Attach{
+				Why:  fmt.Sprintf("no-mistakes did not answer within %s", lookupTimeout),
+				Kind: TimedOut,
+			}
 		}
-		return Attach{Why: refusal(out)}
+		why := refusal(out)
+		return Attach{Why: why, Kind: kindOf(why)}
 	}
 	status := ParseStatus(out)
 	if run, ok := Newest(status.Runs, branch); ok {
-		return Attach{RunID: run.ID}
+		return Attach{RunID: run.ID, Kind: Ready}
 	}
-	return Attach{Why: missing(status, branch)}
+	why, kind := missing(status, branch)
+	return Attach{Why: why, Kind: kind}
 }
 
 // missing says which kind of nothing was found.
@@ -119,11 +128,11 @@ func (r Resolver) Resolve(ctx context.Context, dir, branch string) Attach {
 // is no run" are different facts. When no-mistakes counts runs on the branch it
 // is standing on and the listing does not show them, the count is what is
 // believed and the row says the run is out of reach rather than absent.
-func missing(status Status, branch string) string {
+func missing(status Status, branch string) (string, Availability) {
 	if status.CountedRuns && status.RunsOnCurrentBranch > 0 && status.CurrentBranch == branch {
-		return "a run exists on " + branch + " but was not among the runs listed"
+		return "a run exists on " + branch + " but was not among the runs listed", NotListed
 	}
-	return "no no-mistakes run on " + branch
+	return "no no-mistakes run on " + branch, NoRun
 }
 
 // refusal is the first line no-mistakes refused with, which is written for a

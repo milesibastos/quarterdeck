@@ -1,0 +1,61 @@
+{
+  "schema": "fm-fleet-snapshot.v1",
+  "generated": "2099-01-01T09:00:00Z",
+  "fm_home": "/opt/fleet",
+  "tasks": [
+    {
+      "id": "demo-almanac-a1",
+      "project": "/opt/fleet/projects/almanac-app",
+      "remote": null,
+      "paths": {
+        "worktree": { "path": "/opt/worktrees/demo-almanac-a1", "present": true }
+      },
+      "current_state": { "state": "working", "detail": "harness busy" },
+      "backlog": {
+        "title": "almanac account 214: automation Send Digest Event silently drops ~20% of events since 2099-01-02"
+      }
+    },
+    {
+      "id": "demo-harbour-b2",
+      "project": "/opt/fleet/projects/harbour",
+      "remote": null,
+      "paths": {
+        "worktree": { "path": "/opt/worktrees/demo-harbour-b2", "present": true }
+      },
+      "current_state": {
+        "state": "paused",
+        "detail": "remount attempted twice, waiting on the captain before a third"
+      },
+      "backlog": {
+        "title": "node-agent-hsh: btrfs /@/var mounted read-only — ~7 tenants silently dropping uploads and inbound webhooks"
+      }
+    },
+    {
+      "id": "demo-harbour-b3",
+      "project": "/opt/fleet/projects/harbour",
+      "remote": null,
+      "paths": {
+        "worktree": { "path": "/opt/worktrees/demo-harbour-b3", "present": true }
+      },
+      "current_state": { "state": "working", "detail": "" },
+      "backlog": {
+        "title": "node-agent-nbg1-qzx cordoned 39h with the cluster upgrade Plan stuck applying"
+      }
+    },
+    {
+      "id": "demo-harbour-b4",
+      "project": "/opt/fleet/projects/harbour",
+      "remote": null,
+      "paths": {
+        "worktree": { "path": "/opt/worktrees/demo-harbour-b4", "present": true }
+      },
+      "current_state": {
+        "state": "paused",
+        "detail": "pull request 56 updated with the cleanup, waiting on the captain's merge decision"
+      },
+      "backlog": {
+        "title": "cluster almanac (k8s.example.test): read-only cluster diagnostic, focus on the beacon tenant services"
+      }
+    }
+  ]
+}

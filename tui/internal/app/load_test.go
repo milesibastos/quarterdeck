@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/milesibastos/quarterdeck/tui/internal/fleet"
 	"github.com/milesibastos/quarterdeck/tui/internal/nomistakes"
@@ -80,11 +81,11 @@ func itemsByID(t *testing.T, items []Item) map[string]Item {
 
 func TestLoadAttachesWhatItCan(t *testing.T) {
 	record := &asked{}
-	items, err := loaderReading(listing, nil, record).Load(context.Background())
+	refresh, err := loaderReading(listing, nil, record).Load(context.Background())
 	if err != nil {
 		t.Fatalf("loading: %v", err)
 	}
-	byID := itemsByID(t, items)
+	byID := itemsByID(t, refresh.Items)
 
 	alpha := byID["demo-alpha-a1"]
 	if !alpha.Attachable() || alpha.Attach.RunID != "01AAAAAAAAAAAAAAAAAAAAAAAA" {
@@ -99,11 +100,11 @@ func TestLoadAttachesWhatItCan(t *testing.T) {
 // own reason, and none of them is a failure of the list.
 func TestLoadKeepsRowsItCannotOpen(t *testing.T) {
 	record := &asked{}
-	items, err := loaderReading(listing, nil, record).Load(context.Background())
+	refresh, err := loaderReading(listing, nil, record).Load(context.Background())
 	if err != nil {
 		t.Fatalf("loading: %v", err)
 	}
-	byID := itemsByID(t, items)
+	byID := itemsByID(t, refresh.Items)
 
 	remote := byID["demo-beacon-b2"]
 	if remote.Attachable() || !strings.Contains(remote.Attach.Why, "another machine") {
@@ -132,17 +133,17 @@ func TestLoadKeepsRowsItCannotOpen(t *testing.T) {
 func TestLoadWhenTheRunHasNotStarted(t *testing.T) {
 	record := &asked{}
 	empty := "current_branch: fm/demo-alpha-a1\nruns_on_current_branch: 0\n"
-	items, err := loaderReading(empty, nil, record).Load(context.Background())
+	refresh, err := loaderReading(empty, nil, record).Load(context.Background())
 	if err != nil {
 		t.Fatalf("loading: %v", err)
 	}
-	byID := itemsByID(t, items)
+	byID := itemsByID(t, refresh.Items)
 	alpha := byID["demo-alpha-a1"]
 	if alpha.Attachable() || !strings.Contains(alpha.Attach.Why, "no no-mistakes run") {
 		t.Errorf("alpha = %+v", alpha.Attach)
 	}
-	if len(items) != 5 {
-		t.Errorf("items = %d, want every work item still listed", len(items))
+	if len(refresh.Items) != 5 {
+		t.Errorf("items = %d, want every work item still listed", len(refresh.Items))
 	}
 }
 
@@ -151,14 +152,14 @@ func TestLoadWhenTheRunHasNotStarted(t *testing.T) {
 // decides what Enter does.
 func TestLoadSurvivesALookupThatFails(t *testing.T) {
 	record := &asked{}
-	items, err := loaderReading("error: daemon not running\n", errors.New("exit status 1"), record).Load(context.Background())
+	refresh, err := loaderReading("error: daemon not running\n", errors.New("exit status 1"), record).Load(context.Background())
 	if err != nil {
 		t.Fatalf("a failed lookup broke the whole list: %v", err)
 	}
-	if len(items) != 5 {
-		t.Fatalf("items = %d, want 5", len(items))
+	if len(refresh.Items) != 5 {
+		t.Fatalf("items = %d, want 5", len(refresh.Items))
 	}
-	if why := itemsByID(t, items)["demo-alpha-a1"].Attach.Why; !strings.Contains(why, "daemon not running") {
+	if why := itemsByID(t, refresh.Items)["demo-alpha-a1"].Attach.Why; !strings.Contains(why, "daemon not running") {
 		t.Errorf("why = %q", why)
 	}
 }
@@ -169,11 +170,11 @@ func TestLoadWhenTheWorktreeWentAwayAfterTheSnapshot(t *testing.T) {
 	record := &asked{}
 	loader := loaderReading(listing, nil, record)
 	loader.DirExists = func(string) bool { return false }
-	items, err := loader.Load(context.Background())
+	refresh, err := loader.Load(context.Background())
 	if err != nil {
 		t.Fatalf("loading: %v", err)
 	}
-	for _, item := range items {
+	for _, item := range refresh.Items {
 		if item.Attachable() {
 			t.Errorf("%s was attachable with no worktree on disk", item.ID)
 		}
@@ -194,5 +195,19 @@ func TestLoadFailsWhenTheFleetCannotBeRead(t *testing.T) {
 	}
 	if _, err := loader.Load(context.Background()); err == nil {
 		t.Fatal("a snapshot announcing another schema was drawn")
+	}
+}
+
+// The snapshot's own instant travels with the rows, because a list is only as
+// current as the read it was folded from and nothing downstream has another
+// way to know.
+func TestLoadCarriesWhenTheFleetLooked(t *testing.T) {
+	record := &asked{}
+	refresh, err := loaderReading(listing, nil, record).Load(context.Background())
+	if err != nil {
+		t.Fatalf("loading: %v", err)
+	}
+	if refresh.Generated.UTC().Format(time.RFC3339) != "2099-01-01T09:00:00Z" {
+		t.Errorf("generated = %v", refresh.Generated)
 	}
 }

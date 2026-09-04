@@ -32,10 +32,10 @@ type Item = app.Item
 
 // Load is one refresh, injected so the model can be driven with no fleet, no
 // daemon and no terminal.
-type Load func(ctx context.Context) ([]app.Item, error)
+type Load func(ctx context.Context) (app.Fleet, error)
 
 type itemsMsg struct {
-	items []app.Item
+	fleet app.Fleet
 	err   error
 }
 
@@ -51,6 +51,13 @@ type Model struct {
 	items    []app.Item
 	cursor   int
 	selected string
+
+	// generated is the snapshot's own instant, and the zero time when it
+	// carried none this build could read. The header says which.
+	generated time.Time
+	// now is the clock the age is measured against, injected so a fixture
+	// dated at a fixed instant draws the same header on every machine.
+	now func() time.Time
 
 	// loading and childRunning are the two reasons a tick does not become a
 	// read: a refresh already in flight, and a child that owns the terminal.
@@ -69,7 +76,7 @@ type Model struct {
 // Init's first act is that read, and a tick arriving before the read answered
 // would otherwise start a second one.
 func New(load Load, label string) Model {
-	return Model{load: load, label: label, loading: true}
+	return Model{load: load, label: label, loading: true, now: time.Now}
 }
 
 // Init starts the first read and arms the tick.
@@ -156,7 +163,8 @@ func (m Model) received(msg itemsMsg) Model {
 		return m
 	}
 	m.loadErr = ""
-	m.items = msg.items
+	m.items = msg.fleet.Items
+	m.generated = msg.fleet.Generated
 	m.cursor = clamp(m.indexOf(m.selected), len(m.items))
 	if len(m.items) > 0 {
 		m.selected = m.items[m.cursor].ID
@@ -217,8 +225,8 @@ func (m *Model) refresh() tea.Cmd {
 
 func loadCmd(load Load) tea.Cmd {
 	return func() tea.Msg {
-		items, err := load(context.Background())
-		return itemsMsg{items: items, err: err}
+		fleet, err := load(context.Background())
+		return itemsMsg{fleet: fleet, err: err}
 	}
 }
 

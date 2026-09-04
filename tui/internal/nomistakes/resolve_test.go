@@ -173,3 +173,82 @@ func TestAttachCommand(t *testing.T) {
 		t.Error("the attach command captured a stream instead of inheriting it")
 	}
 }
+
+// Every refusal carries a kind beside its sentence, so a renderer draws a
+// short label without reading the prose - and the two kinds worth telling
+// apart, a repository nobody initialised and a daemon that is down, are told
+// apart here rather than downstream.
+func TestResolveSaysWhichKindOfNothing(t *testing.T) {
+	var asked []string
+	cases := []struct {
+		name string
+		out  string
+		err  error
+		path func(string) (string, error)
+		kind Availability
+		why  string
+	}{
+		{"ready", listing, nil, found, Ready, ""},
+		{"no run", "current_branch: fm/other\nruns_on_current_branch: 0\n", nil, found, NoRun, "no no-mistakes run on fm/demo-alpha-a1"},
+		{
+			"not listed",
+			"current_branch: fm/demo-alpha-a1\nruns_on_current_branch: 2\n",
+			nil, found, NotListed, "was not among the runs listed",
+		},
+		{"repo setup", "error: repo not initialized (run 'no-mistakes init' first)\n", errors.New("exit status 1"), found, RepoSetup, "repo not initialized"},
+		{"daemon down", "error: daemon not running\n", errors.New("exit status 1"), found, DaemonDown, "daemon not running"},
+		{"error", "error: something else entirely\n", errors.New("exit status 1"), found, Failed, "something else entirely"},
+		{"tool missing", "", nil, missingExe, ToolMissing, "not installed"},
+	}
+	for _, want := range cases {
+		resolver := Resolver{LookPath: want.path, Run: answering(want.out, want.err, &asked)}
+		got := resolver.Resolve(context.Background(), "/opt/worktrees/demo-alpha-a1", "fm/demo-alpha-a1")
+		if got.Kind != want.kind {
+			t.Errorf("%s: kind = %q, want %q", want.name, got.Kind, want.kind)
+		}
+		if want.why != "" && !strings.Contains(got.Why, want.why) {
+			t.Errorf("%s: why = %q, want it to carry %q", want.name, got.Why, want.why)
+		}
+		if want.kind == Ready && got.RunID == "" {
+			t.Errorf("%s: nothing to open", want.name)
+		}
+	}
+}
+
+// A lookup that outran its budget is a slow daemon, which is a different fact
+// from a daemon that refused - and the kinds say which.
+func TestResolveTimingOutHasItsOwnKind(t *testing.T) {
+	var asked []string
+	resolver := Resolver{LookPath: found, Run: answering("", context.DeadlineExceeded, &asked)}
+	got := resolver.Resolve(context.Background(), "/opt/worktrees/demo-alpha-a1", "fm/demo-alpha-a1")
+	if got.Kind != TimedOut {
+		t.Errorf("kind = %q", got.Kind)
+	}
+	if !strings.Contains(got.Why, "did not answer within") {
+		t.Errorf("why = %q", got.Why)
+	}
+}
+
+// Every kind is in the order a summary is folded from, and every one of them
+// has a label. A kind added without a place in that order is a kind nothing
+// counts.
+func TestEveryKindIsOrderedAndLabelled(t *testing.T) {
+	seen := map[Availability]bool{}
+	for _, kind := range Order {
+		if seen[kind] {
+			t.Errorf("%q is in the order twice", kind)
+		}
+		seen[kind] = true
+		if kind.Label() == "" {
+			t.Errorf("%q has no label", kind)
+		}
+	}
+	for _, kind := range []Availability{
+		Ready, NoRun, NotListed, RepoSetup, RemoteWorker,
+		WorktreeGone, ToolMissing, TimedOut, DaemonDown, Failed,
+	} {
+		if !seen[kind] {
+			t.Errorf("%q is not in the order a summary counts", kind)
+		}
+	}
+}
