@@ -20,20 +20,21 @@ import (
 // released, so a test can hold one open and watch what the model does while it
 // is in flight.
 type loads struct {
-	mu       sync.Mutex
-	started  int
-	items    []app.Item
-	err      error
-	hold     chan struct{}
-	entered  chan struct{}
-	blocking bool
+	mu        sync.Mutex
+	started   int
+	items     []app.Item
+	generated time.Time
+	err       error
+	hold      chan struct{}
+	entered   chan struct{}
+	blocking  bool
 }
 
 func newLoads(items []app.Item) *loads {
 	return &loads{items: items, hold: make(chan struct{}), entered: make(chan struct{}, 8)}
 }
 
-func (l *loads) load(context.Context) ([]app.Item, error) {
+func (l *loads) load(context.Context) (app.Fleet, error) {
 	l.mu.Lock()
 	l.started++
 	blocking := l.blocking
@@ -42,7 +43,7 @@ func (l *loads) load(context.Context) ([]app.Item, error) {
 	if blocking {
 		<-l.hold
 	}
-	return l.items, l.err
+	return app.Fleet{Items: l.items, Generated: l.generated}, l.err
 }
 
 func (l *loads) count() int {
@@ -76,6 +77,10 @@ func run(cmd tea.Cmd) []tea.Msg {
 }
 
 func item(id, runID, why string) app.Item {
+	kind := nomistakes.Ready
+	if runID == "" {
+		kind = nomistakes.NoRun
+	}
 	return app.Item{
 		Row: fleet.Row{
 			ID:       id,
@@ -84,7 +89,7 @@ func item(id, runID, why string) app.Item {
 			State:    "working",
 			Worktree: "/opt/worktrees/" + id,
 		},
-		Attach: nomistakes.Attach{RunID: runID, Why: why},
+		Attach: nomistakes.Attach{RunID: runID, Why: why, Kind: kind},
 	}
 }
 
@@ -97,7 +102,7 @@ var (
 func listed(t *testing.T, source *loads) Model {
 	t.Helper()
 	model := New(source.load, "fleet")
-	next, _ := model.Update(itemsMsg{items: source.items})
+	next, _ := model.Update(itemsMsg{fleet: app.Fleet{Items: source.items, Generated: source.generated}})
 	return next.(Model)
 }
 
@@ -271,17 +276,17 @@ func TestSelectionSurvivesARefresh(t *testing.T) {
 	model := listed(t, source)
 	moved, _ := model.Update(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}})
 
-	same, _ := moved.(Model).Update(itemsMsg{items: []app.Item{waiting, attachable}})
+	same, _ := moved.(Model).Update(itemsMsg{fleet: app.Fleet{Items: []app.Item{waiting, attachable}}})
 	if same.(Model).cursor != 0 || same.(Model).selected != "demo-alpha-a10" {
 		t.Errorf("the operator's place moved with the list: %+v", same.(Model).cursor)
 	}
 
-	gone, _ := same.(Model).Update(itemsMsg{items: []app.Item{attachable}})
+	gone, _ := same.(Model).Update(itemsMsg{fleet: app.Fleet{Items: []app.Item{attachable}}})
 	if gone.(Model).cursor != 0 || gone.(Model).selected != "demo-alpha-a1" {
 		t.Errorf("cursor = %d, selected = %q", gone.(Model).cursor, gone.(Model).selected)
 	}
 
-	empty, _ := gone.(Model).Update(itemsMsg{items: nil})
+	empty, _ := gone.(Model).Update(itemsMsg{fleet: app.Fleet{}})
 	if empty.(Model).cursor != 0 {
 		t.Errorf("cursor on an empty list = %d", empty.(Model).cursor)
 	}
@@ -305,18 +310,27 @@ func TestTheViewNamesEveryRowAndItsAction(t *testing.T) {
 	view := next.(Model).View()
 
 	for _, want := range []string{
-		"fleet",
-		"2 work items in progress",
-		"> demo-alpha-a1",
+		"quarterdeck / fleet",
+		"2 active",
+		"2 working",
+		"run access: 1 ready | 1 no run",
+		"STATE",
+		"RUN",
+		"PROJECT",
+		"WORK",
 		"almanac",
-		"working",
-		openable,
-		"no no-mistakes run on fm/demo-alpha-a10",
-		"enter opens no-mistakes",
+		"selected 1/2",
+		"Enter opens no-mistakes run 01AAAAAAAAAAAAAAAAAAAAAAAA",
+		keys,
 	} {
 		if !strings.Contains(view, want) {
 			t.Errorf("view does not say %q:\n%s", want, view)
 		}
+	}
+	// The unselected row's refusal is in the detail block or nowhere; the row
+	// itself carries the short label instead.
+	if strings.Contains(view, "no no-mistakes run on fm/demo-alpha-a10") {
+		t.Errorf("an unselected row printed its whole refusal:\n%s", view)
 	}
 }
 

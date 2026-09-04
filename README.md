@@ -135,6 +135,20 @@ no-mistakes run, `r` re-reads the fleet, and `q` or `ctrl+c` leaves. The list
 also re-reads itself every few seconds and again whenever no-mistakes hands the
 terminal back, because what you just watched may well have moved the fleet.
 
+It draws a table: a `>` on the selected row, then its place in the list, what
+the worker is doing, what `enter` will do, the project, and as much of the
+title as the width allows. A header says how many are active, what they are
+doing, how many rows `enter` can open and how old the snapshot is - or that
+the age is unknown, which it says rather than dating the picture from its own
+read. Under the list, one block explains the selected work item in full: the
+whole title, the fleet's own state word beside the plain one when they differ,
+whatever the worker last said it was doing, and either what `enter` opens or
+the entire reason it cannot. On a narrow terminal the same fields are drawn
+over two lines rather than squeezed; the title and then the project give way,
+and the selection, the state and whether `enter` works never do. Why it is
+shaped this way is in
+`docs/decisions/2026-09-04-the-terminal-panels-columns-and-its-detail-block.md`.
+
 It reads the same fleet the web panel does, through the same command - the
 snapshot a fleet home publishes - and honours `QUARTERDECK_FLEET_HOME`,
 `QUARTERDECK_FIXTURE_SET`, `QUARTERDECK_FIXTURE_ROOT` and
@@ -162,8 +176,12 @@ listed, the row says exactly that rather than claiming there is none.
 
 A row is never hidden for being unopenable. A worker on another machine, a
 worktree that has gone, a repository no-mistakes was never initialised in, a
-run that has not started, a daemon that did not answer - each stays on the list
-with its own reason in place of the action.
+run that has not started, a daemon that did not answer - each stays on the
+list, saying which of those it is in one short word where the action would be:
+`remote`, `worktree gone`, `repo setup`, `no run`, `not listed`, `daemon
+down`, `tool missing`, `timed out`, or `error` for anything else. The exact
+sentence no-mistakes refused with is kept whole, and printed once, beside the
+selected row.
 
 ### What this first version is not
 

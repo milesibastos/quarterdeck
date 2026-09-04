@@ -10,6 +10,7 @@ import (
 	"context"
 	"os"
 	"sync"
+	"time"
 
 	"github.com/milesibastos/quarterdeck/tui/internal/fleet"
 	"github.com/milesibastos/quarterdeck/tui/internal/nomistakes"
@@ -28,6 +29,18 @@ type Item struct {
 
 // Attachable reports whether Enter has anything to open.
 func (i Item) Attachable() bool { return i.Attach.RunID != "" }
+
+// Fleet is one refresh: the rows, and when upstream says it looked.
+//
+// The instant travels with the rows because it qualifies them - a list is only
+// as current as the snapshot it was folded from, and the panel that draws it
+// has no other way to say so.
+type Fleet struct {
+	Items []Item
+	// Generated is the snapshot's own timestamp, and the zero time when it
+	// carried none this build could read.
+	Generated time.Time
+}
 
 // Loader reads the fleet and resolves every row's run.
 type Loader struct {
@@ -55,10 +68,10 @@ func (l Loader) present(path string) bool {
 // A snapshot that cannot be read is the whole list failing, because there is
 // nothing to draw. A lookup that cannot be answered is one row's action being
 // unavailable, and the row stays.
-func (l Loader) Load(ctx context.Context) ([]Item, error) {
+func (l Loader) Load(ctx context.Context) (Fleet, error) {
 	snapshot, err := l.Source.Read(ctx)
 	if err != nil {
-		return nil, err
+		return Fleet{}, err
 	}
 	rows := fleet.ActiveRows(snapshot)
 	items := make([]Item, len(rows))
@@ -66,7 +79,7 @@ func (l Loader) Load(ctx context.Context) ([]Item, error) {
 		items[i] = Item{Row: row}
 	}
 	l.resolveAll(ctx, items)
-	return items, nil
+	return Fleet{Items: items, Generated: snapshot.GeneratedAt()}, nil
 }
 
 // resolveAll fills in each item's attach decision, in place, so the list keeps
@@ -93,10 +106,13 @@ func (l Loader) resolveAll(ctx context.Context, items []Item) {
 // upstream says is gone is not somewhere a run can be looked up.
 func (l Loader) attachFor(ctx context.Context, row fleet.Row) nomistakes.Attach {
 	if row.Remote != "" {
-		return nomistakes.Attach{Why: "runs on another machine; attach is local only"}
+		return nomistakes.Attach{
+			Why:  "runs on another machine; attach is local only",
+			Kind: nomistakes.RemoteWorker,
+		}
 	}
 	if row.Worktree == "" || !l.present(row.Worktree) {
-		return nomistakes.Attach{Why: "its worktree is gone"}
+		return nomistakes.Attach{Why: "its worktree is gone", Kind: nomistakes.WorktreeGone}
 	}
 	return l.Resolver.Resolve(ctx, row.Worktree, nomistakes.BranchFor(row.ID))
 }

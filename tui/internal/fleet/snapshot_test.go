@@ -129,3 +129,29 @@ func TestAFleetHomeIsReadThroughItsCommand(t *testing.T) {
 		t.Errorf("the command was not told which home to report on: %q", snapshot.Generated)
 	}
 }
+
+// The snapshot's own instant, which is the only honest source for how old the
+// picture is. Anything this build cannot read answers the zero time, and the
+// panel then says the age is unknown rather than dating it from its own read.
+func TestGeneratedAt(t *testing.T) {
+	cases := []struct {
+		raw   string
+		known bool
+	}{
+		{"2099-01-01T09:00:00Z", true},
+		{"2099-01-01T09:00:00+02:00", true},
+		{"", false},
+		{"2099-01-01", false},
+		{"whenever", false},
+	}
+	for _, want := range cases {
+		got := Snapshot{Generated: want.raw}.GeneratedAt()
+		if got.IsZero() == want.known {
+			t.Errorf("%q parsed to %v, known = %v", want.raw, got, want.known)
+		}
+	}
+	at := Snapshot{Generated: "2099-01-01T09:00:00Z"}.GeneratedAt()
+	if at.UTC().Format(time.RFC3339) != "2099-01-01T09:00:00Z" {
+		t.Errorf("instant = %v", at)
+	}
+}

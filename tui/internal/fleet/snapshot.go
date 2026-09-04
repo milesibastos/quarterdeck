@@ -43,6 +43,20 @@ type Snapshot struct {
 	Tasks     []Task `json:"tasks"`
 }
 
+// GeneratedAt is when upstream says it looked, as an instant.
+//
+// A snapshot with no `generated`, or one carrying something that is not an
+// RFC 3339 instant, answers the zero time rather than a guess: the panel then
+// says the age is unknown instead of inventing one. Nothing else about the
+// snapshot depends on it, so an unreadable timestamp costs the age and no more.
+func (s Snapshot) GeneratedAt() time.Time {
+	at, err := time.Parse(time.RFC3339, s.Generated)
+	if err != nil {
+		return time.Time{}
+	}
+	return at
+}
+
 // Task is one dispatched worker.
 type Task struct {
 	ID string `json:"id"`
