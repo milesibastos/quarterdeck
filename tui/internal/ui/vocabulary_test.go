@@ -65,6 +65,21 @@ func TestTheHeaderCounts(t *testing.T) {
 	}
 }
 
+// A row whose Attach was never filled in - no run id and no kind - still owes
+// the header a place: it reads as an error, the same fallback Label() gives a
+// zero-value Availability, so the breakdown's counts never fall short of the
+// active-item total.
+func TestAnUnfilledAttachIsCountedNotDropped(t *testing.T) {
+	rows := []app.Item{attachable, {Row: waiting.Row}}
+	source := newLoads(rows)
+	model := listed(t, source)
+	sized, _ := model.Update(tea.WindowSizeMsg{Width: 120, Height: 40})
+	shown := sized.(Model)
+	if got := shown.runCounts(); got != "1 ready | 1 error" {
+		t.Errorf("run counts = %q, want the unfilled row folded in as an error", got)
+	}
+}
+
 func stateRow(id, state string) app.Item {
 	row := item(id, "", "no no-mistakes run on fm/"+id)
 	row.State = state
